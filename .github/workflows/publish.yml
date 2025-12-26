@@ -3,20 +3,12 @@ name: Publish to PyPI
 on:
   release:
     types: [published]
-  workflow_dispatch:
-    inputs:
-      version:
-        description: 'Version to publish (leave empty for latest)'
-        required: false
-        default: ''
 
 jobs:
   build-and-publish:
     runs-on: ubuntu-latest
-    environment: release
     permissions:
       contents: read
-      # No id-token permission needed for API token publishing
 
     steps:
     - uses: actions/checkout@v4
