@@ -1,4 +1,4 @@
-# MoCoODE
+# MoCoO
 
 **Mo**mentum **Co**ntrast **O**DE-Regularized VAE for Single-Cell RNA Velocity
 
@@ -19,16 +19,59 @@ A unified deep learning framework combining Variational Autoencoders (VAE), Neur
 
 ## Installation
 
+### From PyPI (recommended)
+
 ```bash
-pip install torch torchdiffeq scanpy scikit-learn scipy tqdm
+pip install mocoo
 ```
 
-Clone repository:
+### From source
+
 ```bash
 git clone https://github.com/PeterPonyu/MoCoO.git
 cd MoCoO
 pip install -e .
 ```
+
+### Development installation
+
+```bash
+git clone https://github.com/PeterPonyu/MoCoO.git
+cd MoCoO
+pip install -e ".[dev]"
+```
+
+### Publishing
+
+The package is automatically published to PyPI when a GitHub release is created.
+
+**To create a new release:**
+
+1. **Bump version:**
+   ```bash
+   python release.py patch  # For bug fixes (0.0.1 → 0.0.2)
+   python release.py minor  # For new features (0.0.1 → 0.1.0)
+   python release.py major  # For breaking changes (0.0.1 → 1.0.0)
+   ```
+
+2. **Commit and push:**
+   ```bash
+   git add -A
+   git commit -m "Bump version to X.Y.Z"
+   git push
+   ```
+
+3. **Create GitHub release:**
+   - Go to [Releases](https://github.com/PeterPonyu/MoCoO/releases)
+   - Click "Create a new release"
+   - Tag: `vX.Y.Z` (e.g., `v0.1.0`)
+   - Title: `Release X.Y.Z`
+   - Description: List changes
+   - Click "Publish release"
+
+4. **Automated publishing:**
+   - GitHub Actions will automatically build and publish to PyPI
+   - Check the Actions tab for build status
 
 ---
 
@@ -38,7 +81,7 @@ pip install -e .
 
 ```python
 import scanpy as sc
-from MoCoODE import MoCoO
+from mocoo import MoCoO
 
 adata = sc.read_h5ad('data.h5ad')
 
@@ -166,8 +209,8 @@ Reconstruction (NB/ZINB/MSE/Poisson/ZIP)
 
 ```bibtex
 @article{mocoo2025,
-  title={MoCoODE: Momentum Contrast ODE-Regularized VAE for Single-Cell Trajectory Inference},
-  author={Zeyu Fu},
+  title={MoCoO: Momentum Contrast ODE-Regularized VAE for Single-Cell Trajectory Inference},
+  author={Ponyu, Peter},
   year={2025}
 }
 ```

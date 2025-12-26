@@ -211,7 +211,7 @@ class Env(MoCoOModel, envMixin):
         """Evaluate on validation set using raw counts for loss."""
         self.nn.eval()
         val_losses = []
-        all_latents = []
+        # Remove all_latents collection from the loop
         
         with torch.no_grad():
             for batch_idx, (batch_norm,) in enumerate(self.val_loader):
@@ -235,14 +235,12 @@ class Env(MoCoOModel, envMixin):
                 
                 loss = self._compute_validation_loss(outputs, batch_raw)
                 val_losses.append(loss.item())
-                
-                latent = outputs[0].cpu().numpy()
-                all_latents.append(latent)
         
         avg_val_loss = np.mean(val_losses) if val_losses else float('inf')
         self.val_losses.append(avg_val_loss)
         
-        all_latents = np.concatenate(all_latents, axis=0)
+        # Compute all_latents for the full validation set after the loop
+        all_latents = self.take_latent(self.X_val_norm)
         
         assert len(all_latents) == len(self.labels_val), \
             f"Latent/label mismatch: {len(all_latents)} != {len(self.labels_val)}"
@@ -251,6 +249,7 @@ class Env(MoCoOModel, envMixin):
         self.val_scores.append(val_score)
         
         return avg_val_loss, val_score
+
     
     def _compute_validation_loss(self, outputs: tuple, batch_raw: torch.Tensor) -> torch.Tensor:
         """Compute validation loss using raw counts."""

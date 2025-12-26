@@ -1,0 +1,9 @@
+include README.md
+include LICENSE
+include pyproject.toml
+include setup.cfg
+recursive-include mocoo *.py
+global-exclude *.pyc
+global-exclude __pycache__
+global-exclude *.pyo
+global-exclude .git*
