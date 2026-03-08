@@ -37,6 +37,15 @@ warnings.filterwarnings("ignore")
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent.parent.parent))
 from benchmarks.scripts.pipeline.visual_conflict_detector import detect_all_conflicts
 
+# ── Import centralized style ────────────────────────────────────────────────
+from mocoo.visualization.style import (
+    FIG_WIDTH_IN as FIG_W, FIG_HEIGHT_IN as FIG_H, DPI, SAVEFIG_KW,
+    FS_LABEL, FS_TITLE, FS_AXIS, FS_TICK, FS_LEGEND as FS_LEG, FS_SMALL,
+    get_config_colors, get_config_order, get_short_name, apply_style,
+)
+
+apply_style()
+
 # ── Fonts ──────────────────────────────────────────────────────────────────
 _FONT_DIR = Path(__file__).resolve().parent.parent.parent / "fonts"
 for _fp in (_FONT_DIR / "Arial.ttf", _FONT_DIR / "Arial Bold.ttf"):
@@ -47,30 +56,11 @@ if (_FONT_DIR / "Arial.ttf").exists():
     matplotlib.rcParams["font.sans-serif"] = ["Arial"] + list(
         matplotlib.rcParams.get("font.sans-serif", []))
 
-# ── Style constants (17 cm × 21 cm) ────────────────────────────────────────
-FIG_W = 17 / 2.54
-FIG_H = 21 / 2.54
-DPI   = 300
-FS_LABEL = 9
-FS_TITLE = 7
-FS_AXIS  = 6
-FS_TICK  = 5
-FS_LEG   = 4.5
-FS_SMALL = 3.8
-
-_CONFIGS = ["VAE", "VAE+ODE", "VAE+MoCo", "VAE+MoCo+Proto", "VAE+ODE+MoCo", "Full"]
-_PALETTE = ["#4C72B0", "#DD8452", "#55A868", "#C44E52", "#8172B3", "#937860"]
-_CONFIG_COLOR = dict(zip(_CONFIGS, _PALETTE))
-_SCATTER = dict(s=0.7, alpha=0.45, linewidths=0, rasterized=True)
-# Ultra-short abbreviations to avoid x-tick overlap
-_XSHORT = {
-    "VAE": "VAE",
-    "VAE+ODE": "V+O",
-    "VAE+MoCo": "V+M",
-    "VAE+MoCo+Proto": "V+MP",
-    "VAE+ODE+MoCo": "V+OM",
-    "Full": "Full",
-}
+# ── Style constants from centralized module ──────────────────────────────────
+_CONFIGS = get_config_order()
+_CONFIG_COLOR = get_config_colors()
+_SCATTER = dict(s=1.2, alpha=0.50, linewidths=0, rasterized=True)
+_XSHORT = {c: get_short_name(c) for c in _CONFIGS}
 
 # ── Data loading ───────────────────────────────────────────────────────────
 def _unify_metric_keys(m: dict) -> dict:
@@ -117,7 +107,6 @@ def _export_subpanels(fig, sub_dir: Path, panels: list) -> None:
         if ax is None:
             continue
         try:
-            # Expand bbox to include axis labels / titles / tick labels
             bbox = ax.get_tightbbox(renderer)
             if bbox is None:
                 continue
@@ -133,6 +122,20 @@ def _panel_label(fig, ax, letter):
     fig.text(pos.x0 - 0.026, pos.y1 + 0.006,
              f"({letter})", fontsize=FS_LABEL, fontweight="bold",
              va="bottom", ha="right", clip_on=False)
+
+
+def _highlight_best(ax, bars, vals, higher_better=True):
+    """Highlight the best-performing bar with a bold edge and value label."""
+    best_i = int(np.argmax(vals)) if higher_better else int(np.argmin(vals))
+    bars[best_i].set_edgecolor("crimson")
+    bars[best_i].set_linewidth(1.4)
+    # Add value label above the best bar
+    yval = vals[best_i]
+    fmt = f"{yval:.3f}" if yval < 1.0 else f"{yval:.1f}"
+    ax.annotate(fmt, xy=(best_i, yval),
+                xytext=(0, 3), textcoords="offset points",
+                ha="center", fontsize=FS_SMALL, color="crimson",
+                fontweight="bold")
 
 
 # ── Panel drawing ──────────────────────────────────────────────────────────
@@ -154,19 +157,17 @@ def _draw_umap_grid(gs, fig, configs, latents, labels, cache_dir):
         ax.set_xticks([]); ax.set_yticks([])
         ax.set_title(cfg, fontsize=FS_TITLE, pad=2,
                      color=_CONFIG_COLOR[cfg], fontweight="bold")
-        # Colour border by config
         for spine in ax.spines.values():
             spine.set_edgecolor(_CONFIG_COLOR[cfg])
             spine.set_linewidth(1.0)
-    # Shared legend in the 6th subplot slot override
-    # Place legend in first panel lower corner
+    # Shared legend in first panel
     uniq = np.unique(labels[0])
     handles = [plt.Line2D([0],[0], marker="o", color="w",
-                           markerfacecolor=cm20(k % 20), markersize=2.5)
+                           markerfacecolor=cm20(k % 20), markersize=3)
                for k in range(len(uniq))]
     ax_first.legend(handles, [str(lb) for lb in uniq],
-                    fontsize=FS_LEG - 0.5, ncol=2, loc="lower left",
-                    framealpha=0.65, handletextpad=0.1,
+                    fontsize=FS_LEG, ncol=2, loc="lower left",
+                    framealpha=0.70, handletextpad=0.1,
                     borderpad=0.2, markerscale=0.9, columnspacing=0.4)
     return ax_first
 
@@ -193,61 +194,72 @@ def _draw_clustering_bars(gs, fig, configs, metrics):
         bars2 = ax.bar(x + w/2, tvals, w, color=colors, alpha=0.4,
                        edgecolor="black", linewidth=0.4, hatch="//",
                        label="Test")
-        # Annotate max bar
-        best_i = int(np.argmax(vals))
-        ax.annotate("★", xy=(best_i - w/2, vals[best_i]),
-                    xytext=(0, 2), textcoords="offset points",
-                    ha="center", fontsize=FS_SMALL + 0.5, color="crimson")
+        # Highlight best config
+        _highlight_best(ax, bars1, vals, higher_better)
         ax.set_xticks(x)
         short = [_XSHORT[c] for c in configs]
-        ax.set_xticklabels(short, fontsize=FS_TICK - 0.5, rotation=50, ha="right")
+        ax.set_xticklabels(short, fontsize=FS_TICK, rotation=45, ha="right")
         ax.set_title(f"{label} {'↑' if higher_better else '↓'}",
                      fontsize=FS_TITLE, pad=2)
         if j == 0:
             ax.set_ylabel("Score", fontsize=FS_AXIS)
         ax.tick_params(labelsize=FS_TICK)
         ax.grid(alpha=0.22, linestyle="--", linewidth=0.4, axis="y")
-        ax.set_ylim(0, max(max(vals), max(tvals)) * 1.38)
+        ax.set_ylim(0, max(max(vals), max(tvals)) * 1.18)
         ax.yaxis.set_major_locator(plt.MaxNLocator(4, prune="upper"))
         if j == 0:
-            ax.legend(fontsize=FS_LEG, frameon=False, loc="upper left",
-                      handlelength=0.8, labelspacing=0.15)
+            ax.legend(fontsize=FS_LEG, frameon=True, loc="upper right",
+                      framealpha=0.75, handlelength=0.8, labelspacing=0.15,
+                      edgecolor="#cccccc")
     return ax_first
 
 
 def _draw_neighbourhood_quality(gs, fig, configs, metrics):
     """DREX: trustworthiness, continuity, distance Spearman + DRE overall."""
     items = [
-        ("DREX_trustworthiness",  "Trustworthiness"),
-        ("DREX_continuity",       "Continuity"),
-        ("DREX_distance_spearman","Dist. Spearman"),
-        ("DRE_umap_overall_quality", "DRE Quality"),
+        ("DREX_trustworthiness",  "Trustworthiness ↑", True),
+        ("DREX_continuity",       "Continuity ↑",      True),
+        ("DREX_distance_spearman","Dist. Spearman ↑",  True),
+        ("DRE_umap_overall_quality", "DRE Quality ↑",  True),
     ]
     x = np.arange(len(configs))
     colors = [_CONFIG_COLOR[c] for c in configs]
     short = [_XSHORT[c] for c in configs]
     ax_first = None
-    for j, (key, label) in enumerate(items):
+    for j, (key, label, higher_better) in enumerate(items):
         ax = fig.add_subplot(gs[j])
         if j == 0:
             ax_first = ax
         vals = [metrics[c].get(key, 0) for c in configs]
         bars = ax.bar(x, vals, color=colors, alpha=0.80,
                       edgecolor="black", linewidth=0.4)
+        # Highlight best
+        _highlight_best(ax, bars, vals, higher_better)
         ax.set_xticks(x)
-        ax.set_xticklabels(short, fontsize=FS_TICK - 0.5, rotation=50, ha="right")
+        ax.set_xticklabels(short, fontsize=FS_TICK, rotation=45, ha="right")
         ax.set_title(label, fontsize=FS_TITLE, pad=2)
         if j == 0:
             ax.set_ylabel("Score", fontsize=FS_AXIS)
         ax.tick_params(labelsize=FS_TICK)
         ax.grid(alpha=0.22, linestyle="--", linewidth=0.4, axis="y")
-        ymax = max(vals) * 1.35 if max(vals) > 0 else 1.0
-        ax.set_ylim(0, ymax)
-        ax.yaxis.set_major_locator(plt.MaxNLocator(4, prune="upper"))
-        # Highlight Full
-        full_i = configs.index("Full")
-        bars[full_i].set_edgecolor("crimson")
-        bars[full_i].set_linewidth(1.2)
+        # Smart y-axis: zoom in to show differences if values are clustered
+        valid_vals = [v for v in vals if v > 0 and np.isfinite(v)]
+        if valid_vals:
+            vmin, vmax = min(valid_vals), max(valid_vals)
+            val_range = vmax - vmin
+            if val_range < 0.15 * vmax and vmin > 0.3:
+                # Values are tightly clustered — zoom in
+                ylo = max(0, vmin - val_range * 1.5)
+                yhi = vmax + val_range * 1.5
+                ax.set_ylim(ylo, yhi)
+                # Disable offset notation — show plain values
+                ax.yaxis.get_major_formatter().set_useOffset(False)
+                ax.ticklabel_format(axis='y', useOffset=False, style='plain')
+            else:
+                ax.set_ylim(0, vmax * 1.18)
+        else:
+            ax.set_ylim(0, 1.0)
+        ax.yaxis.set_major_locator(plt.MaxNLocator(5, prune="both"))
     return ax_first
 
 
@@ -270,22 +282,19 @@ def _draw_latent_structure(gs, fig, configs, metrics):
         vals = [metrics[c].get(key, 0) for c in configs]
         bars = ax.bar(x, vals, color=colors, alpha=0.80,
                       edgecolor="black", linewidth=0.4)
+        # Highlight best
+        _highlight_best(ax, bars, vals, higher_better)
         ax.set_xticks(x)
-        ax.set_xticklabels(short, fontsize=FS_TICK - 0.5, rotation=50, ha="right")
+        ax.set_xticklabels(short, fontsize=FS_TICK, rotation=45, ha="right")
         ax.set_title(label, fontsize=FS_TITLE, pad=2)
         if j == 0:
-            ax.set_ylabel("Score", fontsize=FS_AXIS)
+            ax.set_ylabel("Value", fontsize=FS_AXIS)
         ax.tick_params(labelsize=FS_TICK)
         ax.grid(alpha=0.22, linestyle="--", linewidth=0.4, axis="y")
         valid_vals = [v for v in vals if np.isfinite(v)]
-        ymax = max(abs(v) for v in valid_vals) * 1.35 if valid_vals else 1.0
+        ymax = max(abs(v) for v in valid_vals) * 1.18 if valid_vals else 1.0
         ax.set_ylim(0, ymax)
         ax.yaxis.set_major_locator(plt.MaxNLocator(4, prune="upper"))
-        # Arrow annotation — ODE makes a difference
-        ode_i = configs.index("VAE+ODE") if "VAE+ODE" in configs else None
-        if ode_i is not None:
-            bars[ode_i].set_edgecolor("#DD8452")
-            bars[ode_i].set_linewidth(1.2)
     return ax_first
 
 
@@ -293,7 +302,6 @@ def _draw_latent_structure(gs, fig, configs, metrics):
 
 def build_figure(rdir: Path, outdir: Path):
     configs, latents, labels, metrics = _load_data(rdir)
-    # Store UMAP caches alongside benchmark data in results/, not figures/
     cache_dir = rdir
 
     fig = plt.figure(figsize=(FIG_W, FIG_H), dpi=DPI)
@@ -301,25 +309,25 @@ def build_figure(rdir: Path, outdir: Path):
     outer = gridspec.GridSpec(
         4, 1,
         height_ratios=[3.8, 2.6, 2.6, 2.6],
-        hspace=0.42,
+        hspace=0.35,
         figure=fig,
     )
 
     # Row A: UMAP grid (2×3)
     gs_A = gridspec.GridSpecFromSubplotSpec(
-        2, 3, subplot_spec=outer[0], wspace=0.12, hspace=0.32)
+        2, 3, subplot_spec=outer[0], wspace=0.12, hspace=0.28)
 
     # Row B: 3 bar charts
     gs_B = gridspec.GridSpecFromSubplotSpec(
-        1, 3, subplot_spec=outer[1], wspace=0.35)
+        1, 3, subplot_spec=outer[1], wspace=0.32)
 
     # Row C: 4 neighbourhood quality bars
     gs_C = gridspec.GridSpecFromSubplotSpec(
-        1, 4, subplot_spec=outer[2], wspace=0.35)
+        1, 4, subplot_spec=outer[2], wspace=0.32)
 
     # Row D: 4 latent structure bars
     gs_D = gridspec.GridSpecFromSubplotSpec(
-        1, 4, subplot_spec=outer[3], wspace=0.35)
+        1, 4, subplot_spec=outer[3], wspace=0.32)
 
     print("  Drawing Panel A (UMAP grid)...")
     ax_A = _draw_umap_grid(gs_A, fig, configs, latents, labels, cache_dir)
@@ -344,7 +352,7 @@ def build_figure(rdir: Path, outdir: Path):
     issues = detect_all_conflicts(fig, label="quant_comparison", verbose=True)
 
     outpath = outdir / "quant_comparison.png"
-    fig.savefig(outpath, dpi=DPI)
+    fig.savefig(outpath, **SAVEFIG_KW)
 
     # Export individual panel sub-figures
     sub_dir = outdir / "fig2_quant_comparison"
