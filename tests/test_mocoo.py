@@ -48,7 +48,7 @@ def sim_adata():
 @pytest.fixture
 def real_adata():
     """Load a real scRNA-seq dataset (dentate gyrus) if available."""
-    path = '/home/zeyufu/Desktop/datasets/DevelopmentDatasets/dentate.h5ad'
+    path = os.environ.get('MOCOO_TEST_DATA', '/home/zeyufu/Desktop/datasets/DevelopmentDatasets/dentate.h5ad')
     if not os.path.exists(path):
         pytest.skip(f"Real dataset not found: {path}")
 

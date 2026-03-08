@@ -23,6 +23,7 @@ Usage:
 from __future__ import annotations
 
 import argparse
+import os
 import warnings
 from pathlib import Path
 
@@ -570,13 +571,15 @@ def build_figure(data, adata, outpath: Path):
 # ══════════════════════════════════════════════════════════════════════════════
 
 def main():
+    _benchmarks = Path(__file__).resolve().parent.parent.parent  # benchmarks/
+    _data_base = os.environ.get("MOCOO_DATA_DIR", "/home/zeyufu")
     parser = argparse.ArgumentParser()
     parser.add_argument("--resultsdir",
-                        default="/home/zeyufu/Desktop/MoCoO/benchmarks/results/dataset_default")
+                        default=str(_benchmarks / "results" / "dataset_default"))
     parser.add_argument("--data",
-                        default="/home/zeyufu/Desktop/datasets/IRALL.h5ad")
+                        default=os.path.join(_data_base, "Desktop/datasets/IRALL.h5ad"))
     parser.add_argument("--outdir",
-                        default="/home/zeyufu/Desktop/MoCoO/benchmarks/figures")
+                        default=str(_benchmarks / "figures"))
     args = parser.parse_args()
 
     rdir   = Path(args.resultsdir)

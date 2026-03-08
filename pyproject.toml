@@ -10,10 +10,10 @@ readme = "README.md"
 license = "MIT"
 requires-python = ">=3.8"
 authors = [
-    {name = "Peter Ponyu"},
+    {name = "Fu, Zeyu"},
 ]
 maintainers = [
-    {name = "Peter Ponyu"},
+    {name = "Fu, Zeyu"},
 ]
 keywords = ["single-cell", "RNA-seq", "VAE", "ODE", "MoCo", "trajectory", "velocity"]
 classifiers = [

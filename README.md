@@ -223,7 +223,7 @@ Reconstruction (NB/ZINB/MSE/Poisson/ZIP)
 ```bibtex
 @article{mocoo2025,
   title={MoCoO: Momentum Contrast ODE-Regularized VAE for Single-Cell Trajectory Inference},
-  author={Ponyu, Peter},
+  author={Fu, Zeyu},
   year={2025}
 }
 ```

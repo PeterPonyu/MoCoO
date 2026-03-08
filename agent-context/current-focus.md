@@ -1,14 +1,24 @@
-## Active Task
+# Current Focus
 
-- Task: Establish a single canonical repo entrypoint for all agent configurations and prepare a clean portable push.
-- Status: IN PROGRESS
-- Branch: main
+**Last updated:** 2026-03-08
+
+## Recently Completed
+
+- **Parallel codebase and manuscript review** (8 Cursor agents, synthesized and applied 2026-03-08):
+  - Manuscript table numbering fixed: Tables IX–XIV renumbered to VIII–XIII (gap closed)
+  - README citation author corrected: `Ponyu, Peter` → `Fu, Zeyu`
+  - `benchmarks/FIGURES.md` proto_weight corrected: `0.05` → `0.1` (matches code and manuscript)
+  - `benchmarks/FIGURES.md` per-component ablation table: malformed single-line fixed to proper markdown
+  - `tests/test_mocoo.py` real-data path: hardcode → `MOCOO_TEST_DATA` env var with fallback
 
 ## Top Next Steps
 
-- Commit the already staged workflow bundle.
-- Push the commit to bp.
+1. **Add Acknowledgments** in manuscript (current placeholder: *(To be added)*).
+2. **Complete references [16]–[19]**: replace "et al." placeholders with full citations (scAGCL, scGPCL, scDiff, VeloVAE).
+3. **Multi-seed evaluation**: `run_multiseed.py` exists — run and add std devs to manuscript tables.
+4. **External baselines**: add scVI / Harmony comparison (noted in manuscript Limitations).
+5. **Document DRE/LSE aggregation**: clarify in Methods how UMAP vs tSNE variants are combined.
 
-## Highest-Risk Issue
+## Latest Review
 
-- The main risk is accidentally including unrelated modified files when committing the workflow bundle.
+See `agent-context/tasks/2026-03-08-codebase-manuscript-review/REVIEW-NOTE.md` for the full assessment.

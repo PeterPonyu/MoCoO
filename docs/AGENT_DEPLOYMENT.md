@@ -8,6 +8,9 @@ This repository now includes a portable agent workflow bundle designed for reuse
 
 Any editor-specific configuration should either read it directly or point to it. The goal is that a cloned repository still contains the full operational contract even if the next editor UI ignores custom prompt metadata.
 
+This is why `AGENTS.md` stays at repository root instead of moving into `.github/prompts/`.
+Prompt files are useful for editor integration, but they are not a sufficiently portable source of truth on their own.
+
 ## Included Files
 
 - `AGENTS.md`
@@ -15,6 +18,7 @@ Any editor-specific configuration should either read it directly or point to it.
 - `.github/agents/context-preserving-task.agent.md`
 - `.github/prompts/apply-cursor-agent-edits.prompt.md`
 - `.github/prompts/general-autonomous-task.prompt.md`
+- `.github/prompts/review-and-persist.prompt.md`
 - `scripts/install_agent_bundle.sh`
 
 ## Deploy To Another Repository
@@ -34,7 +38,7 @@ bash scripts/install_agent_bundle.sh --force /path/to/target-repo
 The script will:
 
 - copy the portable workflow files
-- create `agent-context/` placeholders if they do not exist
+- create the `agent-context/` runtime directory and its README if they do not exist
 - preserve existing target-repo files unless `--force` is supplied
 
 ## Best Practice For Cross-Project Use
@@ -43,6 +47,7 @@ The script will:
 - Keep live task state in `agent-context/` rather than only in chat.
 - Reuse the same task folder when the work is a continuation of the same task.
 - Use plain Markdown summaries so the next agent can resume without editor-specific state.
+- Do not treat `agent-context/` as a portable config folder; it is repository-specific task memory.
 
 ## Switching From Cursor To Claude
 
@@ -62,6 +67,13 @@ Important nuance:
 - Claude will not automatically execute VS Code prompt files.
 - The prompt file is still useful because it documents the integration workflow.
 - The real continuity comes from `agent-context/` and the repository files themselves.
+
+## Source Repo Versus Target Repo
+
+- The source bundle repository should carry the reusable configuration files and a short `agent-context/README.md`.
+- A target project repository should accumulate real task-state files in `agent-context/` as work proceeds.
+
+Review tasks are included in this rule: a meaningful review should create a real task folder and save `review-report.md` plus the standard task files.
 
 ## Recommended Pattern
 

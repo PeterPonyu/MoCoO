@@ -7,8 +7,8 @@ aspect ratio.  Integrated visual-conflict detection: the final PNG passes
 through the 7-pass detector (plus composed-specific checks) before export.
 
 Usage:
-    python benchmarks/plot_composed.py
-    python benchmarks/plot_composed.py --resultsdir benchmarks/results \
+    python benchmarks/scripts/plotting/plot_composed.py
+    python benchmarks/scripts/plotting/plot_composed.py --resultsdir benchmarks/results \
            --outdir benchmarks/figures
 """
 
@@ -81,11 +81,19 @@ def _s(cfg):
 # ═══════════════════════════════════════════════════════════════════════════════
 
 def _unify_metric_keys(m: dict) -> dict:
-    """Normalise JSON metric keys so downstream code uses short names."""
+    """Normalise JSON metric keys so downstream code uses short names.
+
+    Handles output from both run_benchmark.py and run_cross_and_validate.py,
+    which produce different key formats for the same metrics.
+    """
     _MAP = {
         "full_ARI": "ARI", "full_NMI": "NMI", "full_ASW": "ASW",
         "full_CH": "CAL", "full_DB": "DAV", "corr": "COR",
         "CH": "CAL", "DB": "DAV",
+        # run_cross_and_validate.py keys -> plot-expected keys
+        "LSE_overall": "LSE_overall_quality",
+        "DRE_UMAP_overall": "DRE_umap_overall_quality",
+        "DRE_tSNE_overall": "DRE_tsne_overall_quality",
     }
     for src, dst in _MAP.items():
         if src in m and dst not in m:
@@ -831,8 +839,9 @@ def main():
     ap.add_argument("--outdir", default=None)
     args = ap.parse_args()
 
-    rdir = Path(args.resultsdir) if args.resultsdir else Path("/home/zeyufu/Desktop/MoCoO/benchmarks/results/dataset_default")
-    odir = Path(args.outdir) if args.outdir else Path("/home/zeyufu/Desktop/MoCoO/benchmarks/figures")
+    _benchmarks = Path(__file__).resolve().parent.parent.parent  # benchmarks/
+    rdir = Path(args.resultsdir) if args.resultsdir else (_benchmarks / "results" / "dataset_default")
+    odir = Path(args.outdir) if args.outdir else (_benchmarks / "figures")
     odir.mkdir(parents=True, exist_ok=True)
 
     if not (rdir / "benchmark_data.npz").exists():

@@ -62,7 +62,7 @@ Several methods combine two of the three paradigms. scDiff [18] uses diffusion m
 
 ### A. Overview
 
-MoCoO is a modular framework illustrated in Fig. 1. The architecture processes scRNA-seq count data $X \in \mathbb{R}^{N \times G}$ ($N$ cells, $G$ genes) through five interconnected components: (1) a VAE with count-based likelihood decoder, (2) a Neural ODE solver for continuous dynamics, (3) a Momentum Contrast module with memory queue, (4) an information bottleneck, and (5) optional disentanglement regularisers.
+MoCoO is a modular framework illustrated in Fig. 1 (to be added). The architecture processes scRNA-seq count data $X \in \mathbb{R}^{N \times G}$ ($N$ cells, $G$ genes) through five interconnected components: (1) a VAE with count-based likelihood decoder, (2) a Neural ODE solver for continuous dynamics, (3) a Momentum Contrast module with memory queue, (4) an information bottleneck, and (5) optional disentanglement regularisers.
 
 ### B. Encoder
 
@@ -225,7 +225,7 @@ At weak KL ($\beta = 0.01$), the VAE again leads ARI (0.428). However, the Full 
 
 We isolate each component's marginal effect by computing deltas between adjacent configurations across all three beta settings.
 
-**TABLE IV: Component Effects (Δ from baseline, averaged across β)**
+**TABLE IV: Component Effects (Δ from baseline, by β)**
 
 | Component | Metric | β=1.0 | β=0.1 | β=0.01 | Interpretation |
 |-----------|--------|:-----:|:-----:|:------:|:---------------|
@@ -298,7 +298,7 @@ At 1,000 cells / 50 epochs, the VAE wins the most metrics overall (12/27), refle
 
 To validate that the ODE-derived pseudotime captures genuine developmental dynamics, we compute Spearman correlations between the learned pseudotime and canonical marker gene expression on all five datasets (Full MoCoO, 200 epochs).
 
-**TABLE IX: IRALL Pseudotime–Marker Correlations (Hematopoiesis)**
+**TABLE VIII: IRALL Pseudotime–Marker Correlations (Hematopoiesis)**
 
 | Gene | Function | Spearman $\rho$ | $p$-value |
 |------|----------|:---------------:|:---------:|
@@ -309,7 +309,7 @@ To validate that the ODE-derived pseudotime captures genuine developmental dynam
 | *Ctsg* | Granulocyte cathepsin G | +0.226 | $< 10^{-36}$ |
 | *Cd8a* | T-cell marker | −0.168 | $< 10^{-20}$ |
 
-**TABLE X: Dentate Pseudotime–Marker Correlations (Neurogenesis)**
+**TABLE IX: Dentate Pseudotime–Marker Correlations (Neurogenesis)**
 
 | Gene | Function | Spearman $\rho$ | $p$-value |
 |------|----------|:---------------:|:---------:|
@@ -320,7 +320,7 @@ To validate that the ODE-derived pseudotime captures genuine developmental dynam
 | *Olig1* | Oligodendrocyte | +0.282 | $< 10^{-56}$ |
 | *Dcx* | Migrating neuroblast | −0.229 | $< 10^{-37}$ |
 
-**TABLE XI: Endo Pseudotime–Marker Correlations (Pancreatic Endocrine)**
+**TABLE X: Endo Pseudotime–Marker Correlations (Pancreatic Endocrine)**
 
 | Gene | Function | Spearman $\rho$ | $p$-value |
 |------|----------|:---------------:|:---------:|
@@ -331,7 +331,7 @@ To validate that the ODE-derived pseudotime captures genuine developmental dynam
 | *Chgb* | Pan-endocrine | +0.191 | $< 10^{-22}$ |
 | *Gcg* | α-cell glucagon | +0.181 | $< 10^{-20}$ |
 
-**TABLE XII: Paul Pseudotime–Marker Correlations (Myeloid/Erythroid)**
+**TABLE XI: Paul Pseudotime–Marker Correlations (Myeloid/Erythroid)**
 
 | Gene | Function | Spearman $\rho$ | $p$-value |
 |------|----------|:---------------:|:---------:|
@@ -344,7 +344,7 @@ To validate that the ODE-derived pseudotime captures genuine developmental dynam
 
 Pseudotime aligns with the myeloid/erythroid bifurcation: erythroid markers (*Epor*, *Hba-a2*, *Gata1*) positively correlate while the bipotent progenitor marker *Gata2* anti-correlates, capturing the well-characterised progenitor branching point. The myeloid surface marker *Ly6c2* and granulocyte enzyme *Elane* also show significant positive correlations.
 
-**TABLE XIII: Spinoids Pseudotime–Marker Correlations (Spinal Cord Organoid)**
+**TABLE XII: Spinoids Pseudotime–Marker Correlations (Spinal Cord Organoid)**
 
 | Gene | Function | Spearman $\rho$ | $p$-value |
 |------|----------|:---------------:|:---------:|
@@ -355,9 +355,9 @@ Pseudotime aligns with the myeloid/erythroid bifurcation: erythroid markers (*Ep
 | *SOX2* | Neural progenitor | +0.136 | $< 10^{-14}$ |
 | *NEUROG1* | Neurogenin-1 | −0.076 | $< 10^{-5}$ |
 
-Pseudotime captures the progenitor-to-differentiated axis in spinal cord organoids: proliferation markers (*MKI67*, *TOP2A*) and progenitor TFs (*SOX2*, *PAX6*) positively correlate, while neuronal marker (*TUBB3*) and axial mesoderm TF (*TBXT*) anti-correlate, consistent with organoid maturation dynamics.
+Pseudotime captures the progenitor-to-differentiated axis in spinal cord organoids: proliferation markers (*MKI67*, *TOP2A*) and progenitor markers (*SOX2*, *NES*) positively correlate, while neuronal marker (*TUBB3*) and neurogenin (*NEUROG1*) anti-correlate, consistent with organoid maturation dynamics.
 
-**TABLE XIV: Biovalidation Summary Across All Five Datasets**
+**TABLE XIII: Biovalidation Summary Across All Five Datasets**
 
 | Dataset | Top Marker | $\rho$ | $p$-value | Biological Axis |
 |---------|-----------|:------:|:---------:|:----------------|

@@ -54,7 +54,7 @@ ODE_CONFIGS = {
         use_ode=True, use_moco=True, use_prototype=True,
         vae_reg=0.5, ode_reg=0.5,
         moco_weight=1.0, moco_T=0.2, moco_K=4096,
-        n_prototypes=64,
+        n_prototypes=12,
     ),
 }
 

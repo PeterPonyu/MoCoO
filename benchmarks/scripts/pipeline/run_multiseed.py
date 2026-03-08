@@ -71,7 +71,7 @@ CONFIGS = {
         vae_reg=0.5, ode_reg=0.5,
         moco_weight=1.0, moco_T=0.2, moco_K=4096,
     ),
-    "MoCoO": dict(
+    "Full": dict(
         use_ode=True, use_moco=True, use_prototype=True,
         n_prototypes=12, vae_reg=0.5, ode_reg=0.5,
         moco_weight=1.0, moco_T=0.2, moco_K=4096,

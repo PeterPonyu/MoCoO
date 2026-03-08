@@ -89,11 +89,19 @@ def _panel_label(fig, ax, letter):
 
 
 def _unify_metric_keys(m: dict) -> dict:
-    """Normalise JSON metric keys so downstream code uses short names."""
+    """Normalise JSON metric keys so downstream code uses short names.
+
+    Handles output from both run_benchmark.py and run_cross_and_validate.py,
+    which produce different key formats for the same metrics.
+    """
     _MAP = {
         "full_ARI": "ARI", "full_NMI": "NMI", "full_ASW": "ASW",
         "full_CH": "CAL", "full_DB": "DAV", "corr": "COR",
         "CH": "CAL", "DB": "DAV",
+        # run_cross_and_validate.py keys -> plot-expected keys
+        "LSE_overall": "LSE_overall_quality",
+        "DRE_UMAP_overall": "DRE_umap_overall_quality",
+        "DRE_tSNE_overall": "DRE_tsne_overall_quality",
     }
     for src, dst in _MAP.items():
         if src in m and dst not in m:
@@ -492,11 +500,12 @@ def _draw_summary_table(ax, configs, metrics):
 
 
 def main():
+    _benchmarks = Path(__file__).resolve().parent.parent.parent  # benchmarks/
     p = argparse.ArgumentParser()
     p.add_argument("--resultsdir",
-                   default="/home/zeyufu/Desktop/MoCoO/benchmarks/results/dataset_default")
+                   default=str(_benchmarks / "results" / "dataset_default"))
     p.add_argument("--outdir",
-                   default="/home/zeyufu/Desktop/MoCoO/benchmarks/figures")
+                   default=str(_benchmarks / "figures"))
     args = p.parse_args()
     rdir   = Path(args.resultsdir)
     outdir = Path(args.outdir)

@@ -8,26 +8,27 @@ and the current ablation study results for the MoCoO framework.
 ## Directory Layout
 
 ```text
-benchmarks/
-├── FIGURES.md                         ← this document
-├── scripts/
-│   ├── pipeline/
-│   │   ├── run_benchmark.py           ← master benchmark runner (6-config ablation)
-│   │   ├── run_cross_dataset.py       ← cross-dataset benchmark runner
-│   │   ├── run_cross_and_validate.py  ← cross-dataset + LSE/DRE + pseudotime
-│   │   ├── run_multiseed.py           ← multi-seed evaluation
-│   │   ├── dataset_registry.py        ← DatasetRegistry (5 datasets)
-│   │   └── visual_conflict_detector.py← figure quality checker
-│   ├── evaluation/
-│   │   └── ...                        ← metric computation utilities
-│   └── plotting/
-│       └── ...                        ← figure generation scripts
+repo root:
 ├── LSE.py                             ← Latent Structure Evaluator
 ├── DRE.py                             ← Dimensionality Reduction Evaluator
-└── results/{IRALL,dentate,endo,paul,spinoids}/
-    ├── summary.csv                    ← ablation results (6 configs)
-    ├── {config}.json                  ← per-config detailed metrics
-    └── pseudotime_markers_{config}.json ← pseudotime-marker correlations
+└── benchmarks/
+    ├── FIGURES.md                     ← this document
+    ├── scripts/
+    │   ├── pipeline/
+    │   │   ├── run_benchmark.py       ← master benchmark runner (6-config ablation)
+    │   │   ├── run_cross_dataset.py   ← cross-dataset benchmark runner
+    │   │   ├── run_cross_and_validate.py ← cross-dataset + LSE/DRE + pseudotime
+    │   │   ├── run_multiseed.py       ← multi-seed evaluation
+    │   │   ├── dataset_registry.py    ← DatasetRegistry (5 datasets)
+    │   │   └── visual_conflict_detector.py ← figure quality checker
+    │   ├── evaluation/
+    │   │   └── ...                    ← metric computation utilities
+    │   └── plotting/
+    │       └── ...                    ← figure generation scripts
+    └── results/{IRALL,dentate,endo,paul,spinoids}/
+        ├── summary.csv                ← ablation results (6 configs)
+        ├── {config}.json              ← per-config detailed metrics
+        └── pseudotime_markers_{config}.json ← pseudotime-marker correlations
 ```
 
 ---
@@ -142,7 +143,13 @@ even while improving ARI. Three factors explain the ARI gap:
 
 ### Per-Component Ablation Interpretation
 
-| Component | Primary Effect | Evidence |\n|-----------|---------------|----------|\n| **ODE** | Geometric smoothing, pseudotime | DB↓ on 5/5 datasets (avg −0.14); ASW↑ on 4/5; enables marker correlations |\n| **MoCo** | Cluster discrimination | Largest ARI gain on endo (+0.050) and spinoids (+0.041); reduces ASW on 3/5 |\n| **Proto** | Cluster compactness | Best CH (158.0) + DB (2.743) on paul; marginal on endo/spinoids |\n| **ODE+MoCo** | Synergistic | Best LSE + DRE on paul (0.352/0.685); no proto needed for fragmented data |\n| **Full** | Best latent structure | Best LSE on 3/5; best CH on 3/5; ARI-best on 2/5 (large datasets) |
+| Component | Primary Effect | Evidence |
+|-----------|----------------|----------|
+| **ODE** | Geometric smoothing, pseudotime | DB↓ on 5/5 datasets (avg −0.14); ASW↑ on 4/5; enables marker correlations |
+| **MoCo** | Cluster discrimination | Largest ARI gain on endo (+0.050) and spinoids (+0.041); reduces ASW on 3/5 |
+| **Proto** | Cluster compactness | Best CH (158.0) + DB (2.743) on paul; marginal on endo/spinoids |
+| **ODE+MoCo** | Synergistic | Best LSE + DRE on paul (0.352/0.685); no proto needed for fragmented data |
+| **Full** | Best latent structure | Best LSE on 3/5; best CH on 3/5; ARI-best on 2/5 (large datasets) |
 
 **Key insight:** No single config dominates all metrics on all datasets.
 Full excels at latent quality on larger datasets; VAE+MoCo for clustering
@@ -294,7 +301,7 @@ python benchmarks/scripts/pipeline/run_cross_and_validate.py \
 | Learning rate | 1×10⁻⁴ |
 | Batch size | 128 |
 | MoCo queue (K) / temperature (τ) | 4,096 / 0.2 |
-| Prototypes (P) / weight | 12 / 0.05 |
+| Prototypes (P) / weight | 12 / 0.1 |
 | MoCo weight (with/without ODE) | 0.3 / 0.5 |
 | VAE/ODE blend | 0.6 / 0.4 |
 | Epochs / patience | 150 / 30 |

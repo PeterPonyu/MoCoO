@@ -28,6 +28,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import sys
 import warnings
 from pathlib import Path
@@ -464,13 +465,15 @@ def build_figure(rdir: Path, outdir: Path, adata_path: str):
 
 
 def main():
+    _benchmarks = Path(__file__).resolve().parent.parent.parent  # benchmarks/
+    _data_base = os.environ.get("MOCOO_DATA_DIR", "/home/zeyufu")
     p = argparse.ArgumentParser()
     p.add_argument("--resultsdir",
-                   default="/home/zeyufu/Desktop/MoCoO/benchmarks/results/dataset_default")
+                   default=str(_benchmarks / "results" / "dataset_default"))
     p.add_argument("--outdir",
-                   default="/home/zeyufu/Desktop/MoCoO/benchmarks/figures")
+                   default=str(_benchmarks / "figures"))
     p.add_argument("--data",
-                   default="/home/zeyufu/Desktop/datasets/IRALL.h5ad")
+                   default=os.path.join(_data_base, "Desktop/datasets/IRALL.h5ad"))
     args = p.parse_args()
     rdir   = Path(args.resultsdir)
     outdir = Path(args.outdir)

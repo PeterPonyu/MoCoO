@@ -365,11 +365,12 @@ def build_figure(rdir: Path, outdir: Path):
 
 
 def main():
+    _benchmarks = Path(__file__).resolve().parent.parent.parent  # benchmarks/
     p = argparse.ArgumentParser()
     p.add_argument("--resultsdir",
-                   default="/home/zeyufu/Desktop/MoCoO/benchmarks/results/dataset_default")
+                   default=str(_benchmarks / "results" / "dataset_default"))
     p.add_argument("--outdir",
-                   default="/home/zeyufu/Desktop/MoCoO/benchmarks/figures")
+                   default=str(_benchmarks / "figures"))
     args = p.parse_args()
     rdir   = Path(args.resultsdir)
     outdir = Path(args.outdir)

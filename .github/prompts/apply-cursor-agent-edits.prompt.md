@@ -54,21 +54,6 @@ You have broad autonomy in how to proceed, but the following expectations are ma
 - If your own fixes reveal additional high-confidence issues, continue working rather than stopping early.
 - Remove processed worktrees before finishing, unless removal would destroy still-unintegrated work.
 
-## Cross-Agent Continuity
-
-If `agent-context/` exists, use it before diving into the worktrees.
-
-Read in this order when available:
-
-1. `agent-context/current-focus.md`
-2. `agent-context/claude-brief.md`
-3. the most relevant task `handoff.md`
-4. the same task's `validation.md`
-
-Treat those files as the durable summary of intent, constraints, partial progress, and known risks.
-Then inspect Cursor worktrees and synthesize the actual repository changes.
-
-When you continue the same task, update the existing task folder instead of creating fragmented parallel histories unless the work has clearly become a new task.
 
 ## Discovery
 

@@ -426,11 +426,12 @@ def build_figure(results_base: Path, outdir: Path):
 
 
 def main():
+    _benchmarks = Path(__file__).resolve().parent.parent.parent  # benchmarks/
     p = argparse.ArgumentParser()
     p.add_argument("--resultsdir",
-                   default="/home/zeyufu/Desktop/MoCoO/benchmarks/results")
+                   default=str(_benchmarks / "results"))
     p.add_argument("--outdir",
-                   default="/home/zeyufu/Desktop/MoCoO/benchmarks/figures")
+                   default=str(_benchmarks / "figures"))
     args = p.parse_args()
     rdir   = Path(args.resultsdir)
     outdir = Path(args.outdir)

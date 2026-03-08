@@ -15,6 +15,7 @@ Usage:
 
 from __future__ import annotations
 
+import os
 import scanpy as sc
 import numpy as np
 from pathlib import Path
@@ -45,12 +46,12 @@ class DatasetSpec:
 # Registry
 # ═══════════════════════════════════════════════════════════════════════════════
 
-_DATASETS_DIR = Path("/home/zeyufu/Desktop/datasets")
+_DATASETS_BASE = os.environ.get("MOCOO_DATA_DIR", "/home/zeyufu")
 
 _REGISTRY: dict[str, DatasetSpec] = {
     "IRALL": DatasetSpec(
         name="IRALL",
-        path="/home/zeyufu/LAB/scRL/IRALL.h5ad",
+        path=os.path.join(_DATASETS_BASE, "LAB/scRL/IRALL.h5ad"),
         cell_type_col="cell_type",
         batch_col="batch",
         description="Mouse haematopoiesis time-series (d0-d30)",
@@ -61,7 +62,7 @@ _REGISTRY: dict[str, DatasetSpec] = {
     ),
     "dentate": DatasetSpec(
         name="dentate",
-        path="/home/zeyufu/vGAE_LAB/data/dentate.h5ad",
+        path=os.path.join(_DATASETS_BASE, "vGAE_LAB/data/dentate.h5ad"),
         cell_type_col="Clusters",
         batch_col=None,
         description="Mouse dentate gyrus neurogenesis",
@@ -72,7 +73,7 @@ _REGISTRY: dict[str, DatasetSpec] = {
     ),
     "endo": DatasetSpec(
         name="endo",
-        path="/home/zeyufu/vGAE_LAB/data/endo.h5ad",
+        path=os.path.join(_DATASETS_BASE, "vGAE_LAB/data/endo.h5ad"),
         cell_type_col="clusters_fine",
         batch_col="day",
         description="Mouse endocrine pancreas development",
@@ -84,7 +85,7 @@ _REGISTRY: dict[str, DatasetSpec] = {
     ),
     "paul": DatasetSpec(
         name="paul",
-        path="/home/zeyufu/LAB/data/paul.h5ad",
+        path=os.path.join(_DATASETS_BASE, "LAB/data/paul.h5ad"),
         cell_type_col="paul15_clusters",
         batch_col=None,
         description="Mouse myeloid/erythroid progenitor differentiation (Paul et al. 2015)",
@@ -96,7 +97,7 @@ _REGISTRY: dict[str, DatasetSpec] = {
     ),
     "spinoids": DatasetSpec(
         name="spinoids",
-        path="/home/zeyufu/LAB/data/spinoids.h5ad",
+        path=os.path.join(_DATASETS_BASE, "LAB/data/spinoids.h5ad"),
         cell_type_col="annotation",
         batch_col=None,
         description="Human spinal cord organoid development",
