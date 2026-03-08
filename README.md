@@ -49,9 +49,9 @@ The package is automatically published to PyPI when a GitHub release is created.
 
 1. **Bump version:**
    ```bash
-   python release.py patch  # For bug fixes (0.0.1 → 0.0.2)
-   python release.py minor  # For new features (0.0.1 → 0.1.0)
-   python release.py major  # For breaking changes (0.0.1 → 1.0.0)
+    python release.py patch  # For bug fixes (0.0.3 → 0.0.4)
+    python release.py minor  # For new features (0.0.3 → 0.1.0)
+    python release.py major  # For breaking changes (0.0.3 → 1.0.0)
    ```
 
 2. **Commit and push:**
@@ -201,7 +201,20 @@ Reconstruction (NB/ZINB/MSE/Poisson/ZIP)
 - **ASW**: Silhouette Score
 - **CH**: Calinski-Harabasz Index
 - **DB**: Davies-Bouldin Index
-- **Corr**: Latent correlation
+- **DRE**: Dimensionality Reduction Evaluation (UMAP embedding fidelity)
+- **DREX**: Extended DRE (trustworthiness, continuity, distance correlation)
+- **LSE**: Latent Structure Evaluation (spectral quality)
+- **LSEX**: Extended LSE (connectivity, curvature, entropy)
+- **Corr**: Latent cross-correlation
+
+### Key Findings (IRALL, beta sweep)
+
+| Component | Primary Effect | Best β | Key Metrics |
+|-----------|---------------|:------:|-------------|
+| **ODE** | Trajectory geometry | All | LSEX |
+| **MoCo** | Instance discrimination | **β=0.1** | ARI (+0.054), ASW (+0.018) |
+| **Proto** | Cluster compactness | β≤0.1 | DB (−0.223), DRE (+0.138) |
+| **ODE×MoCo** | Super-additive synergy | β=0.01 | ARI (+0.131), DB (−0.398), DRE (+0.133) |
 
 ---
 
@@ -226,4 +239,4 @@ MIT License
 ## Contact
 
 GitHub: [@PeterPonyu](https://github.com/PeterPonyu)  
-Repository: [MoCoO](https://github.com/PeterPonyu/MoCoO)# Test comment
+Repository: [MoCoO](https://github.com/PeterPonyu/MoCoO)

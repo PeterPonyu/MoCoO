@@ -1,6 +1,4 @@
-"""
-MoCoO Model Class - Training and Loss Computation.
-"""
+"""MoCoO model - training and loss computation."""
 
 import torch
 import torch.nn as nn
@@ -21,6 +19,8 @@ class MoCoOModel(scviMixin, dipMixin, betatcMixin, infoMixin):
         state_dim, hidden_dim, latent_dim, i_dim,
         use_ode, use_moco, loss_mode, lr,
         vae_reg, ode_reg, moco_weight, use_qm, moco_T, moco_K,
+        use_prototype, n_prototypes,
+        proto_weight,
         device, grad_clip=1.0,
         *args, **kwargs,
     ):
@@ -35,6 +35,7 @@ class MoCoOModel(scviMixin, dipMixin, betatcMixin, infoMixin):
         self.tc = tc
         self.info = info
         self.moco_weight = moco_weight
+        self.proto_weight = proto_weight
         self.grad_clip = grad_clip
         self.vae_reg = vae_reg
         self.ode_reg = ode_reg
@@ -43,18 +44,19 @@ class MoCoOModel(scviMixin, dipMixin, betatcMixin, infoMixin):
         
         self.nn = VAE(
             state_dim, hidden_dim, latent_dim, i_dim,
-            use_ode, use_moco, loss_mode, moco_T, moco_K, device,
+            use_ode, use_moco, loss_mode, moco_T, moco_K,
+            use_prototype, n_prototypes, device,
         )
         
         self.nn_optimizer = optim.Adam(self.nn.parameters(), lr=lr)
         self.moco_criterion = nn.CrossEntropyLoss()
     
     def _compute_recon_loss(self, x_raw, pred_x, dropout_logits=None):
-        """Compute reconstruction loss using raw counts."""
         if self.loss_mode == "mse":
             return F.mse_loss(x_raw, pred_x, reduction="none").sum(-1).mean()
         
-        l = x_raw.sum(-1, keepdim=True)
+        # Clamp lib_size for numerical stability (following HSDE)
+        l = torch.clamp(x_raw.sum(-1, keepdim=True), min=1.0)
         pred_x_scaled = pred_x * l + 1e-8
         disp = torch.exp(self.nn.decoder.disp)
         
@@ -67,6 +69,20 @@ class MoCoOModel(scviMixin, dipMixin, betatcMixin, infoMixin):
         elif self.loss_mode == "zip":
             return -self._log_zip(x_raw, pred_x_scaled, dropout_logits).sum(-1).mean()
     
+    @staticmethod
+    def _velocity_consistency_loss(q_z, velocity):
+        if q_z.shape[0] < 3:
+            return torch.tensor(0.0, device=q_z.device)
+        
+        displacement = q_z[1:] - q_z[:-1]
+        velocity_mid = velocity[:-1]
+        
+        disp_norm = F.normalize(displacement, dim=-1, eps=1e-8)
+        vel_norm = F.normalize(velocity_mid, dim=-1, eps=1e-8)
+        
+        cosine_sim = (disp_norm * vel_norm).sum(dim=-1)
+        return (1.0 - cosine_sim).mean()
+    
     @torch.no_grad()
     def take_latent(self, state):
         state = torch.tensor(state, dtype=torch.float).to(self.device)
@@ -74,17 +90,25 @@ class MoCoOModel(scviMixin, dipMixin, betatcMixin, infoMixin):
         if self.use_ode:
             q_z, q_m, q_s, t = self.nn.encoder(state)
             
-            t_cpu = t.cpu()
-            t_sorted, sort_idx, sort_idxr = np.unique(t_cpu, return_index=True, return_inverse=True)
-            t_sorted = torch.tensor(t_sorted)
+            # Sort by time and add jitter for uniqueness (match training)
+            sort_idx = torch.argsort(t)
+            t_sorted = t[sort_idx]
+            z_base = (q_m if self.use_qm else q_z)[sort_idx]
             
-            z_base = q_m if self.use_qm else q_z
-            z_sorted = z_base[sort_idx]
-            z0 = z_sorted[0]
-            q_z_ode = self.nn.solve_ode(self.nn.ode_solver, z0, t_sorted)
-            q_z_ode = q_z_ode[sort_idxr]
+            # Ensure strictly increasing times
+            eps = 1e-6
+            t_unique = t_sorted.clone()
+            for i in range(1, len(t_unique)):
+                if t_unique[i] <= t_unique[i-1] + eps:
+                    t_unique[i] = t_unique[i-1] + eps
             
-            return (self.vae_reg * z_base + self.ode_reg * q_z_ode).cpu().numpy()
+            z0 = z_base[0]
+            q_z_ode = self.nn.solve_ode(self.nn.ode_solver, z0, t_unique)
+            
+            # Blend and unsort back to original order
+            blended = self.vae_reg * z_base + self.ode_reg * q_z_ode
+            unsort_idx = torch.argsort(sort_idx)
+            return blended[unsort_idx].cpu().numpy()
         else:
             q_z, q_m, q_s = self.nn.encoder(state)
             return (q_m if self.use_qm else q_z).cpu().numpy()
@@ -111,7 +135,7 @@ class MoCoOModel(scviMixin, dipMixin, betatcMixin, infoMixin):
     def take_grad(self, state):
         states = torch.tensor(state, dtype=torch.float).to(self.device)
         q_z, q_m, q_s, t = self.nn.encoder(states)
-        grads = self.nn.ode_solver(t, q_z.cpu()).numpy()
+        grads = self.nn.ode_solver(t, q_z).cpu().numpy()
         return grads
     
     @torch.no_grad()
@@ -119,7 +143,7 @@ class MoCoOModel(scviMixin, dipMixin, betatcMixin, infoMixin):
         states = torch.tensor(state, dtype=torch.float).to(self.device)
         q_z, q_m, q_s, t = self.nn.encoder(states)
         
-        grads = self.nn.ode_solver(t, q_z.cpu()).numpy()
+        grads = self.nn.ode_solver(t, q_z).cpu().numpy()
         z_latent = q_z.cpu().numpy()
         z_future = z_latent + 1e-2 * grads
         
@@ -138,113 +162,87 @@ class MoCoOModel(scviMixin, dipMixin, betatcMixin, infoMixin):
         return sparse_trans
     
     def update(self, x_norm, x_raw=None, x_q_norm=None, x_k_norm=None):
-        """
-        Training update.
-        x_norm: normalized input for forward pass
-        x_raw: raw counts for loss computation (if None, uses x_norm)
-        """
         if x_raw is None:
             x_raw = x_norm
         
         x_norm_t = torch.tensor(x_norm, dtype=torch.float).to(self.device)
         x_raw_t = torch.tensor(x_raw, dtype=torch.float).to(self.device)
         
-        moco_loss = torch.zeros(1, device=self.device)
-        
         if self.use_moco and x_q_norm is not None and x_k_norm is not None:
             x_q = torch.tensor(x_q_norm, dtype=torch.float).to(self.device)
             x_k = torch.tensor(x_k_norm, dtype=torch.float).to(self.device)
-            outputs = self.nn(x_norm_t, x_q, x_k)
+            out = self.nn(x_norm_t, x_q, x_k)
         else:
-            outputs = self.nn(x_norm_t)
+            out = self.nn(x_norm_t)
         
-        has_dropout = self.loss_mode in ["zinb", "zip"]
+        q_z, q_m, q_s = out['q_z'], out['q_m'], out['q_s']
         
         if self.use_ode:
-            if has_dropout:
-                if self.use_moco:
-                    q_z, q_m, q_s, x, pred_x, dropout_logits, le, pred_xl, dropout_logitsl, q_z_ode, pred_x_ode, dropout_logits_ode, logits, labels = outputs
-                    moco_loss = self.moco_criterion(logits, labels)
-                else:
-                    q_z, q_m, q_s, x, pred_x, dropout_logits, le, pred_xl, dropout_logitsl, q_z_ode, pred_x_ode, dropout_logits_ode = outputs
-                
-                x_raw_sorted = x_raw_t[torch.argsort(self.nn.encoder(x_norm_t)[3])][:len(x)]
-                
-                recon_loss = self._compute_recon_loss(x_raw_sorted, pred_x, dropout_logits)
-                recon_loss += self._compute_recon_loss(x_raw_sorted, pred_x_ode, dropout_logits_ode)
-                
-                if self.irecon:
-                    irecon_loss = self.irecon * self._compute_recon_loss(x_raw_sorted, pred_xl, dropout_logitsl)
-                else:
-                    irecon_loss = torch.zeros(1, device=self.device)
-            else:
-                if self.use_moco:
-                    q_z, q_m, q_s, x, pred_x, le, pred_xl, q_z_ode, pred_x_ode, logits, labels = outputs
-                    moco_loss = self.moco_criterion(logits, labels)
-                else:
-                    q_z, q_m, q_s, x, pred_x, le, pred_xl, q_z_ode, pred_x_ode = outputs
-                
-                x_raw_sorted = x_raw_t[torch.argsort(self.nn.encoder(x_norm_t)[3])][:len(x)]
-                
-                recon_loss = self._compute_recon_loss(x_raw_sorted, pred_x)
-                recon_loss += self._compute_recon_loss(x_raw_sorted, pred_x_ode)
-                
-                if self.irecon:
-                    irecon_loss = self.irecon * self._compute_recon_loss(x_raw_sorted, pred_xl)
-                else:
-                    irecon_loss = torch.zeros(1, device=self.device)
+            # Reuse sort indices from forward pass (no re-encoding needed)
+            sort_idx = out['sort_idx']
+            n_sorted = len(out['x_sorted'])
+            x_raw_sorted = x_raw_t[sort_idx][:n_sorted]
             
-            qz_div = F.mse_loss(q_z, q_z_ode, reduction="none").sum(-1).mean()
-        
+            # Dual-path reconstruction:
+            # VAE path gets full weight, ODE path scaled by ode_reg
+            recon_loss_ec = self._compute_recon_loss(
+                x_raw_sorted, out['pred_x'], out.get('dropout_x'))
+            recon_loss_ode = self._compute_recon_loss(
+                x_raw_sorted, out['pred_x_ode'], out.get('dropout_x_ode'))
+            recon_loss = recon_loss_ec + self.ode_reg * recon_loss_ode
+            
+            # Unidirectional z_div: ODE learns to match encoder, not vice versa
+            # stop-gradient on q_z prevents ODE trajectory from distorting encoder clusters
+            qz_div = self.ode_reg * F.mse_loss(q_z.detach(), out['q_z_ode'], reduction="none").sum(-1).mean()
+            vel_loss = self._velocity_consistency_loss(q_z.detach(), out['velocity'])
         else:
-            if has_dropout:
-                if self.use_moco:
-                    q_z, q_m, q_s, pred_x, dropout_logits, le, pred_xl, dropout_logitsl, logits, labels = outputs
-                    moco_loss = self.moco_criterion(logits, labels)
-                else:
-                    q_z, q_m, q_s, pred_x, dropout_logits, le, pred_xl, dropout_logitsl = outputs
-                
-                recon_loss = self._compute_recon_loss(x_raw_t, pred_x, dropout_logits)
-                
-                if self.irecon:
-                    irecon_loss = self.irecon * self._compute_recon_loss(x_raw_t, pred_xl, dropout_logitsl)
-                else:
-                    irecon_loss = torch.zeros(1, device=self.device)
-            else:
-                if self.use_moco:
-                    q_z, q_m, q_s, pred_x, le, pred_xl, logits, labels = outputs
-                    moco_loss = self.moco_criterion(logits, labels)
-                else:
-                    q_z, q_m, q_s, pred_x, le, pred_xl = outputs
-                
-                recon_loss = self._compute_recon_loss(x_raw_t, pred_x)
-                
-                if self.irecon:
-                    irecon_loss = self.irecon * self._compute_recon_loss(x_raw_t, pred_xl)
-                else:
-                    irecon_loss = torch.zeros(1, device=self.device)
-            
-            qz_div = torch.zeros(1, device=self.device)
+            recon_loss = self._compute_recon_loss(x_raw_t, out['pred_x'], out.get('dropout_x'))
+            qz_div = torch.tensor(0.0, device=self.device)
+            vel_loss = torch.tensor(0.0, device=self.device)
         
-        # KL divergence
+        if self.irecon:
+            x_target = x_raw_sorted if self.use_ode else x_raw_t
+            irecon_loss = self.irecon * self._compute_recon_loss(
+                x_target, out['pred_xl'], out.get('dropout_xl')
+            )
+        else:
+            irecon_loss = torch.tensor(0.0, device=self.device)
+        
+        moco_loss = torch.tensor(0.0, device=self.device)
+        cross_loss = torch.tensor(0.0, device=self.device)
+        proto_loss = torch.tensor(0.0, device=self.device)
+        
+        if 'moco_logits' in out:
+            moco_loss = self.moco_criterion(out['moco_logits'], out['moco_labels'])
+        
+        if 'cross_path_loss' in out:
+            cross_loss = out['cross_path_loss']
+        
+        if (self.use_moco and self.proto_weight > 0
+                and hasattr(self.nn, 'moco') and self.nn.moco.use_prototype):
+            # Always use pure VAE latent for proto loss (never blend with ODE)
+            # This keeps proto consistent with VAE+MoCo+Proto behavior
+            proto_loss = self.nn.moco.prototype_contrastive_loss(out['q_z'])
+        
         p_m = torch.zeros_like(q_m)
         p_s = torch.zeros_like(q_s)
         kl_div = self.beta * self._normal_kl(q_m, q_s, p_m, p_s).sum(-1).mean()
         
-        # Disentanglement losses
-        dip_loss = self.dip * self._dip_loss(q_m, q_s) if self.dip else torch.zeros(1, device=self.device)
-        tc_loss = self.tc * self._betatc_compute_total_correlation(q_z, q_m, q_s) if self.tc else torch.zeros(1, device=self.device)
-        mmd_loss = self.info * self._compute_mmd(q_z, torch.randn_like(q_z)) if self.info else torch.zeros(1, device=self.device)
+        dip_loss = self.dip * self._dip_loss(q_m, q_s) if self.dip else torch.tensor(0.0, device=self.device)
+        tc_loss = self.tc * self._betatc_compute_total_correlation(q_z, q_m, q_s) if self.tc else torch.tensor(0.0, device=self.device)
+        mmd_loss = self.info * self._compute_mmd(q_z, torch.randn_like(q_z)) if self.info else torch.tensor(0.0, device=self.device)
         
         total_loss = (
             self.recon * recon_loss +
             irecon_loss +
             qz_div +
+            self.ode_reg * 0.1 * vel_loss +
             kl_div +
             dip_loss +
             tc_loss +
             mmd_loss +
-            self.moco_weight * moco_loss
+            self.moco_weight * (moco_loss + cross_loss) +
+            self.proto_weight * proto_loss
         )
         
         self.nn_optimizer.zero_grad()
@@ -261,4 +259,7 @@ class MoCoOModel(scviMixin, dipMixin, betatcMixin, infoMixin):
             tc_loss.item() if isinstance(tc_loss, torch.Tensor) else tc_loss,
             mmd_loss.item() if isinstance(mmd_loss, torch.Tensor) else mmd_loss,
             moco_loss.item() if isinstance(moco_loss, torch.Tensor) else moco_loss,
+            cross_loss.item() if isinstance(cross_loss, torch.Tensor) else cross_loss,
+            vel_loss.item() if isinstance(vel_loss, torch.Tensor) else vel_loss,
+            proto_loss.item() if isinstance(proto_loss, torch.Tensor) else proto_loss,
         ))

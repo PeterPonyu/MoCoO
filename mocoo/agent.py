@@ -1,7 +1,6 @@
-"""
-MoCoO: Momentum Contrast ODE-Regularized VAE for Single-Cell RNA Velocity
-"""
+"""MoCoO agent - top-level API."""
 
+import random
 from .environment import Env
 from .mixin import VectorFieldMixin
 import tqdm
@@ -9,7 +8,8 @@ import time
 import torch
 import numpy as np
 from anndata import AnnData
-from typing import Optional, Dict
+from typing import Optional, Dict, List
+from scipy.stats import spearmanr, pearsonr
 
 
 class MoCoO(Env, VectorFieldMixin):
@@ -48,6 +48,10 @@ class MoCoO(Env, VectorFieldMixin):
         MoCo temperature
     moco_K : int, default=4096
         MoCo queue size
+    use_prototype : bool, default=False
+        Enable scGPCL prototype contrastive
+    n_prototypes : int, default=10
+        Number of learnable prototypes
     aug_prob, mask_prob, noise_prob : float
         Augmentation parameters
     use_qm : bool, default=False
@@ -81,11 +85,14 @@ class MoCoO(Env, VectorFieldMixin):
         use_moco: bool = False,
         loss_mode: str = 'nb',
         lr: float = 1e-4,
-        vae_reg: float = 0.5,
-        ode_reg: float = 0.5,
-        moco_weight: float = 1.0,
+        vae_reg: float = 0.8,
+        ode_reg: float = 0.2,
+        moco_weight: float = 0.6,
         moco_T: float = 0.2,
         moco_K: int = 4096,
+        use_prototype: bool = False,
+        n_prototypes: int = 10,
+        proto_weight: float = 0.1,
         aug_prob: float = 0.5,
         mask_prob: float = 0.1,
         noise_prob: float = 0.1,
@@ -110,7 +117,6 @@ class MoCoO(Env, VectorFieldMixin):
         if i_dim >= latent_dim:
             raise ValueError(f"i_dim ({i_dim}) must be < latent_dim ({latent_dim})")
         
-        import random
         np.random.seed(random_seed)
         random.seed(random_seed)
         torch.manual_seed(random_seed)
@@ -138,6 +144,9 @@ class MoCoO(Env, VectorFieldMixin):
             moco_weight=moco_weight,
             moco_T=moco_T,
             moco_K=moco_K,
+            use_prototype=use_prototype,
+            n_prototypes=n_prototypes,
+            proto_weight=proto_weight,
             aug_prob=aug_prob,
             mask_prob=mask_prob,
             noise_prob=noise_prob,
@@ -167,6 +176,7 @@ class MoCoO(Env, VectorFieldMixin):
         epochs: int = 400,
         patience: int = 25,
         val_every: int = 5,
+        track_metrics: bool = True,
     ) -> 'MoCoO':
         """
         Train with early stopping.
@@ -179,39 +189,70 @@ class MoCoO(Env, VectorFieldMixin):
             Early stopping patience
         val_every : int
             Validation frequency
+        track_metrics : bool, default=True
+            If True, compute intermediate clustering metrics (ARI, NMI, etc.)
+            during validation. Set to False for faster training when only
+            the loss-based early stopping is needed.
         """
         use_cuda = torch.cuda.is_available()
         if use_cuda:
             torch.cuda.reset_peak_memory_stats()
         start_time = time.time()
         
-        with tqdm.tqdm(total=epochs, desc="Training", ncols=200) as pbar:
+        # Build config tag for the progress bar description
+        tag_parts = ['VAE']
+        if self.use_ode:
+            tag_parts.append('ODE')
+        if self.use_moco:
+            tag_parts.append('MoCo')
+        if hasattr(self, 'use_prototype') and self.use_prototype:
+            tag_parts.append('Proto')
+        config_tag = '+'.join(tag_parts)
+        
+        bar_fmt = (
+            '{l_bar}{bar:30}{r_bar}'
+        )
+        
+        with tqdm.tqdm(
+            total=epochs,
+            desc=f"  {config_tag}",
+            bar_format=bar_fmt,
+            dynamic_ncols=True,
+        ) as pbar:
             for epoch in range(epochs):
                 train_loss = self.train_epoch()
                 
                 if (epoch + 1) % val_every == 0 or epoch == 0:
-                    val_loss, val_score = self.validate()
+                    val_loss, val_score = self.validate(
+                        track_metrics=track_metrics
+                    )
                     
                     should_stop, improved = self.check_early_stopping(val_loss, patience)
                     
-                    pbar.set_postfix({
-                        "Train": f"{train_loss:.2f}",
-                        "Val": f"{val_loss:.2f}",
-                        "ARI": f"{val_score[0]:.2f}",
-                        "NMI": f"{val_score[1]:.2f}",
-                        "ASW": f"{val_score[2]:.2f}",
-                        "CAL": f"{val_score[3]:.2f}",
-                        "DAV": f"{val_score[4]:.2f}",
-                        "COR": f"{val_score[5]:.2f}",
-                        "Best": f"{self.best_val_loss:.2f}",
-                        "Pat": f"{self.patience_counter}/{patience}",
-                        "Imp": "✓" if improved else "✗"
-                    })
+                    # Build concise postfix
+                    postfix = {
+                        'trn': f'{train_loss:.1f}',
+                        'val': f'{val_loss:.1f}',
+                    }
+                    if val_score is not None:
+                        postfix.update({
+                            'ARI': f'{val_score[0]:.3f}',
+                            'NMI': f'{val_score[1]:.3f}',
+                            'ASW': f'{val_score[2]:.3f}',
+                        })
+                    postfix['best'] = f'{self.best_val_loss:.1f}'
+                    postfix['pat'] = f'{self.patience_counter}/{patience}'
+                    if improved:
+                        postfix['↑'] = '✓'
+                    
+                    pbar.set_postfix(postfix)
                     
                     if should_stop:
                         self.actual_epochs = epoch + 1
-                        print(f"\n\nEarly stopping at epoch {epoch + 1}")
-                        print(f"Best validation loss: {self.best_val_loss:.4f}")
+                        pbar.write(
+                            f"  ↳ Early stop @ epoch {epoch + 1}, "
+                            f"best val={self.best_val_loss:.2f}"
+                        )
                         self.load_best_model()
                         break
                 
@@ -241,6 +282,159 @@ class MoCoO(Env, VectorFieldMixin):
         if not self.use_ode:
             raise RuntimeError("get_time() requires use_ode=True")
         return self.take_time(self.X)
+    
+    def get_pseudotime(self, adata: Optional[AnnData] = None) -> np.ndarray:
+        """Extract ODE-derived pseudotime, optionally storing in adata.obs.
+
+        Parameters
+        ----------
+        adata : AnnData, optional
+            If provided, stores pseudotime in ``adata.obs['mocoo_pseudotime']``.
+
+        Returns
+        -------
+        pseudotime : np.ndarray, shape (n_cells,)
+            Pseudotime values in [0, 1] for all cells.
+        """
+        if not self.use_ode:
+            raise RuntimeError("get_pseudotime() requires use_ode=True")
+        pt = self.take_time(self.X)
+        if adata is not None:
+            adata.obs['mocoo_pseudotime'] = pt
+        return pt
+
+    def get_latent_smoothness(self) -> Dict[str, float]:
+        """Compute latent space smoothness metrics.
+
+        Returns
+        -------
+        metrics : dict
+            - knn_entropy: mean k-NN graph entropy (higher = smoother)
+            - pairwise_dist_mean / std: pairwise Euclidean distance statistics
+            - effective_dim: PCA participation ratio (effective dimensionality)
+        """
+        from sklearn.neighbors import NearestNeighbors
+
+        latent = self.get_latent()
+        n = latent.shape[0]
+
+        # k-NN entropy (k=10)
+        k = min(10, n - 1)
+        nn = NearestNeighbors(n_neighbors=k + 1).fit(latent)
+        dists, indices = nn.kneighbors(latent)
+        # Compute entropy of neighbourhood label distribution
+        entropies = []
+        for i in range(n):
+            nbr_labels = self.labels[indices[i, 1:]]
+            counts = np.bincount(nbr_labels, minlength=len(np.unique(self.labels)))
+            probs = counts / counts.sum()
+            probs = probs[probs > 0]
+            entropies.append(-np.sum(probs * np.log(probs + 1e-12)))
+        knn_entropy = float(np.mean(entropies))
+
+        # Pairwise distances (subsample for speed)
+        from sklearn.metrics import pairwise_distances
+        sub = min(500, n)
+        idx = np.random.choice(n, sub, replace=False)
+        pdist = pairwise_distances(latent[idx])
+        upper = pdist[np.triu_indices(sub, k=1)]
+
+        # PCA participation ratio
+        centered = latent - latent.mean(axis=0)
+        _, s, _ = np.linalg.svd(centered, full_matrices=False)
+        eigenvalues = (s ** 2) / (n - 1)
+        eigenvalues = eigenvalues / eigenvalues.sum()
+        participation_ratio = float(1.0 / np.sum(eigenvalues ** 2))
+
+        return {
+            'knn_entropy': knn_entropy,
+            'pairwise_dist_mean': float(upper.mean()),
+            'pairwise_dist_std': float(upper.std()),
+            'effective_dim': participation_ratio,
+        }
+
+    def pseudotime_marker_correlation(
+        self,
+        adata: AnnData,
+        marker_genes: Optional[List[str]] = None,
+        top_n: int = 20,
+        layer: Optional[str] = None,
+    ) -> Dict[str, Dict[str, float]]:
+        """Compute correlation between ODE pseudotime and gene expression.
+
+        Parameters
+        ----------
+        adata : AnnData
+            Must contain the genes of interest.
+        marker_genes : list of str, optional
+            Specific genes to test. If None, returns top_n most correlated.
+        top_n : int
+            Number of top correlated genes to return when marker_genes is None.
+        layer : str, optional
+            AnnData layer to use for expression. None = adata.X.
+
+        Returns
+        -------
+        correlations : dict
+            ``{gene: {'spearman_r': float, 'spearman_p': float,
+                       'pearson_r': float, 'pearson_p': float}}``
+        """
+        if not self.use_ode:
+            raise RuntimeError("pseudotime_marker_correlation() requires use_ode=True")
+
+        from scipy.sparse import issparse as _issparse
+
+        pt = self.take_time(self.X)
+
+        # Get expression matrix
+        if layer and layer in adata.layers:
+            X = adata.layers[layer]
+        else:
+            X = adata.X
+        if _issparse(X):
+            X = X.toarray()
+        X = np.asarray(X, dtype=np.float32)
+
+        gene_names = list(adata.var_names)
+
+        if marker_genes is not None:
+            # Filter to genes present in adata
+            genes_to_test = [g for g in marker_genes if g in gene_names]
+            if not genes_to_test:
+                raise ValueError(f"None of the marker genes found in adata.var_names")
+        else:
+            # Find top_n most correlated genes
+            all_corrs = []
+            for j in range(X.shape[1]):
+                expr = X[:, j]
+                if expr.std() < 1e-8:
+                    all_corrs.append(0.0)
+                else:
+                    r, _ = spearmanr(pt, expr)
+                    all_corrs.append(abs(r) if not np.isnan(r) else 0.0)
+            top_idx = np.argsort(all_corrs)[-top_n:][::-1]
+            genes_to_test = [gene_names[i] for i in top_idx]
+
+        results = {}
+        for gene in genes_to_test:
+            j = gene_names.index(gene)
+            expr = X[:, j]
+            if expr.std() < 1e-8:
+                results[gene] = {
+                    'spearman_r': 0.0, 'spearman_p': 1.0,
+                    'pearson_r': 0.0, 'pearson_p': 1.0,
+                }
+                continue
+            sr, sp = spearmanr(pt, expr)
+            pr, pp = pearsonr(pt, expr)
+            results[gene] = {
+                'spearman_r': float(sr) if not np.isnan(sr) else 0.0,
+                'spearman_p': float(sp) if not np.isnan(sp) else 1.0,
+                'pearson_r': float(pr) if not np.isnan(pr) else 0.0,
+                'pearson_p': float(pp) if not np.isnan(pp) else 1.0,
+            }
+
+        return results
     
     def get_velocity(self) -> np.ndarray:
         """Extract velocity vectors (ODE only)."""

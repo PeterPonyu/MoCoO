@@ -1,6 +1,4 @@
-"""
-MoCoO Mixin Classes - Loss functions, metrics, ODE solver, vector field analysis.
-"""
+"""Mixin classes for MoCoO."""
 
 import torch
 import torch.nn as nn
@@ -20,10 +18,8 @@ from anndata import AnnData
 
 
 class scviMixin:
-    """Count-based likelihood functions for single-cell RNA-seq data."""
     
     def _normal_kl(self, mu1, lv1, mu2, lv2):
-        """KL divergence between two diagonal Gaussians."""
         v1 = torch.exp(lv1)
         v2 = torch.exp(lv2)
         lstd1 = lv1 / 2.0
@@ -31,7 +27,6 @@ class scviMixin:
         return lstd2 - lstd1 + (v1 + (mu1 - mu2) ** 2) / (2.0 * v2) - 0.5
     
     def _log_nb(self, x, mu, theta, eps=1e-8):
-        """Negative Binomial log-likelihood."""
         log_theta_mu_eps = torch.log(theta + mu + eps)
         return (
             theta * (torch.log(theta + eps) - log_theta_mu_eps)
@@ -42,7 +37,6 @@ class scviMixin:
         )
     
     def _log_zinb(self, x, mu, theta, pi, eps=1e-8):
-        """Zero-Inflated Negative Binomial log-likelihood."""
         pi = torch.sigmoid(pi)
         log_nb = self._log_nb(x, mu, theta, eps)
         case_zero = torch.log(pi + (1 - pi) * torch.exp(log_nb) + eps)
@@ -50,11 +44,9 @@ class scviMixin:
         return torch.where(x < eps, case_zero, case_nonzero)
     
     def _log_poisson(self, x, mu, eps=1e-8):
-        """Poisson log-likelihood."""
         return x * torch.log(mu + eps) - mu - torch.lgamma(x + 1)
     
     def _log_zip(self, x, mu, pi, eps=1e-8):
-        """Zero-Inflated Poisson log-likelihood."""
         pi = torch.sigmoid(pi)
         log_pois = self._log_poisson(x, mu, eps)
         case_zero = torch.log(pi + (1 - pi) * torch.exp(log_pois) + eps)
@@ -63,7 +55,6 @@ class scviMixin:
 
 
 class betatcMixin:
-    """β-TC-VAE total correlation loss for disentanglement."""
     
     def _betatc_compute_gaussian_log_density(self, samples, mean, log_var):
         normalization = torch.log(torch.tensor(2 * np.pi, device=samples.device))
@@ -83,7 +74,6 @@ class betatcMixin:
 
 
 class infoMixin:
-    """InfoVAE maximum mean discrepancy loss."""
     
     def _compute_mmd(self, z_posterior, z_prior):
         mean_pz_pz = self._compute_kernel_mean(
@@ -113,7 +103,6 @@ class infoMixin:
 
 
 class dipMixin:
-    """Disentangled Inferred Prior (DIP-VAE) loss."""
     
     def _dip_loss(self, q_m, q_s):
         cov_matrix = self._dip_cov_matrix(q_m, q_s)
@@ -130,7 +119,6 @@ class dipMixin:
 
 
 class envMixin:
-    """Environment mixin for clustering and evaluation metrics."""
     
     def _calc_score_with_labels(self, latent, labels):
         n_clusters = len(np.unique(labels))
@@ -155,7 +143,6 @@ class envMixin:
 
 
 class NODEMixin:
-    """Neural ODE solver mixin."""
     
     @staticmethod
     def get_step_size(step_size: Optional[float], t0: float, t1: float, n_points: int) -> dict:
@@ -175,34 +162,46 @@ class NODEMixin:
         step_size: Optional[float] = None,
     ) -> torch.Tensor:
         device = z0.device
-        cpu_z0 = z0.cpu()
-        cpu_t = t.cpu()
         
         options = self.get_step_size(
             step_size,
-            cpu_t[0].item(),
-            cpu_t[-1].item(),
-            len(cpu_t)
+            t[0].item(),
+            t[-1].item(),
+            len(t)
         )
         
         try:
+            # Solve on same device to preserve computation graph
             pred_z = odeint(
-                ode_func.cpu(),
-                cpu_z0,
-                cpu_t,
+                ode_func,
+                z0,
+                t,
                 method=method,
                 options=options
             )
-        except Exception as e:
-            import warnings
-            warnings.warn(f"ODE solving failed: {e}, returning constant trajectory")
-            pred_z = cpu_z0.unsqueeze(0).expand(len(cpu_t), -1)
+        except Exception:
+            # Fallback: CPU solve (graph-breaking but safe)
+            try:
+                import warnings
+                warnings.warn("ODE GPU solve failed, falling back to CPU")
+                cpu_z0 = z0.detach().cpu()
+                cpu_t = t.detach().cpu()
+                ode_func_cpu = ode_func.cpu()
+                pred_z = odeint(
+                    ode_func_cpu, cpu_z0, cpu_t,
+                    method=method, options=options
+                )
+                ode_func.to(device)
+                pred_z = pred_z.to(device)
+            except Exception as e:
+                import warnings
+                warnings.warn(f"ODE solving failed: {e}, returning constant trajectory")
+                pred_z = z0.unsqueeze(0).expand(len(t), -1)
         
-        return pred_z.to(device)
+        return pred_z
 
 
 class VectorFieldMixin:
-    """Vector field analysis for ODE models."""
     
     def get_vfres(
         self,
@@ -244,7 +243,9 @@ class VectorFieldMixin:
         
         ncells = adata.n_obs
         norms = np.linalg.norm(V, axis=1, keepdims=True) + 1e-12
-        sim = (V @ V.T) / (norms @ norms.T)
+        V_normed = V / norms
+        
+        sim = V_normed @ V_normed.T
         np.fill_diagonal(sim, 0.0)
         
         rows, cols = np.nonzero(sim)
@@ -306,39 +307,3 @@ class VectorFieldMixin:
                 V_grid[:, i] = gaussian_filter(V_grid_reshaped, sigma=smooth).flatten()
         
         return E_grid, V_grid
-
-
-def quiver_autoscale(E: np.ndarray, V: np.ndarray) -> float:
-    import matplotlib.pyplot as plt
-    
-    fig, ax = plt.subplots()
-    scale_factor = np.abs(E).max()
-    if scale_factor == 0:
-        scale_factor = 1.0
-    
-    Q = ax.quiver(
-        E[:, 0] / scale_factor,
-        E[:, 1] / scale_factor,
-        V[:, 0],
-        V[:, 1],
-        angles="xy",
-        scale=None,
-        scale_units="xy",
-    )
-    
-    try:
-        fig.canvas.draw()
-        quiver_scale = Q.scale if Q.scale is not None else 1.0
-    except Exception:
-        quiver_scale = 1.0
-    finally:
-        plt.close(fig)
-    
-    return quiver_scale / scale_factor
-
-
-def l2_norm(x: np.ndarray, axis: int = -1) -> np.ndarray:
-    if issparse(x):
-        return np.sqrt(x.multiply(x).sum(axis=axis).A1)
-    else:
-        return np.sqrt(np.sum(x * x, axis=axis))

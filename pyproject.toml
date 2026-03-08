@@ -7,13 +7,13 @@ name = "mocoo"
 version = "0.0.3"
 description = "Momentum Contrast ODE-Regularized VAE for Single-Cell RNA Velocity"
 readme = "README.md"
-license.text = "MIT"
+license = "MIT"
 requires-python = ">=3.8"
 authors = [
-    {name = "Peter Ponyu", email = "peter.ponyu@example.com"},
+    {name = "Peter Ponyu"},
 ]
 maintainers = [
-    {name = "Peter Ponyu", email = "peter.ponyu@example.com"},
+    {name = "Peter Ponyu"},
 ]
 keywords = ["single-cell", "RNA-seq", "VAE", "ODE", "MoCo", "trajectory", "velocity"]
 classifiers = [
@@ -55,10 +55,13 @@ docs = [
     "sphinx-rtd-theme>=1.0.0",
     "myst-parser>=0.18.0",
 ]
+benchmark = [
+    "scib>=1.0.0",
+]
 
 [project.urls]
 Homepage = "https://github.com/PeterPonyu/MoCoO"
-Documentation = "https://mocoo.readthedocs.io/"
+Documentation = "https://github.com/PeterPonyu/MoCoO#readme"
 Repository = "https://github.com/PeterPonyu/MoCoO"
 Issues = "https://github.com/PeterPonyu/MoCoO/issues"
 Changelog = "https://github.com/PeterPonyu/MoCoO/blob/main/CHANGELOG.md"
@@ -98,7 +101,7 @@ multi_line_output = 3
 line_length = 88
 
 [tool.mypy]
-python_version = "0.0.3"
+python_version = "3.8"
 warn_return_any = true
 warn_unused_configs = true
 disallow_untyped_defs = true

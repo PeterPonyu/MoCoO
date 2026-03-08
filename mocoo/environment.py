@@ -1,6 +1,4 @@
-"""
-Environment for MoCoO model with train/val/test splits and DataLoaders.
-"""
+"""Environment for MoCoO model."""
 
 import numpy as np
 import torch
@@ -15,7 +13,6 @@ from .mixin import envMixin
 
 
 class Env(MoCoOModel, envMixin):
-    """Environment for MoCoO with train/val/test splits, normalized + raw dual data."""
     
     def __init__(
         self,
@@ -39,6 +36,9 @@ class Env(MoCoOModel, envMixin):
         moco_weight: float,
         moco_T: float,
         moco_K: int,
+        use_prototype: bool,
+        n_prototypes: int,
+        proto_weight: float,
         aug_prob: float,
         mask_prob: float,
         noise_prob: float,
@@ -85,6 +85,9 @@ class Env(MoCoOModel, envMixin):
             moco_weight=moco_weight,
             moco_T=moco_T,
             moco_K=moco_K,
+            use_prototype=use_prototype,
+            n_prototypes=n_prototypes,
+            proto_weight=proto_weight,
             use_qm=use_qm,
             device=device,
             grad_clip=grad_clip,
@@ -97,7 +100,6 @@ class Env(MoCoOModel, envMixin):
         self.patience_counter = 0
     
     def _register_anndata(self, adata, layer: str, latent_dim: int):
-        """Register AnnData with dual normalized/raw data splits."""
         if layer in adata.layers:
             X_raw = adata.layers[layer]
         elif layer == 'X':
@@ -158,9 +160,14 @@ class Env(MoCoOModel, envMixin):
         print(f"  Train: {len(self.train_idx):,} | Val: {len(self.val_idx):,} | Test: {len(self.test_idx):,}")
     
     def _create_dataloaders(self):
-        """Create DataLoaders with normalized data."""
-        train_dataset = TensorDataset(torch.FloatTensor(self.X_train_norm))
-        val_dataset = TensorDataset(torch.FloatTensor(self.X_val_norm))
+        train_dataset = TensorDataset(
+            torch.FloatTensor(self.X_train_norm),
+            torch.FloatTensor(self.X_train_raw),
+        )
+        val_dataset = TensorDataset(
+            torch.FloatTensor(self.X_val_norm),
+            torch.FloatTensor(self.X_val_raw),
+        )
         test_dataset = TensorDataset(torch.FloatTensor(self.X_test_norm))
         
         self.train_loader = DataLoader(
@@ -185,20 +192,19 @@ class Env(MoCoOModel, envMixin):
         )
     
     def train_epoch(self):
-        """Train one epoch using normalized input."""
         self.nn.train()
         epoch_losses = []
         
-        for (batch_norm,) in self.train_loader:
-            batch_norm = batch_norm.to(self.device)
-            batch_norm_np = batch_norm.cpu().numpy()
+        for batch_norm, batch_raw in self.train_loader:
+            batch_norm_np = batch_norm.numpy()
+            batch_raw_np = batch_raw.numpy()
             
             if self.use_moco:
                 batch_q_np = self._augment(batch_norm_np)
                 batch_k_np = self._augment(batch_norm_np)
-                self.update(batch_norm_np, batch_norm_np, batch_q_np, batch_k_np)
+                self.update(batch_norm_np, batch_raw_np, batch_q_np, batch_k_np)
             else:
-                self.update(batch_norm_np, batch_norm_np)
+                self.update(batch_norm_np, batch_raw_np)
             
             if len(self.loss) > 0:
                 epoch_losses.append(self.loss[-1][0])
@@ -207,20 +213,14 @@ class Env(MoCoOModel, envMixin):
         self.train_losses.append(avg_loss)
         return avg_loss
     
-    def validate(self) -> Tuple[float, tuple]:
-        """Evaluate on validation set using raw counts for loss."""
+    def validate(self, track_metrics: bool = True) -> Tuple[float, Optional[tuple]]:
         self.nn.eval()
         val_losses = []
-        # Remove all_latents collection from the loop
         
         with torch.no_grad():
-            for batch_idx, (batch_norm,) in enumerate(self.val_loader):
+            for batch_norm, batch_raw in self.val_loader:
                 batch_norm = batch_norm.to(self.device)
-                actual_batch_size = len(batch_norm)
-                
-                start_idx = batch_idx * self.batch_size
-                end_idx = start_idx + actual_batch_size
-                batch_raw = torch.FloatTensor(self.X_val_raw[start_idx:end_idx]).to(self.device)
+                batch_raw = batch_raw.to(self.device)
                 
                 assert len(batch_norm) == len(batch_raw), \
                     f"Batch size mismatch: norm={len(batch_norm)}, raw={len(batch_raw)}"
@@ -229,61 +229,56 @@ class Env(MoCoOModel, envMixin):
                     batch_np = batch_norm.cpu().numpy()
                     batch_q = torch.tensor(self._augment(batch_np), dtype=torch.float32).to(self.device)
                     batch_k = torch.tensor(self._augment(batch_np), dtype=torch.float32).to(self.device)
-                    outputs = self.nn(batch_norm, batch_q, batch_k)
+                    out = self.nn(batch_norm, batch_q, batch_k)
                 else:
-                    outputs = self.nn(batch_norm)
+                    out = self.nn(batch_norm)
                 
-                loss = self._compute_validation_loss(outputs, batch_raw)
+                loss = self._compute_validation_loss(out, batch_raw)
                 val_losses.append(loss.item())
         
         avg_val_loss = np.mean(val_losses) if val_losses else float('inf')
         self.val_losses.append(avg_val_loss)
         
-        # Compute all_latents for the full validation set after the loop
-        all_latents = self.take_latent(self.X_val_norm)
-        
-        assert len(all_latents) == len(self.labels_val), \
-            f"Latent/label mismatch: {len(all_latents)} != {len(self.labels_val)}"
-        
-        val_score = self._calc_score_with_labels(all_latents, self.labels_val)
-        self.val_scores.append(val_score)
+        if track_metrics:
+            all_latents = self.take_latent(self.X_val_norm)
+            
+            assert len(all_latents) == len(self.labels_val), \
+                f"Latent/label mismatch: {len(all_latents)} != {len(self.labels_val)}"
+            
+            val_score = self._calc_score_with_labels(all_latents, self.labels_val)
+            self.val_scores.append(val_score)
+        else:
+            val_score = None
         
         return avg_val_loss, val_score
 
-    
-    def _compute_validation_loss(self, outputs: tuple, batch_raw: torch.Tensor) -> torch.Tensor:
-        """Compute validation loss using raw counts."""
-        q_z, q_m, q_s = outputs[0], outputs[1], outputs[2]
+    def _compute_validation_loss(self, out: dict, batch_raw: torch.Tensor) -> torch.Tensor:
+        q_m, q_s = out['q_m'], out['q_s']
         
-        if self.use_ode:
-            x_sorted = outputs[3]
-            pred_x_idx = 4
+        # For ODE configs, sort raw data to match the forward pass ordering
+        if 'sort_idx' in out:
+            sort_idx = out['sort_idx']
+            n_sorted = len(out['x_sorted'])
+            x_target = batch_raw[sort_idx][:n_sorted]
         else:
-            x_sorted = batch_raw
-            pred_x_idx = 3
+            x_target = batch_raw
         
-        has_dropout = self.loss_mode in ["zinb", "zip"]
+        recon_loss_ec = self._compute_recon_loss(x_target, out['pred_x'], out.get('dropout_x'))
         
-        if has_dropout:
-            pred_x = outputs[pred_x_idx]
-            dropout_logits = outputs[pred_x_idx + 1]
-            recon_loss = self._compute_recon_loss(x_sorted, pred_x, dropout_logits)
-            
-            if self.irecon > 0:
-                pred_xl = outputs[pred_x_idx + 3]
-                dropout_logitsl = outputs[pred_x_idx + 4]
-                irecon_loss = self.irecon * self._compute_recon_loss(x_sorted, pred_xl, dropout_logitsl)
-            else:
-                irecon_loss = torch.tensor(0.0, device=self.device)
+        # Dual-path: add ODE reconstruction loss when available
+        if 'pred_x_ode' in out:
+            recon_loss_ode = self._compute_recon_loss(
+                x_target, out['pred_x_ode'], out.get('dropout_x_ode'))
+            recon_loss = recon_loss_ec + self.ode_reg * recon_loss_ode
         else:
-            pred_x = outputs[pred_x_idx]
-            recon_loss = self._compute_recon_loss(x_sorted, pred_x)
-            
-            if self.irecon > 0:
-                pred_xl = outputs[pred_x_idx + 2]
-                irecon_loss = self.irecon * self._compute_recon_loss(x_sorted, pred_xl)
-            else:
-                irecon_loss = torch.tensor(0.0, device=self.device)
+            recon_loss = recon_loss_ec
+        
+        if self.irecon > 0:
+            irecon_loss = self.irecon * self._compute_recon_loss(
+                x_target, out['pred_xl'], out.get('dropout_xl')
+            )
+        else:
+            irecon_loss = torch.tensor(0.0, device=self.device)
         
         p_m = torch.zeros_like(q_m)
         p_s = torch.zeros_like(q_s)
@@ -292,7 +287,6 @@ class Env(MoCoOModel, envMixin):
         return self.recon * recon_loss + irecon_loss + kl_loss
     
     def check_early_stopping(self, val_loss: float, patience: int = 25) -> Tuple[bool, bool]:
-        """Check early stopping condition."""
         if val_loss < self.best_val_loss:
             self.best_val_loss = val_loss
             self.best_model_state = {
@@ -305,12 +299,11 @@ class Env(MoCoOModel, envMixin):
             return self.patience_counter >= patience, False
     
     def load_best_model(self):
-        """Restore best model."""
         if hasattr(self, 'best_model_state') and self.best_model_state is not None:
             self.nn.load_state_dict(self.best_model_state)
     
     def _augment(self, profile: np.ndarray) -> np.ndarray:
-        """Apply data augmentation for MoCo."""
+        """Gene masking + Gaussian noise + feature swapping."""
         profile_aug = profile.copy().astype(np.float32)
         
         if np.random.rand() < self.aug_prob:
@@ -330,5 +323,12 @@ class Env(MoCoOModel, envMixin):
             if n_noise > 0:
                 noise = np.random.normal(0, 0.2, (profile_aug.shape[0], n_noise))
                 profile_aug[:, noise_genes] += noise
+            
+            if profile_aug.shape[0] > 1:
+                swap_prob = self.noise_prob * 0.5
+                n_swap = max(1, int(self.n_var * swap_prob))
+                swap_genes = np.random.choice(self.n_var, n_swap, replace=False)
+                perm = np.random.permutation(profile_aug.shape[0])
+                profile_aug[:, swap_genes] = profile_aug[perm][:, swap_genes]
         
         return np.clip(profile_aug, 0, None).astype(np.float32)

@@ -1,31 +1,34 @@
-"""
-MoCoO Neural Network Modules - Encoder, Decoder, ODE, MoCo, VAE.
-"""
+"""Neural network modules for MoCoO."""
 
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from torch.distributions import Normal
-from typing import Tuple, Union, Literal, Optional
+from typing import Dict, Optional, Literal
 from .mixin import NODEMixin
 
 
 class Encoder(nn.Module):
-    """Variational encoder with optional ODE time prediction."""
+    """Variational encoder: x -> q(z|x) with optional time prediction.
     
-    def __init__(self, state_dim: int, hidden_dim: int, action_dim: int, use_ode: bool = False):
+    Follows HSDE architecture: LayerNorm after hidden layers,
+    clamped q_m/q_s for numerical stability.
+    """
+    
+    def __init__(self, state_dim: int, hidden_dim: int, action_dim: int,
+                 use_ode: bool = False, use_layer_norm: bool = True):
         super().__init__()
         self.use_ode = use_ode
         self.action_dim = action_dim
+        self.use_layer_norm = use_layer_norm
         
-        self.base_network = nn.Sequential(
-            nn.Linear(state_dim, hidden_dim),
-            nn.ReLU(),
-            nn.Linear(hidden_dim, hidden_dim),
-            nn.ReLU(),
-        )
-        
+        self.fc1 = nn.Linear(state_dim, hidden_dim)
+        self.fc2 = nn.Linear(hidden_dim, hidden_dim)
         self.latent_params = nn.Linear(hidden_dim, action_dim * 2)
+        
+        if use_layer_norm:
+            self.ln1 = nn.LayerNorm(hidden_dim)
+            self.ln2 = nn.LayerNorm(hidden_dim)
         
         if use_ode:
             self.time_encoder = nn.Sequential(
@@ -42,25 +45,33 @@ class Encoder(nn.Module):
             nn.init.constant_(m.bias, 0.01)
     
     def forward(self, x: torch.Tensor):
-        x = torch.log1p(x)
-        hidden = self.base_network(x)
+        # No log1p here — data is already log1p-normalized in preprocessing
+        h = F.relu(self.ln1(self.fc1(x)) if self.use_layer_norm else self.fc1(x))
+        h = F.relu(self.ln2(self.fc2(h)) if self.use_layer_norm else self.fc2(h))
         
-        latent_output = self.latent_params(hidden)
+        latent_output = self.latent_params(h)
         q_m, q_s = torch.split(latent_output, latent_output.size(-1) // 2, dim=-1)
-        std = F.softplus(q_s)
+        
+        # Clamp for numerical stability (following HSDE)
+        q_m = q_m.clamp(-10, 10)
+        q_s = q_s.clamp(-10, 10)
+        std = F.softplus(q_s).clamp(1e-6, 5.0)
         
         dist = Normal(q_m, std)
         q_z = dist.rsample()
         
         if self.use_ode:
-            t = self.time_encoder(hidden).squeeze(-1)
+            t = self.time_encoder(h).squeeze(-1)
             return q_z, q_m, q_s, t
         
         return q_z, q_m, q_s
 
 
 class Decoder(nn.Module):
-    """Decoder supporting MSE, NB, ZINB, Poisson, ZIP likelihoods."""
+    """Generative decoder: z -> p(x|z) with count-based likelihoods.
+    
+    Follows HSDE architecture: LayerNorm after hidden layers.
+    """
     
     VALID_MODES = ('mse', 'nb', 'zinb', 'poisson', 'zip')
     
@@ -70,23 +81,24 @@ class Decoder(nn.Module):
         hidden_dim: int,
         action_dim: int,
         loss_mode: Literal["mse", "nb", "zinb", "poisson", "zip"] = "nb",
+        use_layer_norm: bool = True,
     ):
         super().__init__()
         if loss_mode not in self.VALID_MODES:
             raise ValueError(f"loss_mode must be one of {self.VALID_MODES}, got '{loss_mode}'")
         
         self.loss_mode = loss_mode
+        self.use_layer_norm = use_layer_norm
         
-        self.base_network = nn.Sequential(
-            nn.Linear(action_dim, hidden_dim),
-            nn.ReLU(),
-            nn.Linear(hidden_dim, hidden_dim),
-            nn.ReLU(),
-        )
+        self.fc1 = nn.Linear(action_dim, hidden_dim)
+        self.fc2 = nn.Linear(hidden_dim, hidden_dim)
+        
+        if use_layer_norm:
+            self.ln1 = nn.LayerNorm(hidden_dim)
+            self.ln2 = nn.LayerNorm(hidden_dim)
         
         if loss_mode in ["nb", "zinb", "poisson", "zip"]:
-            self.register_buffer("_disp", torch.zeros(state_dim))
-            self.disp_param = nn.Parameter(torch.randn(state_dim))
+            self.disp = nn.Parameter(torch.randn(state_dim))
             self.mean_decoder = nn.Sequential(
                 nn.Linear(hidden_dim, state_dim),
                 nn.Softmax(dim=-1)
@@ -99,12 +111,6 @@ class Decoder(nn.Module):
         
         self.apply(self._init_weights)
     
-    @property
-    def disp(self):
-        if hasattr(self, 'disp_param'):
-            return self.disp_param
-        return self._disp
-    
     @staticmethod
     def _init_weights(m: nn.Module) -> None:
         if isinstance(m, nn.Linear):
@@ -112,34 +118,89 @@ class Decoder(nn.Module):
             nn.init.constant_(m.bias, 0.01)
     
     def forward(self, x: torch.Tensor):
-        hidden = self.base_network(x)
-        mean = self.mean_decoder(hidden)
+        h = F.relu(self.ln1(self.fc1(x)) if self.use_layer_norm else self.fc1(x))
+        h = F.relu(self.ln2(self.fc2(h)) if self.use_layer_norm else self.fc2(h))
+        mean = self.mean_decoder(h)
         
         if self.loss_mode in ["zinb", "zip"]:
-            dropout_logits = self.dropout_decoder(hidden)
+            dropout_logits = self.dropout_decoder(h)
             return mean, dropout_logits
         
         return mean
 
 
 class LatentODEfunc(nn.Module):
-    """Neural ODE function for latent dynamics."""
+    """Time-conditioned ODE dynamics: dz/dt = f(t, z).
     
-    def __init__(self, n_latent: int = 10, n_hidden: int = 25):
+    Follows HSDE's BaseControlledSDE drift architecture with time conditioning.
+    Supports 'concat', 'film', and 'add' modes.
+    """
+    
+    def __init__(self, n_latent: int = 10, n_hidden: int = 25,
+                 time_cond: str = 'concat'):
         super().__init__()
+        self.time_cond = time_cond
         self.elu = nn.ELU()
-        self.fc1 = nn.Linear(n_latent, n_hidden)
+        
+        # Build time-conditioned network (following HSDE pattern)
+        if time_cond == 'concat':
+            self.fc1 = nn.Linear(n_latent + 1, n_hidden)
+        elif time_cond == 'film':
+            self.fc1 = nn.Linear(n_latent, n_hidden)
+            self.time_scale = nn.Linear(1, n_hidden)
+            self.time_shift = nn.Linear(1, n_hidden)
+        else:  # 'add'
+            self.fc1 = nn.Linear(n_latent, n_hidden)
+            self.time_embed = nn.Linear(1, n_hidden)
+        
         self.fc2 = nn.Linear(n_hidden, n_latent)
+        
+        self.apply(self._init_weights)
+    
+    @staticmethod
+    def _init_weights(m: nn.Module) -> None:
+        if isinstance(m, nn.Linear):
+            nn.init.xavier_normal_(m.weight)
+            if m.bias is not None:
+                nn.init.zeros_(m.bias)
+    
+    def _broadcast_time(self, t: torch.Tensor, x: torch.Tensor) -> torch.Tensor:
+        """Broadcast scalar/1D time to match x's shape for concat/film/add."""
+        if x.dim() == 1:
+            # x is (latent_dim,) — from odeint with 1D z0
+            return t.reshape(1) if t.dim() == 0 else t.view(-1)[:1]
+        else:
+            # x is (batch, latent_dim)
+            batch_size = x.shape[0]
+            if t.dim() == 0 or t.numel() == 1:
+                return t.reshape(1, 1).expand(batch_size, 1)
+            return t.view(-1, 1)
     
     def forward(self, t: torch.Tensor, x: torch.Tensor) -> torch.Tensor:
-        out = self.fc1(x)
-        out = self.elu(out)
-        out = self.fc2(out)
-        return out
+        t_bc = self._broadcast_time(t, x)
+        
+        if self.time_cond == 'concat':
+            h = torch.cat([x, t_bc], dim=-1)
+            h = self.fc1(h)
+        elif self.time_cond == 'film':
+            h = self.fc1(x)
+            h = self.time_scale(t_bc) * h + self.time_shift(t_bc)
+        else:  # 'add'
+            h = self.fc1(x) + self.time_embed(t_bc)
+        
+        h = self.elu(h)
+        return self.fc2(h)
 
 
 class MoCo(nn.Module):
-    """Momentum Contrast with projection head."""
+    """Enhanced Momentum Contrast integrating scAGCL + scGPCL strategies.
+    
+    Strategies from PanODE-LAB:
+    - MoCo: Momentum encoder + memory queue
+    - scAGCL: Symmetric contrastive with sim_11/sim_12/sim_22
+    - scGPCL: Instance + Prototype contrastive
+    - Topic-aware contrastive for ODE-VAE alignment
+    """
     
     def __init__(
         self,
@@ -151,6 +212,8 @@ class MoCo(nn.Module):
         m=0.999,
         T=0.2,
         device=torch.device("cuda"),
+        use_prototype=False,
+        n_prototypes=10,
     ):
         super().__init__()
         self.K = K
@@ -159,23 +222,26 @@ class MoCo(nn.Module):
         self.device = device
         self.encoder_q = encoder_q
         self.encoder_k = encoder_k
+        self.use_prototype = use_prototype
+        self.n_prototypes = n_prototypes
         
         latent_dim = encoder_q.action_dim
         
-        # Projection heads for contrastive learning
+        # scAGCL-style 2-layer MLP with BatchNorm (per PanODE-LAB)
         self.proj_head_q = nn.Sequential(
-            nn.Linear(latent_dim, dim),
+            nn.Linear(latent_dim, latent_dim),
+            nn.BatchNorm1d(latent_dim),
             nn.ReLU(),
-            nn.Linear(dim, dim)
+            nn.Linear(latent_dim, dim)
         ).to(device)
         
         self.proj_head_k = nn.Sequential(
-            nn.Linear(latent_dim, dim),
+            nn.Linear(latent_dim, latent_dim),
+            nn.BatchNorm1d(latent_dim),
             nn.ReLU(),
-            nn.Linear(dim, dim)
+            nn.Linear(latent_dim, dim)
         ).to(device)
         
-        # Initialize key encoder and projection
         for param_q, param_k in zip(self.encoder_q.parameters(), self.encoder_k.parameters()):
             param_k.data.copy_(param_q.data)
             param_k.requires_grad = False
@@ -187,6 +253,11 @@ class MoCo(nn.Module):
         self.register_buffer("queue", torch.randn(dim, K, device=device))
         self.queue = F.normalize(self.queue, dim=0)
         self.register_buffer("queue_ptr", torch.zeros(1, dtype=torch.long, device=device))
+        
+        # scGPCL-style prototypes
+        if use_prototype:
+            self.prototypes = nn.Parameter(torch.randn(n_prototypes, dim))
+            nn.init.xavier_uniform_(self.prototypes)
     
     @torch.no_grad()
     def _momentum_update_key_encoder(self):
@@ -210,13 +281,11 @@ class MoCo(nn.Module):
         self.queue_ptr[0] = (ptr + batch_size) % self.K
     
     def forward(self, exp_q, exp_k):
-        # Query path
         q_out = self.encoder_q(exp_q)
         q_m = q_out[1]
         q = self.proj_head_q(q_m)
         q = F.normalize(q, dim=1)
         
-        # Key path (momentum)
         with torch.no_grad():
             self._momentum_update_key_encoder()
             k_out = self.encoder_k(exp_k)
@@ -224,20 +293,127 @@ class MoCo(nn.Module):
             k = self.proj_head_k(k_m)
             k = F.normalize(k, dim=1)
         
-        # Contrastive logits
         l_pos = torch.einsum("nc,nc->n", [q, k]).unsqueeze(-1)
         l_neg = torch.einsum("nc,ck->nk", [q, self.queue.clone().detach()])
         logits = torch.cat([l_pos, l_neg], dim=1) / self.T
         
         labels = torch.zeros(logits.shape[0], dtype=torch.long, device=self.device)
-        
         self._dequeue_and_enqueue(k)
         
         return logits, labels
 
+    def cross_path_contrastive(self, q_z: torch.Tensor, q_z_ode: torch.Tensor) -> torch.Tensor:
+        """VAE↔ODE same-cell positive pairs, symmetric cross-entropy."""
+        batch_size = q_z.shape[0]
+        if batch_size < 2:
+            return torch.tensor(0.0, device=q_z.device)
+        
+        h_vae = F.normalize(self.proj_head_q(q_z), dim=1)
+        h_ode = F.normalize(self.proj_head_q(q_z_ode), dim=1)
+        
+        sim = torch.mm(h_vae, h_ode.T) / self.T
+        labels = torch.arange(batch_size, device=q_z.device)
+        
+        return (F.cross_entropy(sim, labels) + F.cross_entropy(sim.T, labels)) / 2
+
+    def symmetric_contrastive_loss(self, z1: torch.Tensor, z2: torch.Tensor) -> torch.Tensor:
+        """scAGCL-style symmetric contrastive using sim_11/sim_12/sim_22 matrices."""
+        h1 = self.proj_head_q(z1)
+        h2 = self.proj_head_q(z2)
+        h1 = F.normalize(h1, dim=1)
+        h2 = F.normalize(h2, dim=1)
+        
+        # Three similarity matrices (scAGCL)
+        sim_11 = torch.mm(h1, h1.T) / self.T
+        sim_12 = torch.mm(h1, h2.T) / self.T
+        sim_22 = torch.mm(h2, h2.T) / self.T
+        
+        # Positive similarities (diagonal of sim_12)
+        pos_sim = torch.diag(sim_12)
+        
+        # View 1 loss: negative = sim_11 + sim_12, exclude diagonal
+        neg_sim_1 = torch.cat([sim_11, sim_12], dim=1)
+        diag_mask_1 = torch.cat([torch.diag(torch.diag(sim_11)), torch.zeros_like(sim_12)], dim=1)
+        neg_sim_1 = neg_sim_1 - diag_mask_1
+        l1 = -pos_sim + torch.logsumexp(neg_sim_1, dim=1)
+        
+        # View 2 loss: negative = sim_22 + sim_12.T, exclude diagonal
+        neg_sim_2 = torch.cat([sim_22, sim_12.T], dim=1)
+        diag_mask_2 = torch.cat([torch.diag(torch.diag(sim_22)), torch.zeros_like(sim_12.T)], dim=1)
+        neg_sim_2 = neg_sim_2 - diag_mask_2
+        l2 = -pos_sim + torch.logsumexp(neg_sim_2, dim=1)
+        
+        return (l1.mean() + l2.mean()) / 2
+    
+    def prototype_contrastive_loss(self, z: torch.Tensor, cluster_assignments: Optional[torch.Tensor] = None) -> torch.Tensor:
+        """scGPCL-style prototype-level contrastive loss."""
+        if not self.use_prototype:
+            return torch.tensor(0.0, device=z.device)
+        
+        h = self.proj_head_q(z)
+        h = F.normalize(h, dim=1)
+        prototypes = F.normalize(self.prototypes.to(z.device), dim=1)
+        
+        # Similarity to prototypes
+        sim = torch.mm(h, prototypes.T) / self.T
+        
+        if cluster_assignments is not None:
+            # Supervised: use provided cluster assignments
+            pos_mask = F.one_hot(cluster_assignments, num_classes=self.n_prototypes).float()
+            pos_sim = (sim * pos_mask).sum(dim=1)
+        else:
+            # Self-supervised: assign to nearest prototype
+            assignments = sim.argmax(dim=1)
+            pos_mask = F.one_hot(assignments, num_classes=self.n_prototypes).float()
+            pos_sim = (sim * pos_mask).sum(dim=1)
+        
+        loss = -pos_sim + torch.logsumexp(sim, dim=1)
+        return loss.mean()
+    
+    def topic_aware_contrastive_loss(self, theta_q: torch.Tensor, theta_k: torch.Tensor, temperature: float = 0.5) -> torch.Tensor:
+        """Topic-aware contrastive using Jensen-Shannon divergence.
+        
+        Pulls together samples with similar topic distributions.
+        Useful for ODE-VAE cross-path alignment.
+        """
+        batch_size = theta_q.size(0)
+        if batch_size < 2:
+            return torch.tensor(0.0, device=theta_q.device)
+        
+        # Ensure probability distributions
+        theta_q_prob = F.softmax(theta_q, dim=1) if theta_q.min() < 0 else theta_q
+        theta_k_prob = F.softmax(theta_k, dim=1) if theta_k.min() < 0 else theta_k
+        
+        # Pairwise JS divergence
+        m = 0.5 * (theta_q_prob.unsqueeze(1) + theta_k_prob.unsqueeze(0))
+        kl_pm = torch.sum(
+            theta_q_prob.unsqueeze(1) * (torch.log(theta_q_prob.unsqueeze(1) + 1e-10) - torch.log(m + 1e-10)),
+            dim=-1
+        )
+        kl_qm = torch.sum(
+            theta_k_prob.unsqueeze(0) * (torch.log(theta_k_prob.unsqueeze(0) + 1e-10) - torch.log(m + 1e-10)),
+            dim=-1
+        )
+        js_dist = 0.5 * (kl_pm + kl_qm)
+        
+        # Convert to similarity
+        topic_sim = torch.exp(-js_dist / temperature)
+        
+        # Positive: diagonal, Negative: off-diagonal
+        pos_sim = torch.diag(topic_sim)
+        mask = torch.eye(batch_size, device=theta_q.device).bool()
+        neg_sim = topic_sim.masked_fill(mask, 0).sum(dim=1) / (batch_size - 1 + 1e-10)
+        
+        # Contrastive loss
+        loss = -torch.log(pos_sim / (pos_sim + neg_sim + 1e-10)).mean()
+        return loss
+
 
 class VAE(nn.Module, NODEMixin):
-    """VAE with ODE regularization and MoCo contrastive learning."""
+    """VAE with optional Neural ODE and MoCo contrastive learning.
+    
+    Architecture follows HSDE for base VAE+ODE, with MoCoO's contrastive logic.
+    """
     
     def __init__(
         self,
@@ -250,20 +426,25 @@ class VAE(nn.Module, NODEMixin):
         loss_mode: Literal["mse", "nb", "zinb", "poisson", "zip"] = "nb",
         moco_T: float = 0.2,
         moco_K: int = 4096,
+        use_prototype: bool = False,
+        n_prototypes: int = 10,
         device=torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu"),
     ):
         super().__init__()
         self.use_moco = use_moco
         self.use_ode = use_ode
         
-        self.encoder = Encoder(state_dim, hidden_dim, action_dim, use_ode).to(device)
-        self.decoder = Decoder(state_dim, hidden_dim, action_dim, loss_mode).to(device)
+        self.encoder = Encoder(state_dim, hidden_dim, action_dim, use_ode,
+                               use_layer_norm=True).to(device)
+        self.decoder = Decoder(state_dim, hidden_dim, action_dim, loss_mode,
+                               use_layer_norm=True).to(device)
         
         if use_ode:
-            self.ode_solver = LatentODEfunc(action_dim).to(device)
+            self.ode_solver = LatentODEfunc(action_dim, time_cond='concat').to(device)
         
         if self.use_moco:
-            self.encoder_k = Encoder(state_dim, hidden_dim, action_dim, use_ode).to(device)
+            self.encoder_k = Encoder(state_dim, hidden_dim, action_dim, use_ode,
+                                     use_layer_norm=True).to(device)
             self.moco = MoCo(
                 self.encoder,
                 self.encoder_k,
@@ -272,60 +453,91 @@ class VAE(nn.Module, NODEMixin):
                 K=moco_K,
                 T=moco_T,
                 device=device,
+                use_prototype=use_prototype,
+                n_prototypes=n_prototypes,
             )
         
-        # Information bottleneck (VAE path only, NOT ODE path)
         self.latent_encoder = nn.Linear(action_dim, i_dim).to(device)
         self.latent_decoder = nn.Linear(i_dim, action_dim).to(device)
+    
+    def _decode(self, z: torch.Tensor) -> dict:
+        out = self.decoder(z)
+        if self.decoder.loss_mode in ["zinb", "zip"]:
+            return {'pred': out[0], 'dropout': out[1]}
+        return {'pred': out, 'dropout': None}
     
     def forward(
         self,
         x: torch.Tensor,
         x_q: Optional[torch.Tensor] = None,
         x_k: Optional[torch.Tensor] = None
-    ) -> Tuple[torch.Tensor, ...]:
+    ) -> Dict[str, torch.Tensor]:
+        result = {}
         
         if self.encoder.use_ode:
             q_z, q_m, q_s, t = self.encoder(x)
             
-            # Sort by time
+            # Sort by pseudotime (following HSDE)
             idxs = torch.argsort(t)
-            t = t[idxs]
-            q_z = q_z[idxs]
-            q_m = q_m[idxs]
-            q_s = q_s[idxs]
-            x = x[idxs]
+            t, q_z, q_m, q_s, x = t[idxs], q_z[idxs], q_m[idxs], q_s[idxs], x[idxs]
             
-            # Remove duplicates
-            unique_mask = torch.ones_like(t, dtype=torch.bool)
-            unique_mask[1:] = t[1:] != t[:-1]
-            t, q_z, q_m, q_s, x = t[unique_mask], q_z[unique_mask], q_m[unique_mask], q_s[unique_mask], x[unique_mask]
+            # Remove duplicate time points using boolean mask (following HSDE)
+            if len(t) > 1:
+                unique_mask = torch.cat([
+                    torch.tensor([True], device=t.device),
+                    t[1:] != t[:-1]
+                ])
+                t = t[unique_mask]
+                q_z = q_z[unique_mask]
+                q_m = q_m[unique_mask]
+                q_s = q_s[unique_mask]
+                x = x[unique_mask]
+                idxs = idxs[unique_mask]
             
-            # ODE path (separate from bottleneck)
+            # Ensure strictly increasing times for ODE solver
+            with torch.no_grad():
+                min_dt = 1e-6
+                t_fixed = t.clone()
+                for i in range(1, len(t_fixed)):
+                    if t_fixed[i] <= t_fixed[i-1] + min_dt:
+                        t_fixed[i] = t_fixed[i-1] + min_dt
+                t = t_fixed
+            
             z0 = q_z[0]
+            # ODE integrates from z0 along the learned time axis.
+            # Gradients flow through ODE solver for joint encoder-ODE
+            # training (dual-path reconstruction, following HSDE).
             q_z_ode = self.solve_ode(self.ode_solver, z0, t)
+            velocity = self.ode_solver(t, q_z)
             
-            # Bottleneck (VAE path only)
             le = self.latent_encoder(q_z)
             ld = self.latent_decoder(le)
             
-            if self.decoder.loss_mode in ["zinb", "zip"]:
-                pred_x, dropout_logits = self.decoder(q_z)
-                pred_xl, dropout_logitsl = self.decoder(ld)
-                pred_x_ode, dropout_logits_ode = self.decoder(q_z_ode)
-                
-                base = (q_z, q_m, q_s, x, pred_x, dropout_logits, le, pred_xl, dropout_logitsl, q_z_ode, pred_x_ode, dropout_logits_ode)
-            else:
-                pred_x = self.decoder(q_z)
-                pred_xl = self.decoder(ld)
-                pred_x_ode = self.decoder(q_z_ode)
-                
-                base = (q_z, q_m, q_s, x, pred_x, le, pred_xl, q_z_ode, pred_x_ode)
+            # Dual-path reconstruction: encoder path + ODE path
+            vae_dec = self._decode(q_z)          # encoder-derived latent
+            ode_dec = self._decode(q_z_ode)      # ODE-derived latent
+            btl_dec = self._decode(ld)
+            
+            result.update({
+                'q_z': q_z, 'q_m': q_m, 'q_s': q_s,
+                'x_sorted': x, 't': t,
+                'sort_idx': idxs,
+                'pred_x': vae_dec['pred'], 'dropout_x': vae_dec['dropout'],
+                'pred_x_ode': ode_dec['pred'], 'dropout_x_ode': ode_dec['dropout'],
+                'le': le, 'pred_xl': btl_dec['pred'], 'dropout_xl': btl_dec['dropout'],
+                'q_z_ode': q_z_ode,
+                'velocity': velocity,
+            })
             
             if self.use_moco and x_q is not None and x_k is not None:
-                logits, labels = self.moco(x_q, x_k)
-                return base + (logits, labels)
-            return base
+                moco_logits, moco_labels = self.moco(x_q, x_k)
+                # stop-gradient on q_z: ODE aligns to encoder, not vice versa
+                cross_path_loss = self.moco.cross_path_contrastive(q_z.detach(), q_z_ode)
+                result.update({
+                    'moco_logits': moco_logits,
+                    'moco_labels': moco_labels,
+                    'cross_path_loss': cross_path_loss,
+                })
         
         else:
             q_z, q_m, q_s = self.encoder(x)
@@ -333,18 +545,20 @@ class VAE(nn.Module, NODEMixin):
             le = self.latent_encoder(q_z)
             ld = self.latent_decoder(le)
             
-            if self.decoder.loss_mode in ["zinb", "zip"]:
-                pred_x, dropout_logits = self.decoder(q_z)
-                pred_xl, dropout_logitsl = self.decoder(ld)
-                
-                base = (q_z, q_m, q_s, pred_x, dropout_logits, le, pred_xl, dropout_logitsl)
-            else:
-                pred_x = self.decoder(q_z)
-                pred_xl = self.decoder(ld)
-                
-                base = (q_z, q_m, q_s, pred_x, le, pred_xl)
+            vae_dec = self._decode(q_z)
+            btl_dec = self._decode(ld)
+            
+            result.update({
+                'q_z': q_z, 'q_m': q_m, 'q_s': q_s,
+                'pred_x': vae_dec['pred'], 'dropout_x': vae_dec['dropout'],
+                'le': le, 'pred_xl': btl_dec['pred'], 'dropout_xl': btl_dec['dropout'],
+            })
             
             if self.use_moco and x_q is not None and x_k is not None:
-                logits, labels = self.moco(x_q, x_k)
-                return base + (logits, labels)
-            return base
+                moco_logits, moco_labels = self.moco(x_q, x_k)
+                result.update({
+                    'moco_logits': moco_logits,
+                    'moco_labels': moco_labels,
+                })
+        
+        return result

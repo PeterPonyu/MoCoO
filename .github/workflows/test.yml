@@ -32,7 +32,7 @@ jobs:
 
     - name: Run tests
       run: |
-        python -m pytest tests/ -v --tb=short
+        python -m pytest tests/ -v --tb=short --cov=mocoo --cov-report=term-missing
 
     - name: Check package build
       run: |

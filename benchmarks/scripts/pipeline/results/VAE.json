@@ -1,0 +1,16 @@
+{
+  "config": "VAE",
+  "full_ARI": 0.3686,
+  "full_NMI": 0.5372,
+  "full_ASW": 0.1231,
+  "full_CH": 189.03,
+  "full_DB": 2.1235,
+  "test_ARI": 0.3776,
+  "test_NMI": 0.5703,
+  "test_ASW": 0.1239,
+  "corr": 4.1317,
+  "best_val_loss": 1429.28,
+  "actual_epochs": 200,
+  "train_time_s": 111.9,
+  "peak_mem_gb": 0.04
+}

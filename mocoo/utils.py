@@ -1,11 +1,10 @@
 import numpy as np
 from numpy import ndarray
 import pandas as pd
-import scib
 from sklearn.cluster import KMeans
 from sklearn.neighbors import kneighbors_graph
 from sklearn.metrics import (
-    adjusted_mutual_info_score,
+    adjusted_rand_score,
     normalized_mutual_info_score,
     silhouette_score,
     calinski_harabasz_score,
@@ -14,6 +13,20 @@ from sklearn.metrics import (
 from scipy.sparse import csr_matrix
 from scipy.sparse import csgraph
 from scipy.sparse import issparse
+
+try:
+    import scib
+except ImportError:
+    scib = None
+
+
+def _require_scib():
+    if scib is None:
+        raise ImportError(
+            "mocoo.utils.fetch_score requires the optional dependency 'scib'. "
+            "Install it with 'pip install mocoo[benchmark]' or add scib manually."
+        )
+    return scib
 
 
 def get_dfs(mode, agent_list):
@@ -55,6 +68,8 @@ def moving_average(a, window_size):
 
 
 def fetch_score(adata1, q_z, label_true, label_mode="KMeans", batch=False):
+    scib_module = _require_scib()
+
     if adata1.shape[0] > 3e3:
         idxs = np.random.choice(
             np.random.permutation(adata1.shape[0]), 3000, replace=False
@@ -75,7 +90,7 @@ def fetch_score(adata1, q_z, label_true, label_mode="KMeans", batch=False):
     adata1.obs["label"] = pd.Categorical(labels)
 
     NMI = normalized_mutual_info_score(label_true, labels)
-    ARI = adjusted_mutual_info_score(label_true, labels)
+    ARI = adjusted_rand_score(label_true, labels)
     ASW = silhouette_score(q_z, labels)
     if label_mode != "KMeans":
         ASW = abs(ASW)
@@ -90,10 +105,16 @@ def fetch_score(adata1, q_z, label_true, label_mode="KMeans", batch=False):
     G_C = graph_connection(
         kneighbors_graph(adata1.obsm["X_qz"], 15), adata1.obs["label"].values
     )
-    clisi = scib.metrics.clisi_graph(adata1, "label", "embed", "X_qz", n_cores=-2)
+    clisi = scib_module.metrics.clisi_graph(
+        adata1, "label", "embed", "X_qz", n_cores=-2
+    )
     if batch:
-        ilisi = scib.metrics.ilisi_graph(adata1, "batch", "embed", "X_qz", n_cores=-2)
-        bASW = scib.metrics.silhouette_batch(adata1, "batch", "label", "X_qz")
+        ilisi = scib_module.metrics.ilisi_graph(
+            adata1, "batch", "embed", "X_qz", n_cores=-2
+        )
+        bASW = scib_module.metrics.silhouette_batch(
+            adata1, "batch", "label", "X_qz"
+        )
         return NMI, ARI, ASW, C_H, D_B, G_C, clisi, ilisi, bASW
     return NMI, ARI, ASW, C_H, D_B
 

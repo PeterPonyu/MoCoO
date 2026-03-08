@@ -3,9 +3,9 @@
 Release script for MoCoO package.
 
 Usage:
-    python release.py patch  # 0.0.1 -> 0.0.2
-    python release.py minor  # 0.0.1 -> 0.1.0
-    python release.py major  # 0.0.1 -> 1.0.0
+    python release.py patch  # 0.0.3 -> 0.0.4
+    python release.py minor  # 0.0.3 -> 0.1.0
+    python release.py major  # 0.0.3 -> 1.0.0
     python release.py 1.2.3   # Set specific version
 """
 
@@ -13,11 +13,19 @@ import re
 import sys
 from pathlib import Path
 
+
+def replace_one(text, pattern, replacement, description):
+    """Replace exactly one regex match and fail loudly on drift."""
+    updated, count = re.subn(pattern, replacement, text, count=1, flags=re.MULTILINE)
+    if count != 1:
+        raise ValueError(f"Expected exactly one {description} match, found {count}")
+    return updated
+
 def get_current_version():
     """Get current version from pyproject.toml"""
     pyproject_path = Path("pyproject.toml")
     content = pyproject_path.read_text()
-    match = re.search(r'version = "([^"]+)"', content)
+    match = re.search(r'^version = "([^"]+)"$', content, re.MULTILINE)
     if not match:
         raise ValueError("Could not find version in pyproject.toml")
     return match.group(1)
@@ -44,16 +52,39 @@ def update_version(new_version):
     """Update version in pyproject.toml"""
     pyproject_path = Path("pyproject.toml")
     content = pyproject_path.read_text()
-    updated = re.sub(r'version = "[^"]*"', f'version = "{new_version}"', content)
+    updated = replace_one(
+        content,
+        r'^version = "[^"]*"$',
+        f'version = "{new_version}"',
+        "pyproject version",
+    )
     pyproject_path.write_text(updated)
     print(f"✓ Updated version to {new_version} in pyproject.toml")
 
     # Update __init__.py
     init_path = Path("mocoo/__init__.py")
     content = init_path.read_text()
-    updated = re.sub(r'__version__ = "[^"]*"', f'__version__ = "{new_version}"', content)
+    updated = replace_one(
+        content,
+        r'^__version__ = ["\'][^"\']*["\']$',
+        f'__version__ = "{new_version}"',
+        "package __version__",
+    )
     init_path.write_text(updated)
     print(f"✓ Updated version to {new_version} in mocoo/__init__.py")
+
+    # Update setup.cfg
+    setup_cfg_path = Path("setup.cfg")
+    if setup_cfg_path.exists():
+        content = setup_cfg_path.read_text()
+        updated = replace_one(
+            content,
+            r'^version = .+$',
+            f'version = {new_version}',
+            "setup.cfg version",
+        )
+        setup_cfg_path.write_text(updated)
+        print(f"✓ Updated version to {new_version} in setup.cfg")
 
 def main():
     if len(sys.argv) != 2 or sys.argv[1] in ['-h', '--help']:
