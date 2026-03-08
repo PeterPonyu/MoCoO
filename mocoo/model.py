@@ -68,7 +68,9 @@ class MoCoOModel(scviMixin, dipMixin, betatcMixin, infoMixin):
             return -self._log_poisson(x_raw, pred_x_scaled).sum(-1).mean()
         elif self.loss_mode == "zip":
             return -self._log_zip(x_raw, pred_x_scaled, dropout_logits).sum(-1).mean()
-    
+        else:
+            raise ValueError(f"Unknown loss_mode: {self.loss_mode}")
+
     @staticmethod
     def _velocity_consistency_loss(q_z, velocity):
         if q_z.shape[0] < 3:

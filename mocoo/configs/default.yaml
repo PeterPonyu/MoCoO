@@ -1,0 +1,207 @@
+# =============================================================================
+# MoCoO Default Experiment Configuration
+# =============================================================================
+#
+# Canonical hyperparameters for the MoCoO ablation study.
+# Source of truth: 150-epoch cross-dataset results (FIGURES.md).
+#
+# This file defines:
+#   1. Shared hyperparameters used by ALL model configurations
+#   2. MoCo-specific parameters (queue, temperature, momentum)
+#   3. Training schedule (epochs, early stopping, validation)
+#   4. Dataset registry with paths relative to MOCOO_DATA_DIR
+#   5. The 6 ablation configurations (VAE through Full)
+#
+# YAML anchors (&name) and aliases (*name) are used to avoid repetition.
+# Override individual values by merging a separate YAML or passing kwargs.
+# =============================================================================
+
+
+# -----------------------------------------------------------------------------
+# Shared model hyperparameters (constant across all 6 configurations)
+# -----------------------------------------------------------------------------
+shared: &shared
+  latent_dim: 32         # Latent space dimensionality
+  hidden_dim: 128        # Hidden layer width in encoder/decoder
+  i_dim: 4              # Integration (ODE) state dimensionality
+  lr: 1.0e-4            # Adam learning rate
+  batch_size: 128        # Training mini-batch size
+  beta: 1.0             # KL divergence weight
+  recon: 1.0            # Reconstruction loss weight
+  loss_mode: "nb"       # Likelihood: "nb" (negative binomial) or "zinb"
+  random_seed: 42        # Global random seed for reproducibility
+  train_size: 0.7        # Fraction of data for training
+  val_size: 0.15         # Fraction of data for validation
+  test_size: 0.15        # Fraction of data for held-out test
+
+
+# -----------------------------------------------------------------------------
+# MoCo contrastive learning parameters
+# -----------------------------------------------------------------------------
+moco: &moco
+  moco_K: 4096           # Queue size (number of negative keys)
+  moco_T: 0.2            # Temperature for InfoNCE softmax
+  moco_m: 0.999          # Momentum coefficient for key encoder EMA update
+  n_prototypes: 12       # Number of prototypes for prototype-contrastive loss
+
+
+# -----------------------------------------------------------------------------
+# Loss weights for ODE and contrastive components
+# -----------------------------------------------------------------------------
+# These weights control the VAE-ODE loss split and MoCo contribution.
+#
+# ODE regularization weights (must sum to 1.0):
+#   vae_reg + ode_reg = 1.0
+#   vae_reg=0.6 means 60% of the combined loss comes from the VAE branch,
+#   ode_reg=0.4 means 40% comes from the ODE branch.
+#
+# MoCo weight depends on whether ODE is active:
+#   - With ODE:    moco_weight=0.3 (lower to balance three loss terms)
+#   - Without ODE: moco_weight=0.5 (higher since only two loss terms)
+#
+# Prototype weight:
+#   proto_weight=0.1 (additive prototype-contrastive regularizer)
+loss_weights:
+  vae_reg: 0.6           # VAE loss fraction (in VAE+ODE split)
+  ode_reg: 0.4           # ODE loss fraction (in VAE+ODE split)
+  moco_weight_with_ode: 0.3     # MoCo weight when ODE is enabled
+  moco_weight_without_ode: 0.5  # MoCo weight when ODE is disabled
+  proto_weight: 0.1      # Prototype contrastive loss weight
+
+
+# -----------------------------------------------------------------------------
+# Training schedule
+# -----------------------------------------------------------------------------
+training: &training
+  epochs: 150            # Maximum training epochs
+  patience: 30           # Early stopping patience (epochs without val improvement)
+  val_every: 5           # Validate every N epochs
+
+
+# -----------------------------------------------------------------------------
+# Dataset definitions
+# -----------------------------------------------------------------------------
+# Paths are relative to the MOCOO_DATA_DIR environment variable.
+# If MOCOO_DATA_DIR is not set, falls back to the default base path.
+#
+# Each dataset specifies:
+#   path            - h5ad file path relative to MOCOO_DATA_DIR
+#   cell_type_col   - obs column containing cell-type labels
+#   batch_col       - obs column containing batch labels (null if none)
+#   max_cells       - default subsampling cap for benchmarks
+#   hvg             - number of highly variable genes to select
+# -----------------------------------------------------------------------------
+datasets:
+  IRALL:
+    path: "LAB/scRL/IRALL.h5ad"
+    cell_type_col: "cell_type"
+    batch_col: "batch"
+    description: "Mouse haematopoiesis time-series (d0-d30)"
+    max_cells: 3000
+    hvg: 3000
+  dentate:
+    path: "vGAE_LAB/data/dentate.h5ad"
+    cell_type_col: "Clusters"
+    batch_col: null
+    description: "Mouse dentate gyrus neurogenesis"
+    max_cells: 3000
+    hvg: 3000
+  endo:
+    path: "vGAE_LAB/data/endo.h5ad"
+    cell_type_col: "clusters_fine"
+    batch_col: "day"
+    description: "Mouse endocrine pancreas development"
+    max_cells: 2500
+    hvg: 3000
+  paul:
+    path: "LAB/data/paul.h5ad"
+    cell_type_col: "paul15_clusters"
+    batch_col: null
+    description: "Mouse myeloid/erythroid progenitor differentiation (Paul et al. 2015)"
+    max_cells: 2700
+    hvg: 3000
+  spinoids:
+    path: "LAB/data/spinoids.h5ad"
+    cell_type_col: "annotation"
+    batch_col: null
+    description: "Human spinal cord organoid development"
+    max_cells: 3000
+    hvg: 3000
+
+
+# -----------------------------------------------------------------------------
+# Model configurations for the 6-way ablation study
+# -----------------------------------------------------------------------------
+# Each configuration merges *shared parameters with its own flags and weights.
+# The keys use_ode, use_moco, use_prototype toggle model components.
+#
+# Configuration summary:
+#   VAE             - Baseline variational autoencoder
+#   VAE+ODE         - VAE with neural ODE dynamics
+#   VAE+MoCo        - VAE with MoCo contrastive learning
+#   VAE+MoCo+Proto  - VAE + MoCo + prototype-contrastive loss
+#   VAE+ODE+MoCo    - VAE + ODE + MoCo (no prototypes)
+#   Full            - All components: VAE + ODE + MoCo + Prototypes
+# -----------------------------------------------------------------------------
+
+# -- Reusable component blocks ------------------------------------------------
+
+_ode_params: &ode_params
+  use_ode: true
+  vae_reg: 0.6
+  ode_reg: 0.4
+
+_moco_params_no_ode: &moco_params_no_ode
+  use_moco: true
+  moco_weight: 0.5
+  moco_T: 0.2
+  moco_K: 4096
+
+_moco_params_with_ode: &moco_params_with_ode
+  use_moco: true
+  moco_weight: 0.3
+  moco_T: 0.2
+  moco_K: 4096
+
+_proto_params: &proto_params
+  use_prototype: true
+  n_prototypes: 12
+  proto_weight: 0.1
+
+
+# -- The 6 ablation configurations -------------------------------------------
+
+configs:
+  VAE:
+    use_ode: false
+    use_moco: false
+    use_prototype: false
+
+  VAE+ODE:
+    <<: *ode_params
+    use_moco: false
+    use_prototype: false
+
+  VAE+MoCo:
+    <<: *moco_params_no_ode
+    use_ode: false
+    use_prototype: false
+
+  VAE+MoCo+Proto:
+    <<: [*moco_params_no_ode, *proto_params]
+    use_ode: false
+    # moco_params_no_ode sets use_moco: true, moco_weight: 0.5
+    # proto_params sets use_prototype: true, n_prototypes: 12, proto_weight: 0.1
+
+  VAE+ODE+MoCo:
+    <<: [*ode_params, *moco_params_with_ode]
+    use_prototype: false
+    # ode_params sets use_ode: true, vae_reg: 0.6, ode_reg: 0.4
+    # moco_params_with_ode sets use_moco: true, moco_weight: 0.3
+
+  Full:
+    <<: [*ode_params, *moco_params_with_ode, *proto_params]
+    # All components enabled:
+    #   use_ode: true, vae_reg: 0.6, ode_reg: 0.4
+    #   use_moco: true, moco_weight: 0.3
+    #   use_prototype: true, n_prototypes: 12, proto_weight: 0.1

@@ -46,7 +46,7 @@ class DatasetSpec:
 # Registry
 # ═══════════════════════════════════════════════════════════════════════════════
 
-_DATASETS_BASE = os.environ.get("MOCOO_DATA_DIR", "/home/zeyufu")
+_DATASETS_BASE = os.environ.get("MOCOO_DATA_DIR", "data")
 
 _REGISTRY: dict[str, DatasetSpec] = {
     "IRALL": DatasetSpec(

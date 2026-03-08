@@ -1,5 +1,7 @@
 """Mixin classes for MoCoO."""
 
+import warnings
+
 import torch
 import torch.nn as nn
 from torchdiffeq import odeint
@@ -125,7 +127,7 @@ class envMixin:
         pred_labels = KMeans(
             n_clusters=n_clusters,
             n_init=10,
-            random_state=42
+            random_state=getattr(self, 'random_seed', 42)
         ).fit_predict(latent)
         
         ari = adjusted_rand_score(labels, pred_labels)
@@ -179,11 +181,10 @@ class NODEMixin:
                 method=method,
                 options=options
             )
-        except Exception:
+        except Exception as e:
             # Fallback: CPU solve (graph-breaking but safe)
             try:
-                import warnings
-                warnings.warn("ODE GPU solve failed, falling back to CPU")
+                warnings.warn(f"ODE GPU solve failed ({e}), falling back to CPU")
                 cpu_z0 = z0.detach().cpu()
                 cpu_t = t.detach().cpu()
                 ode_func_cpu = ode_func.cpu()
@@ -194,7 +195,6 @@ class NODEMixin:
                 ode_func.to(device)
                 pred_z = pred_z.to(device)
             except Exception as e:
-                import warnings
                 warnings.warn(f"ODE solving failed: {e}, returning constant trajectory")
                 pred_z = z0.unsqueeze(0).expand(len(t), -1)
         

@@ -8,6 +8,14 @@ from typing import Dict, Optional, Literal
 from .mixin import NODEMixin
 
 
+def _init_weights(m):
+    """Initialize linear layers with Xavier uniform weights and zero biases."""
+    if isinstance(m, nn.Linear):
+        nn.init.xavier_uniform_(m.weight)
+        if m.bias is not None:
+            nn.init.zeros_(m.bias)
+
+
 class Encoder(nn.Module):
     """Variational encoder: x -> q(z|x) with optional time prediction.
     
@@ -36,14 +44,8 @@ class Encoder(nn.Module):
                 nn.Sigmoid(),
             )
         
-        self.apply(self._init_weights)
-    
-    @staticmethod
-    def _init_weights(m: nn.Module) -> None:
-        if isinstance(m, nn.Linear):
-            nn.init.xavier_normal_(m.weight)
-            nn.init.constant_(m.bias, 0.01)
-    
+        self.apply(_init_weights)
+
     def forward(self, x: torch.Tensor):
         # No log1p here — data is already log1p-normalized in preprocessing
         h = F.relu(self.ln1(self.fc1(x)) if self.use_layer_norm else self.fc1(x))
@@ -109,14 +111,8 @@ class Decoder(nn.Module):
         if loss_mode in ["zinb", "zip"]:
             self.dropout_decoder = nn.Linear(hidden_dim, state_dim)
         
-        self.apply(self._init_weights)
-    
-    @staticmethod
-    def _init_weights(m: nn.Module) -> None:
-        if isinstance(m, nn.Linear):
-            nn.init.xavier_normal_(m.weight)
-            nn.init.constant_(m.bias, 0.01)
-    
+        self.apply(_init_weights)
+
     def forward(self, x: torch.Tensor):
         h = F.relu(self.ln1(self.fc1(x)) if self.use_layer_norm else self.fc1(x))
         h = F.relu(self.ln2(self.fc2(h)) if self.use_layer_norm else self.fc2(h))
@@ -155,15 +151,8 @@ class LatentODEfunc(nn.Module):
         
         self.fc2 = nn.Linear(n_hidden, n_latent)
         
-        self.apply(self._init_weights)
-    
-    @staticmethod
-    def _init_weights(m: nn.Module) -> None:
-        if isinstance(m, nn.Linear):
-            nn.init.xavier_normal_(m.weight)
-            if m.bias is not None:
-                nn.init.zeros_(m.bias)
-    
+        self.apply(_init_weights)
+
     def _broadcast_time(self, t: torch.Tensor, x: torch.Tensor) -> torch.Tensor:
         """Broadcast scalar/1D time to match x's shape for concat/film/add."""
         if x.dim() == 1:
@@ -316,35 +305,6 @@ class MoCo(nn.Module):
         
         return (F.cross_entropy(sim, labels) + F.cross_entropy(sim.T, labels)) / 2
 
-    def symmetric_contrastive_loss(self, z1: torch.Tensor, z2: torch.Tensor) -> torch.Tensor:
-        """scAGCL-style symmetric contrastive using sim_11/sim_12/sim_22 matrices."""
-        h1 = self.proj_head_q(z1)
-        h2 = self.proj_head_q(z2)
-        h1 = F.normalize(h1, dim=1)
-        h2 = F.normalize(h2, dim=1)
-        
-        # Three similarity matrices (scAGCL)
-        sim_11 = torch.mm(h1, h1.T) / self.T
-        sim_12 = torch.mm(h1, h2.T) / self.T
-        sim_22 = torch.mm(h2, h2.T) / self.T
-        
-        # Positive similarities (diagonal of sim_12)
-        pos_sim = torch.diag(sim_12)
-        
-        # View 1 loss: negative = sim_11 + sim_12, exclude diagonal
-        neg_sim_1 = torch.cat([sim_11, sim_12], dim=1)
-        diag_mask_1 = torch.cat([torch.diag(torch.diag(sim_11)), torch.zeros_like(sim_12)], dim=1)
-        neg_sim_1 = neg_sim_1 - diag_mask_1
-        l1 = -pos_sim + torch.logsumexp(neg_sim_1, dim=1)
-        
-        # View 2 loss: negative = sim_22 + sim_12.T, exclude diagonal
-        neg_sim_2 = torch.cat([sim_22, sim_12.T], dim=1)
-        diag_mask_2 = torch.cat([torch.diag(torch.diag(sim_22)), torch.zeros_like(sim_12.T)], dim=1)
-        neg_sim_2 = neg_sim_2 - diag_mask_2
-        l2 = -pos_sim + torch.logsumexp(neg_sim_2, dim=1)
-        
-        return (l1.mean() + l2.mean()) / 2
-    
     def prototype_contrastive_loss(self, z: torch.Tensor, cluster_assignments: Optional[torch.Tensor] = None) -> torch.Tensor:
         """scGPCL-style prototype-level contrastive loss."""
         if not self.use_prototype:
@@ -369,44 +329,6 @@ class MoCo(nn.Module):
         
         loss = -pos_sim + torch.logsumexp(sim, dim=1)
         return loss.mean()
-    
-    def topic_aware_contrastive_loss(self, theta_q: torch.Tensor, theta_k: torch.Tensor, temperature: float = 0.5) -> torch.Tensor:
-        """Topic-aware contrastive using Jensen-Shannon divergence.
-        
-        Pulls together samples with similar topic distributions.
-        Useful for ODE-VAE cross-path alignment.
-        """
-        batch_size = theta_q.size(0)
-        if batch_size < 2:
-            return torch.tensor(0.0, device=theta_q.device)
-        
-        # Ensure probability distributions
-        theta_q_prob = F.softmax(theta_q, dim=1) if theta_q.min() < 0 else theta_q
-        theta_k_prob = F.softmax(theta_k, dim=1) if theta_k.min() < 0 else theta_k
-        
-        # Pairwise JS divergence
-        m = 0.5 * (theta_q_prob.unsqueeze(1) + theta_k_prob.unsqueeze(0))
-        kl_pm = torch.sum(
-            theta_q_prob.unsqueeze(1) * (torch.log(theta_q_prob.unsqueeze(1) + 1e-10) - torch.log(m + 1e-10)),
-            dim=-1
-        )
-        kl_qm = torch.sum(
-            theta_k_prob.unsqueeze(0) * (torch.log(theta_k_prob.unsqueeze(0) + 1e-10) - torch.log(m + 1e-10)),
-            dim=-1
-        )
-        js_dist = 0.5 * (kl_pm + kl_qm)
-        
-        # Convert to similarity
-        topic_sim = torch.exp(-js_dist / temperature)
-        
-        # Positive: diagonal, Negative: off-diagonal
-        pos_sim = torch.diag(topic_sim)
-        mask = torch.eye(batch_size, device=theta_q.device).bool()
-        neg_sim = topic_sim.masked_fill(mask, 0).sum(dim=1) / (batch_size - 1 + 1e-10)
-        
-        # Contrastive loss
-        loss = -torch.log(pos_sim / (pos_sim + neg_sim + 1e-10)).mean()
-        return loss
 
 
 class VAE(nn.Module, NODEMixin):

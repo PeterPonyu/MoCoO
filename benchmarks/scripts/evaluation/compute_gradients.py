@@ -10,6 +10,7 @@ Usage:
 """
 
 import argparse
+import os
 import sys
 import warnings
 from pathlib import Path
@@ -111,7 +112,7 @@ def _check_epoch_sufficiency(configs, val_losses, val_every, target_cfgs):
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--data", default="/home/zeyufu/Desktop/datasets/IRALL.h5ad")
+    parser.add_argument("--data", default=os.path.join(os.environ.get("MOCOO_DATA_DIR", "data"), "IRALL.h5ad"))
     parser.add_argument("--epochs", type=int, default=300)
     parser.add_argument("--patience", type=int, default=50)
     parser.add_argument("--val-every", type=int, default=5)

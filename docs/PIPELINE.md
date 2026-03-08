@@ -14,7 +14,7 @@ Step-by-step commands to reproduce article results and generate figures.
 
 | Variable | Purpose |
 |----------|---------|
-| `MOCOO_DATA_DIR` | Base directory for dataset paths (default: `/home/zeyufu`) |
+| `MOCOO_DATA_DIR` | Base directory for dataset paths (default: `data`) |
 
 ---
 

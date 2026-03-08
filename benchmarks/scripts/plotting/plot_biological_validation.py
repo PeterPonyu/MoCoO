@@ -572,7 +572,7 @@ def build_figure(data, adata, outpath: Path):
 
 def main():
     _benchmarks = Path(__file__).resolve().parent.parent.parent  # benchmarks/
-    _data_base = os.environ.get("MOCOO_DATA_DIR", "/home/zeyufu")
+    _data_base = os.environ.get("MOCOO_DATA_DIR", "data")
     parser = argparse.ArgumentParser()
     parser.add_argument("--resultsdir",
                         default=str(_benchmarks / "results" / "dataset_default"))

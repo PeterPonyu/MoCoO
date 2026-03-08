@@ -208,7 +208,7 @@ def print_summary(results):
 
 def main():
     parser = argparse.ArgumentParser(description="MoCoO ablation benchmark")
-    parser.add_argument("--data", default="/home/zeyufu/LAB/scRL/IRALL.h5ad",
+    parser.add_argument("--data", default=os.environ.get("MOCOO_DATA_DIR", "data") + "/IRALL.h5ad",
                         help="Path to .h5ad dataset")
     parser.add_argument("--epochs", type=int, default=150,
                         help="Max training epochs per config")

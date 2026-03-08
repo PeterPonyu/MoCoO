@@ -8,8 +8,8 @@ across N seeds on each dataset, then outputs seed-level results
 that can be fed into significance_tests.py.
 
 Usage (GPU required):
-    conda run -p /home/zeyufu/Desktop/.conda python run_multiseed.py --seeds 5 --datasets IRALL
-    conda run -p /home/zeyufu/Desktop/.conda python run_multiseed.py --seeds 5 --datasets IRALL dentate endo --epochs 300
+    python run_multiseed.py --seeds 5 --datasets IRALL
+    python run_multiseed.py --seeds 5 --datasets IRALL dentate endo --epochs 300
 
 Estimated GPU time:
     1 dataset × 6 configs × 5 seeds ≈ 1-2 hours (RTX 4090)
@@ -29,7 +29,7 @@ import pandas as pd
 warnings.filterwarnings("ignore")
 
 # Ensure MoCoO is importable
-BASE_DIR = Path("/home/zeyufu/Desktop")
+BASE_DIR = Path(os.environ.get("MOCOO_DATA_DIR", "data"))
 sys.path.insert(0, str(BASE_DIR / "MoCoO"))
 
 # Import configs from run_benchmark

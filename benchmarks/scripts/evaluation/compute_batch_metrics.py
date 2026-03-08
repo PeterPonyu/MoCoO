@@ -24,6 +24,7 @@ Usage:
 import argparse
 import csv
 import json
+import os
 import sys
 import time
 import warnings
@@ -147,7 +148,7 @@ def main():
     )
     parser.add_argument(
         "--data",
-        default="/home/zeyufu/Desktop/datasets/IRALL.h5ad",
+        default=os.path.join(os.environ.get("MOCOO_DATA_DIR", "data"), "IRALL.h5ad"),
         help="Path to original .h5ad (to recover batch labels)",
     )
     parser.add_argument(

@@ -8,8 +8,8 @@ same preprocessed data used by MoCoO, using identical train/val/test splits
 and evaluation metrics.
 
 Usage:
-    conda run -p /home/zeyufu/Desktop/.conda python pca_kmeans_baseline.py
-    conda run -p /home/zeyufu/Desktop/.conda python pca_kmeans_baseline.py --n_components 50 --datasets IRALL dentate endo
+    python pca_kmeans_baseline.py
+    python pca_kmeans_baseline.py --n_components 50 --datasets IRALL dentate endo
 """
 import argparse
 import sys
@@ -51,7 +51,7 @@ DATASETS = {
     },
 }
 
-BASE_DIR = Path("/home/zeyufu/Desktop")
+BASE_DIR = Path(os.environ.get("MOCOO_DATA_DIR", "data"))
 
 
 def load_and_preprocess(dataset_name: str, max_cells: int = 3000, n_hvg: int = 3000):

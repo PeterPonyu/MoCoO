@@ -13,7 +13,12 @@ from .mixin import envMixin
 
 
 class Env(MoCoOModel, envMixin):
-    
+    """Training environment for MoCoO.
+
+    Manages data loading, preprocessing, train/validation/test splitting,
+    and the training loop with early stopping and validation scoring.
+    """
+
     def __init__(
         self,
         adata,

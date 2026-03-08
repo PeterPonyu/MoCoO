@@ -26,8 +26,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent.parent.parent))
 
 from mocoo import MoCoO
 from benchmarks.scripts.pipeline.dataset_registry import get_registry
-from LSE import SingleCellLatentSpaceEvaluator
-from DRE import DimensionalityReductionEvaluator
+from mocoo.evaluation import SingleCellLatentSpaceEvaluator, DimensionalityReductionEvaluator
 
 # ── Corrected config definitions (matching run_benchmark.py) ──────────────
 SHARED = dict(

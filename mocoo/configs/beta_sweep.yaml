@@ -1,0 +1,88 @@
+# =============================================================================
+# MoCoO Beta Sweep Configuration
+# =============================================================================
+#
+# Hyperparameter sweep over the KL divergence weight (beta) to study the
+# effect of posterior regularization strength on latent space quality.
+# Based on manuscript Section V analysis.
+#
+# Uses shorter training (50 epochs, patience 15) for efficiency.
+# All other hyperparameters inherit from the default configuration.
+# =============================================================================
+
+
+# -----------------------------------------------------------------------------
+# Shared model hyperparameters (same as default.yaml)
+# -----------------------------------------------------------------------------
+shared: &shared
+  latent_dim: 32
+  hidden_dim: 128
+  i_dim: 4
+  lr: 1.0e-4
+  batch_size: 128
+  recon: 1.0
+  loss_mode: "nb"
+  random_seed: 42
+  train_size: 0.7
+  val_size: 0.15
+  test_size: 0.15
+
+
+# -----------------------------------------------------------------------------
+# Training schedule (shorter for sweep efficiency)
+# -----------------------------------------------------------------------------
+training:
+  epochs: 50
+  patience: 15
+  val_every: 5
+
+
+# -----------------------------------------------------------------------------
+# Beta values to sweep
+# -----------------------------------------------------------------------------
+# beta controls the weight of the KL divergence term in the ELBO:
+#   L = recon_loss + beta * KL(q(z|x) || p(z))
+#
+# Low beta (0.01):  Nearly unconstrained latent space; good reconstruction
+#                   but potentially entangled / poorly structured latent codes.
+# Medium beta (0.1): Moderate posterior regularization; a common "beta-VAE"
+#                    setting that often balances reconstruction vs structure.
+# High beta (1.0):  Standard VAE objective (beta=1 recovers the true ELBO);
+#                   strongest regularization toward the prior.
+# -----------------------------------------------------------------------------
+sweep:
+  parameter: "beta"
+  values: [0.01, 0.1, 1.0]
+
+
+# -----------------------------------------------------------------------------
+# Configurations to sweep
+# -----------------------------------------------------------------------------
+# The beta sweep is applied to the Full model and the VAE baseline,
+# using the canonical loss weights from default.yaml.
+# -----------------------------------------------------------------------------
+
+_ode_params: &ode_params
+  use_ode: true
+  vae_reg: 0.6
+  ode_reg: 0.4
+
+_moco_params_with_ode: &moco_params_with_ode
+  use_moco: true
+  moco_weight: 0.3
+  moco_T: 0.2
+  moco_K: 4096
+
+_proto_params: &proto_params
+  use_prototype: true
+  n_prototypes: 12
+  proto_weight: 0.1
+
+configs:
+  VAE:
+    use_ode: false
+    use_moco: false
+    use_prototype: false
+
+  Full:
+    <<: [*ode_params, *moco_params_with_ode, *proto_params]

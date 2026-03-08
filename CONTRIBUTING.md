@@ -62,6 +62,34 @@ Releases are automated via GitHub Actions:
 2. **GitHub releases** trigger automatic PyPI publishing
 3. **Semantic versioning** is followed
 
+### Creating a New Release
+
+1. **Bump version:**
+   ```bash
+   python release.py patch  # For bug fixes (0.0.3 -> 0.0.4)
+   python release.py minor  # For new features (0.0.3 -> 0.1.0)
+   python release.py major  # For breaking changes (0.0.3 -> 1.0.0)
+   ```
+
+2. **Commit and push:**
+   ```bash
+   git add -A
+   git commit -m "Bump version to X.Y.Z"
+   git push
+   ```
+
+3. **Create GitHub release:**
+   - Go to [Releases](https://github.com/PeterPonyu/MoCoO/releases)
+   - Click "Create a new release"
+   - Tag: `vX.Y.Z` (e.g., `v0.1.0`)
+   - Title: `Release X.Y.Z`
+   - Description: List changes
+   - Click "Publish release"
+
+4. **Automated publishing:**
+   - GitHub Actions will automatically build and publish to PyPI
+   - Check the Actions tab for build status
+
 ## Reporting Issues
 
 - Use GitHub Issues for bug reports and feature requests

@@ -48,7 +48,9 @@ def sim_adata():
 @pytest.fixture
 def real_adata():
     """Load a real scRNA-seq dataset (dentate gyrus) if available."""
-    path = os.environ.get('MOCOO_TEST_DATA', '/home/zeyufu/Desktop/datasets/DevelopmentDatasets/dentate.h5ad')
+    path = os.environ.get('MOCOO_TEST_DATA')
+    if path is None:
+        pytest.skip("MOCOO_TEST_DATA environment variable not set; skipping real-data test")
     if not os.path.exists(path):
         pytest.skip(f"Real dataset not found: {path}")
 
@@ -275,18 +277,6 @@ def test_cross_path_loss_with_ode_moco(sim_adata):
     assert any(v > 0 for v in vel_losses), "Velocity losses all zero with ODE"
 
 
-def test_symmetric_contrastive_standalone(sim_adata):
-    """Symmetric contrastive loss unit test on raw tensors."""
-    model = _build_model(sim_adata, use_ode=False, use_moco=True, loss_mode='mse')
-
-    z1 = torch.randn(16, COMMON_KWARGS['latent_dim']).to(model.device)
-    z2 = torch.randn(16, COMMON_KWARGS['latent_dim']).to(model.device)
-    loss = model.nn.moco.symmetric_contrastive_loss(z1, z2)
-
-    assert loss.item() > 0, "Symmetric contrastive loss should be positive"
-    assert np.isfinite(loss.item()), "Loss is not finite"
-
-
 # ══════════════════════════════════════════════════════════════════════════════
 # 4. API METHOD TESTS
 # ══════════════════════════════════════════════════════════════════════════════
@@ -464,18 +454,6 @@ def test_regularizer_configs(sim_adata, reg_name, reg_kwargs):
 # 9. PanODE-LAB CONTRASTIVE STRATEGIES
 # ══════════════════════════════════════════════════════════════════════════════
 
-def test_scagcl_symmetric_contrastive(sim_adata):
-    """scAGCL symmetric contrastive should use sim_11/sim_12/sim_22."""
-    model = _build_model(sim_adata, use_ode=False, use_moco=True, loss_mode='nb')
-    
-    z1 = torch.randn(16, COMMON_KWARGS['latent_dim']).to(model.device)
-    z2 = torch.randn(16, COMMON_KWARGS['latent_dim']).to(model.device)
-    loss = model.nn.moco.symmetric_contrastive_loss(z1, z2)
-    
-    assert loss.item() > 0, "Symmetric loss should be positive"
-    assert np.isfinite(loss.item()), "Loss should be finite"
-
-
 def test_scgpcl_prototype_contrastive(sim_adata):
     """scGPCL prototype-level contrastive with learnable prototypes."""
     n_proto = 5
@@ -484,11 +462,11 @@ def test_scgpcl_prototype_contrastive(sim_adata):
         use_prototype=True, n_prototypes=n_proto,
     )
     model.fit(epochs=2, patience=5, val_every=1)
-    
+
     # Check prototypes exist and correct shape
     assert hasattr(model.nn.moco, 'prototypes'), "Prototypes should exist"
     assert model.nn.moco.prototypes.shape == (n_proto, COMMON_KWARGS['latent_dim'])
-    
+
     # Test prototype loss
     z = torch.randn(16, COMMON_KWARGS['latent_dim']).to(model.device)
     loss = model.nn.moco.prototype_contrastive_loss(z)
@@ -499,24 +477,12 @@ def test_cross_path_contrastive_ode_vae(sim_adata):
     """Cross-path contrastive aligns VAE and ODE paths."""
     model = _build_model(sim_adata, use_ode=True, use_moco=True, loss_mode='nb')
     model.fit(epochs=2, patience=5, val_every=1)
-    
+
     q_z = torch.randn(16, COMMON_KWARGS['latent_dim']).to(model.device)
     q_z_ode = torch.randn(16, COMMON_KWARGS['latent_dim']).to(model.device)
     loss = model.nn.moco.cross_path_contrastive(q_z, q_z_ode)
-    
+
     assert loss.item() > 0, "Cross-path loss should be positive"
-
-
-def test_topic_aware_contrastive_js_divergence(sim_adata):
-    """Topic-aware contrastive uses Jensen-Shannon divergence."""
-    model = _build_model(sim_adata, use_ode=False, use_moco=True, loss_mode='nb')
-    
-    theta_q = torch.randn(16, COMMON_KWARGS['latent_dim']).to(model.device)
-    theta_k = torch.randn(16, COMMON_KWARGS['latent_dim']).to(model.device)
-    loss = model.nn.moco.topic_aware_contrastive_loss(theta_q, theta_k)
-    
-    assert loss.item() > 0, "Topic-aware loss should be positive"
-    assert np.isfinite(loss.item()), "Loss should be finite"
 
 
 def test_batchnorm_projection_heads(sim_adata):

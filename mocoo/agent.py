@@ -205,7 +205,7 @@ class MoCoO(Env, VectorFieldMixin):
             tag_parts.append('ODE')
         if self.use_moco:
             tag_parts.append('MoCo')
-        if hasattr(self, 'use_prototype') and self.use_prototype:
+        if self.proto_weight > 0:
             tag_parts.append('Proto')
         config_tag = '+'.join(tag_parts)
         
