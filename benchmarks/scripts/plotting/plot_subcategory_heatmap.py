@@ -24,6 +24,7 @@ from benchmarks.scripts.plotting.shared import setup_fonts, panel_label
 from mocoo.visualization.style import (
     FIG_WIDTH_IN, FIG_HEIGHT_IN, DPI, SAVEFIG_KW,
     FS_LABEL, FS_TITLE, FS_AXIS, FS_TICK, FS_LEGEND, FS_SMALL,
+    HEATMAP_DARK_THRESHOLD,
     apply_style, get_config_order, get_config_colors, get_short_name,
 )
 
@@ -146,7 +147,7 @@ def make_heatmap(ax, data, panel_name, metrics_spec, configs):
             # Format: use integer for large values, 3 decimal otherwise
             txt = f"{val:.0f}" if abs(val) > 10 else f"{val:.3f}"
             weight = "bold" if i == best_idx else "normal"
-            color = "white" if norm_mat[i, j] > 0.55 else "black"
+            color = "white" if norm_mat[i, j] > HEATMAP_DARK_THRESHOLD else "black"
             # Add rank as superscript
             rank_idx = np.where(valid_indices == i)[0]
             if len(rank_idx) > 0:

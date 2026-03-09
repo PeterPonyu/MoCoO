@@ -39,6 +39,7 @@ from benchmarks.scripts.plotting.shared import setup_fonts, load_benchmark_npz, 
 from mocoo.visualization.style import (
     FIG_WIDTH_IN, FIG_HEIGHT_IN, DPI, SAVEFIG_KW,
     FS_LABEL, FS_TITLE, FS_AXIS, FS_TICK, FS_LEGEND, FS_SMALL,
+    HEATMAP_DARK_THRESHOLD,
     apply_style, get_config_order, get_config_colors, get_short_name,
 )
 
@@ -290,7 +291,7 @@ def _draw_cross_dataset_heatmap(ax, cross_data):
         for j in range(n_cols):
             v = data[i, j]
             if not np.isnan(v):
-                color = "white" if data_norm[i, j] > 0.6 else "black"
+                color = "white" if data_norm[i, j] > HEATMAP_DARK_THRESHOLD else "black"
                 ax.text(j, i, f"{v:.3f}", ha="center", va="center",
                         fontsize=FS_SMALL, color=color)
 

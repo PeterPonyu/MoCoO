@@ -149,9 +149,15 @@ def panel_label(
     letter: str,
     x_off: float = -0.042,
     y_off: float = 0.006,
-    fontsize: float = 9,
+    fontsize: float = None,
 ) -> None:
     """Place a bold panel label (e.g. '(A)') at the top-left of *ax*."""
+    if fontsize is None:
+        try:
+            from mocoo.visualization.style import FS_LABEL
+            fontsize = FS_LABEL
+        except ImportError:
+            fontsize = 9
     pos = ax.get_position()
     fig.text(
         pos.x0 + x_off, pos.y1 + y_off,

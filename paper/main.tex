@@ -66,7 +66,7 @@ First, Neural Ordinary Differential Equations (Neural ODEs)~\cite{chen2018neural
 
 Second, contrastive learning---particularly Momentum Contrast (MoCo)~\cite{he2020momentum}---has proven effective at learning representations that are locally smooth yet globally discriminative. MoCo maintains a momentum-updated encoder and a large memory queue of negative keys, enabling scalable contrastive learning that is decoupled from batch size. Extensions such as prototype contrastive learning~\cite{li2021prototypical} further impose cluster structure by aligning representations with learnable prototype vectors.
 
-Despite these individual advances, no existing method unifies VAE-based reconstruction, Neural ODE dynamics, and momentum contrastive learning within a single coherent framework. In this work, we propose \MoCoO(\textbf{Mo}mentum \textbf{Co}ntrast \textbf{O}DE-regularized VAE), a modular architecture that combines all three paradigms:
+Despite these individual advances, no existing method unifies VAE-based reconstruction, Neural ODE dynamics, and momentum contrastive learning within a single coherent framework. In this work, we propose \MoCoO (\textbf{Mo}mentum \textbf{Co}ntrast \textbf{O}DE-regularized VAE), a modular architecture that combines all three paradigms:
 
 \begin{enumerate}
     \item \textbf{VAE with flexible count-based likelihoods} (MSE, NB, ZINB, Poisson, ZIP) provides a probabilistic latent space and handles the zero-inflation and overdispersion characteristic of scRNA-seq count data.
@@ -116,7 +116,7 @@ MoCoO is a modular framework illustrated in Fig.~\ref{fig:architecture}. The arc
 \begin{figure*}[!t]
     \centering
     \includegraphics[width=\textwidth]{fig_architecture}
-    \caption{Overview of the \MoCoO architecture. Single-cell RNA sequencing count data is processed through a VAE encoder producing latent representations $z$, which are optionally refined by a Neural ODE solver for continuous trajectory modelling. A Momentum Contrast module with memory queue enforces instance-level discrimination, while learnable prototype heads impose cluster structure. An information bottleneck provides hierarchical compression. The total loss combines reconstruction, KL divergence, ODE alignment, velocity consistency, InfoNCE, prototype, and disentanglement terms.}
+    \caption{\MoCoO architecture overview. Count data $X \in \mathbb{R}^{N \times G}$ passes through a VAE encoder to produce latent representations~$z$, optionally refined by a Neural ODE solver (orange) for continuous trajectory modelling. Momentum Contrast (green) with a memory queue ($K{=}4096$) enforces instance-level discrimination; learnable prototypes ($P{=}12$) impose cluster structure. An information bottleneck (purple) provides hierarchical compression to $d_{\mathrm{ib}}{=}4$. Dashed regions denote optional modules. Colour coding is consistent throughout all figures.}
     \label{fig:architecture}
 \end{figure*}
 
@@ -348,7 +348,7 @@ At weak KL ($\beta = 0.01$), the competition broadens: VAE+MoCo leads ARI (0.480
 \begin{figure*}[!t]
     \centering
     \includegraphics[width=\textwidth,height=0.42\textheight,keepaspectratio]{fig2_quant_comparison}
-    \caption{Quantitative latent space comparison across six model configurations (IRALL, 3{,}000 cells, 200 epochs, $\beta = 0.1$). \textbf{(A)}~UMAP embeddings coloured by cell type illustrate how latent geometry changes with configuration. \textbf{(B)}~Clustering quality (ARI, NMI, ASW) with Val/Test splits. \textbf{(C)}~Neighbourhood quality (trustworthiness, symmetry, Spearman, DRE). \textbf{(D)}~Latent structure (participation ratio, intrinsic dimensionality, anisotropy, LSE). The Full model achieves the best ASW and DRE, while VAE leads on ARI.}
+    \caption{Quantitative latent-space comparison across six configurations (IRALL, 3{,}000 cells, 200 epochs, $\beta{=}0.1$). \textbf{(A)}~UMAP projections coloured by cell type show progressive geometric refinement from VAE to Full. \textbf{(B)}~Clustering metrics (ARI, NMI, ASW) on validation and held-out test splits; solid and hatched bars respectively. \textbf{(C)}~Neighbourhood-preservation metrics (trustworthiness, neighbour symmetry, distance Spearman~$\rho$, DRE). \textbf{(D)}~Intrinsic latent-space quality (participation ratio, manifold dimensionality, anisotropy, composite LSE). Bold outlines mark the best configuration per metric.}
     \label{fig:quant_comparison}
 \end{figure*}
 
@@ -388,7 +388,7 @@ We isolate each component's marginal effect by computing deltas between adjacent
 \begin{figure*}[!t]
     \centering
     \includegraphics[width=\textwidth,height=0.42\textheight,keepaspectratio]{fig3_ablation_summary}
-    \caption{Ablation study and component contribution analysis ($\beta = 0.1$, IRALL). \textbf{(A)}~ODE$\times$MoCo synergy heatmap: interaction terms across metrics and $\beta$ values, with warm colours indicating super-additive effects; alongside a summary table of key metrics per configuration. \textbf{(B)}~Incremental gain waterfall charts for ARI, NMI, and ASW, showing component marginal effects ($\Delta$ from VAE baseline) with green/red indicating positive/negative deltas. \textbf{(C)}~Comprehensive performance heatmap (column-normalised) across eight evaluation metrics, revealing that no single configuration dominates all axes. \textbf{(D)}~Latent dimension importance via permutation-based kNN accuracy drop, quantifying how ``focused'' vs.\ ``diffuse'' each model's representations are across the 32-dimensional latent space.}
+    \caption{Ablation study and component contribution analysis (IRALL, $\beta{=}0.1$). \textbf{(A)}~ODE$\times$MoCo interaction heatmap across metrics and $\beta$ values; warm tones indicate super-additive effects. An adjacent summary table reports key metrics per configuration. \textbf{(B)}~Incremental-gain waterfall for ARI, NMI, and ASW: each bar shows the marginal change ($\Delta$) from the VAE baseline (green$=$positive, red$=$negative). \textbf{(C)}~Column-normalised performance heatmap across eight metrics---no single configuration dominates all axes. \textbf{(D)}~Permutation-based kNN accuracy drop per latent dimension ($d{=}32$), revealing how concentrated versus distributed each model's learned representations are.}
     \label{fig:ablation_summary}
 \end{figure*}
 
@@ -618,7 +618,7 @@ All configurations converge within 200 epochs (patience 40) at 3{,}000 cells (Fi
 \begin{figure*}[!t]
     \centering
     \includegraphics[width=\textwidth,height=0.42\textheight,keepaspectratio]{fig4_training_dynamics}
-    \caption{Training dynamics and computational efficiency across all six configurations ($\beta = 0.1$, IRALL, 3{,}000 cells). \textbf{(A)}~Training and validation ELBO loss curves showing convergence within 200 epochs (patience 40); all configurations converge stably with ODE models reaching comparable loss despite higher initial values. \textbf{(B)}~Efficiency scatter: validation ARI vs.\ training time, with bubble size proportional to peak GPU memory. VAE achieves the highest ARI at the lowest cost; ODE-containing models require ${\sim}10\!\times$ more time for comparable clustering quality. The Pareto frontier highlights the accuracy--efficiency trade-off.}
+    \caption{Training dynamics and computational cost (IRALL, 3{,}000 cells, $\beta{=}0.1$). \textbf{(A)}~Training (solid) and validation (dashed) ELBO loss curves; all configurations converge within 200 epochs (patience$=$40). ODE-containing models start from higher loss but reach comparable minima. \textbf{(B)}~Efficiency scatter: validation ARI versus wall-clock training time. Bubble area is proportional to peak GPU memory. The dashed Pareto frontier delineates the accuracy--cost trade-off: VAE achieves the best ARI at lowest cost, while ODE models require $\sim$10$\times$ longer for comparable clustering quality.}
     \label{fig:training_dynamics}
 \end{figure*}
 
@@ -688,7 +688,7 @@ While VAE+ODE dominates aggregate metrics, \textbf{the Full model achieves the b
 \begin{figure*}[!t]
     \centering
     \includegraphics[width=\textwidth,height=0.82\textheight,keepaspectratio]{fig5_subcategory_heatmap}
-    \caption{Subcategory metric breakdown across all six configurations ($\beta = 0.1$, IRALL, 3{,}000 cells). Each panel shows one metric family, with values column-normalised (darker = higher); bold values indicate the best configuration per metric. Win counts (number of best-in-column) are annotated per config. \textbf{(A)}~Clustering: core label-matching metrics. \textbf{(B)}~DRE: dimensionality reduction quality (latent$\to$2D). \textbf{(C)}~DREX: extended DR metrics including distance correlations and rank preservation. \textbf{(D)}~LSE: latent space spectral properties. \textbf{(E)}~LSEX: extended latent metrics including cluster compactness, neighbor purity, sampling stability, and inter-cluster gap. The Full model achieves best scores on distance correlations (B, C) and competitive latent structure (E), while VAE+ODE dominates core clustering (A).}
+    \caption{Subcategory metric breakdown (IRALL, $\beta{=}0.1$, 3{,}000 cells). Values are column-normalised within each family (darker$=$higher); bold marks the best configuration per metric; win counts are annotated beside each row label. \textbf{(A)}~Clustering (ARI, NMI, ASW, DAV, Cal-H, COR). \textbf{(B)}~Dimensionality-reduction evaluation (DRE): latent$\to$UMAP/tSNE fidelity. \textbf{(C)}~Extended DR metrics (DREX): trustworthiness, continuity, distance correlations, rank preservation. \textbf{(D)}~Latent spectral evaluation (LSE): manifold dimensionality, spectral decay, anisotropy. \textbf{(E)}~Extended latent metrics (LSEX): cluster compactness, neighbour purity, sampling stability, inter-cluster gap. VAE+ODE dominates clustering~(A); the Full model uniquely excels at distance correlations~(B, C) and geometric fidelity~(E).}
     \label{fig:subcategory_heatmap}
 \end{figure*}
 
@@ -730,7 +730,7 @@ The primary effect, best operating regime, and key metrics improved by each comp
 \begin{figure*}[!t]
     \centering
     \includegraphics[width=\textwidth,height=0.70\textheight,keepaspectratio]{fig5_composed_benchmark}
-    \caption{Comprehensive benchmark overview of \MoCoO. \textbf{(A)}~UMAP embeddings of all six configurations, coloured by cell type, showing qualitative clustering improvement from VAE to the Full model. \textbf{(B)}~Radar summary of normalised metrics (ARI, NMI, ASW, DRE, DREX, LSEX) revealing that no single configuration dominates all axes. \textbf{(C)}~Training loss convergence curves. \textbf{(D)}~Latent space diagnostics ($\mu$-norm, $\sigma$-mean, zero-dimension count, pairwise distance). \textbf{(E)}~Learned ODE vector field projected onto UMAP coordinates for the Full model, visualising the continuous dynamics captured by the trajectory module. \textbf{(F)}~Column-normalised heatmap across all evaluation metrics, providing a quantitative bird's-eye comparison.}
+    \caption{Comprehensive benchmark overview of \MoCoO ($\beta{=}0.1$, IRALL). \textbf{(A)}~UMAP embeddings coloured by cell type for all six configurations, illustrating progressive clustering refinement. \textbf{(B)}~Radar chart of normalised aggregate metrics (ARI, NMI, ASW, DRE, DREX, LSEX); no single configuration dominates all axes. \textbf{(C)}~Validation loss convergence curves (200 epochs). \textbf{(D)}~Latent-space diagnostics: encoder mean norm, standard-deviation mean, near-zero dimension count, and mean pairwise distance. \textbf{(E)}~ODE-learned velocity field projected onto UMAP coordinates (Full model), visualising the continuous dynamics captured by the trajectory module. \textbf{(F)}~Column-normalised metric heatmap across all evaluation families.}
     \label{fig:composed_benchmark}
 \end{figure*}
 
@@ -779,7 +779,7 @@ Fig.~\ref{fig:beta_sensitivity} shows how all evaluation metrics vary across $\b
 \begin{figure*}[!t]
     \centering
     \includegraphics[width=\textwidth,height=0.70\textheight,keepaspectratio]{fig6_beta_sensitivity}
-    \caption{Beta sensitivity analysis across all six configurations and nine metric families. Each subplot shows one aggregate metric as a function of $\beta$ (log scale), with one line per configuration. ODE-containing models show the most stable profiles across $\beta$ values, while MoCo and Proto effects are strongly beta-dependent. The COR (correlation) metric is included for completeness but shows high variance across configurations.}
+    \caption{Beta sensitivity across all six configurations and nine aggregate metrics. Each subplot shows one metric as a function of~$\beta$ (log scale, $\beta \in \{0.01, 0.1, 1.0\}$), with one line per configuration. ODE-containing models exhibit the most stable profiles; MoCo and prototype effects are strongly $\beta$-dependent. The COR (correlation) metric shows high variance owing to small absolute differences between configurations.}
     \label{fig:beta_sensitivity}
 \end{figure*}
 
@@ -791,7 +791,7 @@ Fig.~\ref{fig:generalization} compares validation and held-out test metrics to a
 \begin{figure*}[!t]
     \centering
     \includegraphics[width=\textwidth,height=0.70\textheight,keepaspectratio]{fig7_generalization}
-    \caption{Generalization assessment: validation (train-split) versus held-out test (test\_ext) metrics for all six configurations ($\beta = 0.1$, IRALL). \textbf{Row 1:} Core clustering metrics (ARI, NMI, ASW). \textbf{Row 2:} Aggregate quality scores (DRE, DREX, LSE, LSEX). Smaller val--test gaps indicate better generalization. The Full model maintains the tightest correspondence on distance preservation metrics (DRE, DREX), while all models generalize well on clustering metrics.}
+    \caption{Generalisation assessment: validation (train-split, solid bars) versus held-out test (hatched bars) metrics for all six configurations ($\beta{=}0.1$, IRALL). \textbf{Row~1:} Clustering (ARI, NMI, ASW). \textbf{Row~2:} Aggregate quality scores (DRE, DREX, LSE, LSEX). Narrow val--test gaps indicate strong generalisation. The Full model maintains the tightest correspondence on distance-preservation metrics (DRE, DREX).}
     \label{fig:generalization}
 \end{figure*}
 
@@ -803,7 +803,7 @@ Fig.~\ref{fig:supp_ode} provides detailed analysis of the Neural ODE component's
 \begin{figure*}[!t]
     \centering
     \includegraphics[width=\textwidth,height=0.70\textheight,keepaspectratio]{supp_ode_trajectory}
-    \caption{ODE-driven pseudotime and trajectory analysis. \textbf{(A)}~PCA of latent spaces coloured by cell type and pseudotime for VAE, VAE+ODE, and Full configurations, showing that ODE adds temporal structure. \textbf{(B)}~Pseudotime distributions per cell type (VAE vs.\ VAE+ODE); the ODE model stratifies developmental stages more continuously. \textbf{(C)}~Top marker gene expression along pseudotime. \textbf{(D)}~Trajectory smoothness: pairwise distance histograms and kNN entropy per configuration.}
+    \caption{ODE-driven pseudotime and trajectory analysis (IRALL, Full model). \textbf{(A)}~PCA of latent spaces coloured by cell type and pseudotime for three representative configurations (VAE, VAE+ODE, Full); ODE adds temporal directionality. \textbf{(B)}~Per-cell-type pseudotime distributions (violin plots, VAE vs.\ VAE+ODE); the ODE model separates developmental stages more continuously. \textbf{(C)}~Top marker gene expression along the inferred pseudotime axis. \textbf{(D)}~Trajectory smoothness: pairwise distance histograms and kNN entropy per configuration.}
     \label{fig:supp_ode}
 \end{figure*}
 
@@ -815,7 +815,7 @@ Fig.~\ref{fig:supp_batch} provides the full batch integration analysis reference
 \begin{figure*}[!t]
     \centering
     \includegraphics[width=\textwidth,height=0.70\textheight,keepaspectratio]{supp_batch_integration}
-    \caption{Batch integration and cross-dataset performance. \textbf{(A)}~Batch integration metrics (iLISI, bASW, cLISI, graph connectivity, isolated label ASW) across all configurations on IRALL with 8 time-point batches. \textbf{(B)}~Bio-conservation vs.\ batch-correction trade-off scatter and overall scIB score. \textbf{(C)}~Cross-dataset heatmap of ARI/NMI/ASW. \textbf{(D)}~Cross-dataset radar profile.}
+    \caption{Batch integration and cross-dataset evaluation (IRALL, 8 time-point batches). \textbf{(A)}~Per-metric bar chart of batch integration scores (iLISI, bASW, cLISI, graph connectivity, isolated label ASW) across all six configurations. \textbf{(B)}~Bio-conservation versus batch-correction scatter with composite scIB overall score. \textbf{(C)}~Cross-dataset heatmap of ARI, NMI, and ASW (column-normalised) across IRALL, Dentate, and Endo. \textbf{(D)}~Cross-dataset radar profile of normalised configuration performance.}
     \label{fig:supp_batch}
 \end{figure*}
 
@@ -827,7 +827,7 @@ Fig.~\ref{fig:supp_bio} validates the biological interpretability of MoCoO laten
 \begin{figure*}[!t]
     \centering
     \includegraphics[width=\textwidth,height=0.70\textheight,keepaspectratio]{supp_biological_validation}
-    \caption{Biological validation of MoCoO latents. \textbf{(A)}~Global perturbation robustness and per-dimension permutation importance. \textbf{(B)}~UMAP projections coloured by top latent dimensions. \textbf{(C)}~Gene expression UMAPs for top RF-importance genes. \textbf{(D)}~Per-config Pearson correlation heatmaps between top genes and latent components.}
+    \caption{Biological validation of \MoCoO latent spaces (IRALL, Full model). \textbf{(A)}~Global perturbation robustness (kNN accuracy under Gaussian noise at increasing scales) and per-dimension permutation importance for the Full model. \textbf{(B)}~UMAP projections coloured by the four most informative latent dimensions. \textbf{(C)}~Gene-expression UMAPs for the top Random-Forest-importance genes per latent component. \textbf{(D)}~Per-configuration Pearson correlation heatmaps between the top genes and top latent components ($2 \times 3$ grid showing all six configurations).}
     \label{fig:supp_bio}
 \end{figure*}
 

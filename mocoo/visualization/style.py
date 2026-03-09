@@ -29,6 +29,14 @@ SAVEFIG_KW = dict(dpi=DPI, bbox_inches="tight", pad_inches=0.08)
 # Threshold for heatmap text colour: above this normalised value, use white text
 HEATMAP_DARK_THRESHOLD = 0.45
 
+# Default heatmap colormap (consistent across all heatmap panels)
+HEATMAP_CMAP = "YlOrRd"
+
+# Accent colours for highlights and annotations
+ACCENT_POSITIVE = "#2ca02c"  # green — positive deltas / improvements
+ACCENT_NEGATIVE = "#d62728"  # red   — negative deltas / degradation
+ACCENT_BEST     = "crimson"  # best-value highlight edge
+
 # ---------------------------------------------------------------------------
 # Font sizes (calibrated for the 17 x 21 cm canvas)
 # ---------------------------------------------------------------------------

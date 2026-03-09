@@ -44,7 +44,7 @@ from benchmarks.scripts.plotting.shared import setup_fonts, load_benchmark_npz, 
 from mocoo.visualization.style import (
     FIG_WIDTH_IN, FIG_HEIGHT_IN, DPI, SAVEFIG_KW,
     FS_LABEL, FS_TITLE, FS_AXIS, FS_TICK, FS_LEGEND, FS_SMALL,
-    apply_style,
+    apply_style, get_config_colors,
 )
 
 warnings.filterwarnings("ignore", category=FutureWarning)
@@ -309,7 +309,7 @@ def _draw_panel_A(gs_A, fig, configs, latents, labels_all,
     top_10_drops = perm_drops[top_10_idx]
     
     x_pos = np.arange(10)
-    ax_a2.bar(x_pos, top_10_drops, color="steelblue", edgecolor="black", linewidth=0.5)
+    ax_a2.bar(x_pos, top_10_drops, color=get_config_colors()["Full"], edgecolor="black", linewidth=0.5)
     ax_a2.set_xticks(x_pos)
     ax_a2.set_xticklabels([f"Z{ci+1}" for ci in top_10_idx], fontsize=FS_TICK, rotation=45, ha="right")
     ax_a2.set_title("Latent Dimension Importance\n(Higher drop = more important)",
@@ -508,6 +508,7 @@ def build_figure(data, adata, outpath: Path):
 
     # ── 10. Conflict detection (all 13 passes) ────────────────────────────
     print("\n── Conflict Detection ──")
+    fig.canvas.draw()
     issues = detect_all_conflicts(fig, label="bio_validation_abcd", verbose=True)
 
     fig.savefig(outpath, **SAVEFIG_KW)

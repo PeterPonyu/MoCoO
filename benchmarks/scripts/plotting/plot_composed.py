@@ -703,7 +703,9 @@ def build_composed(data, outpath: Path, cache_dir: Path | None = None):
                     i["severity"] == "warning" for i in issues)
     pad = 0.3 if has_trunc else 0.15
 
-    fig.savefig(str(outpath), dpi=DPI, bbox_inches="tight", pad_inches=pad)
+    save_kw = dict(SAVEFIG_KW)
+    save_kw["pad_inches"] = pad
+    fig.savefig(str(outpath), **save_kw)
     plt.close(fig)
 
     n_warn = sum(1 for i in issues if i["severity"] == "warning")
