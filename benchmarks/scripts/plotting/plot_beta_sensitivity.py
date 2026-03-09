@@ -80,8 +80,8 @@ def build_figure(results_base: Path, outdir: Path):
 
     betas_present = sorted(all_data.keys())
 
-    fig, axes = plt.subplots(3, 3, figsize=(FIG_WIDTH_IN, FIG_HEIGHT_IN),
-                              gridspec_kw={"hspace": 0.55, "wspace": 0.40})
+    fig, axes = plt.subplots(3, 3, figsize=(FIG_WIDTH_IN, FIG_HEIGHT_IN * 0.75),
+                              gridspec_kw={"hspace": 0.28, "wspace": 0.32})
 
     for idx, (metric_key, metric_label, higher_better) in enumerate(_METRICS):
         row, col = divmod(idx, 3)
@@ -119,13 +119,13 @@ def build_figure(results_base: Path, outdir: Path):
         if row == 2:
             ax.set_xlabel("β", fontsize=FS_AXIS)
 
-    # Single legend at bottom
+    # Single legend at bottom, adjacent to axes
     handles, labels = axes[0, 0].get_legend_handles_labels()
     fig.legend(handles, labels, fontsize=FS_LEGEND, ncol=6,
-               loc="lower center", bbox_to_anchor=(0.5, -0.02),
+               loc="lower center", bbox_to_anchor=(0.50, 0.01),
                frameon=False, handlelength=1.5, columnspacing=1.0)
 
-    fig.subplots_adjust(left=0.10, right=0.96, top=0.95, bottom=0.10)
+    fig.subplots_adjust(left=0.10, right=0.96, top=0.97, bottom=0.10)
 
     # Panel labels
     letters = "ABCDEFGHI"

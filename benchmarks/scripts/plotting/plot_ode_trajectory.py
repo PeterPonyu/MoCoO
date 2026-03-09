@@ -41,7 +41,7 @@ import matplotlib.font_manager as fm
 import numpy as np
 from sklearn.decomposition import PCA
 from sklearn.neighbors import NearestNeighbors
-from scipy.ndimage import uniform_filter1d
+from scipy.ndimage import gaussian_filter1d
 
 warnings.filterwarnings("ignore", category=FutureWarning)
 warnings.filterwarnings("ignore", category=UserWarning, module="matplotlib")
@@ -244,7 +244,7 @@ def _draw_gene_pseudotime(gs, fig, configs, latents, labels, adata_path: str):
 
         for k, gi in enumerate(top_idx):
             expr   = X_sub[order, gi].astype(float)
-            smooth = uniform_filter1d(expr, size=max(1, n // 50))
+            smooth = gaussian_filter1d(expr, sigma=max(1, n // 150))
             ax.plot(pt_ord, smooth, lw=0.8, alpha=0.80,
                     color=cm10(k % 10), label=gene_names[gi])
 
@@ -362,11 +362,11 @@ def _draw_trajectory_smoothness(gs, fig, configs, latents, labels):
 def build_figure(rdir: Path, outdir: Path, adata_path: str):
     configs, latents, labels = _load_data(rdir)
 
-    fig = plt.figure(figsize=(FIG_WIDTH_IN, FIG_HEIGHT_IN), dpi=DPI)
+    fig = plt.figure(figsize=(FIG_WIDTH_IN, FIG_HEIGHT_IN * 0.92), dpi=DPI)
     outer = gridspec.GridSpec(
         4, 1,
         height_ratios=[4.0, 2.5, 2.8, 2.5],
-        hspace=0.42,
+        hspace=0.30,
         figure=fig,
     )
 
@@ -398,7 +398,7 @@ def build_figure(rdir: Path, outdir: Path, adata_path: str):
     print("  Drawing Panel D (Trajectory smoothness)...")
     ax_D = _draw_trajectory_smoothness(gs_D, fig, configs, latents, labels)
 
-    fig.subplots_adjust(left=0.13, right=0.94, top=0.96, bottom=0.05)
+    fig.subplots_adjust(left=0.12, right=0.95, top=0.97, bottom=0.05)
 
     panel_label(fig, ax_A, "A")
     panel_label(fig, ax_B, "B")

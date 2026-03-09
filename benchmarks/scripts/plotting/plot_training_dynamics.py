@@ -180,7 +180,7 @@ def _draw_efficiency(gs, fig, configs, metrics):
         if t > 60:
             # These are the ODE configs clustered together
             if "Full" in cfg:
-                dx, dy = -8, -14
+                dx, dy = -20, 12
             elif "ODE+MoCo" in cfg:
                 dx, dy = 6, -14
             elif "ODE" in cfg and "MoCo" not in cfg:
@@ -212,14 +212,14 @@ def _draw_efficiency(gs, fig, configs, metrics):
                  fontsize=FS_TITLE, pad=3)
     ax.tick_params(labelsize=FS_TICK)
     ax.grid(alpha=0.22, linestyle="--", linewidth=0.4)
-    ax.margins(0.15)
+    ax.margins(0.08)
 
     # Memory legend
     for mem_val, label in [(min(mem), f"{min(mem):.2f} GB"), (max(mem), f"{max(mem):.2f} GB")]:
         sz = ((mem_val - mem.min()) / (mem.max() - mem.min() + 1e-6) + 0.2) * 280
         ax.scatter([], [], s=sz, c="gray", alpha=0.5, edgecolors="black",
                    linewidths=0.6, label=f"Mem={label}")
-    ax.legend(fontsize=FS_LEG, frameon=False, loc="lower right",
+    ax.legend(fontsize=FS_LEG, frameon=False, loc="upper right",
               handlelength=1.0, labelspacing=0.2)
     return ax
 
@@ -237,7 +237,7 @@ def build_figure(rdir: Path, outdir: Path):
         outer = gridspec.GridSpec(
             3, 1,
             height_ratios=[2.5, 2.5, 3.5],
-            hspace=0.42,
+            hspace=0.30,
             figure=fig,
         )
         gs_A = gridspec.GridSpecFromSubplotSpec(1, 2, subplot_spec=outer[0], wspace=0.30)
@@ -251,7 +251,7 @@ def build_figure(rdir: Path, outdir: Path):
         print("  Drawing Panel C (Efficiency)...")
         ax_C = _draw_efficiency(gs_C, fig, configs, metrics)
 
-        fig.subplots_adjust(left=0.13, right=0.94, top=0.92, bottom=0.05)
+        fig.subplots_adjust(left=0.12, right=0.95, top=0.92, bottom=0.05)
 
         handles, labels = ax_A.get_legend_handles_labels()
         fig.legend(
@@ -277,7 +277,7 @@ def build_figure(rdir: Path, outdir: Path):
         outer = gridspec.GridSpec(
             2, 1,
             height_ratios=[1.0, 1.2],
-            hspace=0.32,
+            hspace=0.15,
             figure=fig,
         )
 
@@ -290,7 +290,7 @@ def build_figure(rdir: Path, outdir: Path):
         print("  Drawing Panel B (Efficiency)...")
         ax_B = _draw_efficiency(gs_B, fig, configs, metrics)
 
-        fig.subplots_adjust(left=0.13, right=0.94, top=0.90, bottom=0.07)
+        fig.subplots_adjust(left=0.12, right=0.95, top=0.92, bottom=0.07)
 
         handles, labels = ax_A.get_legend_handles_labels()
         fig.legend(

@@ -4,12 +4,16 @@
 MAIN = main
 LATEX = pdflatex
 BIBTEX = bibtex
+FIGDIR = ../benchmarks/figures
+
+# All figures referenced by the article
+FIGS = $(wildcard $(FIGDIR)/*.png)
 
 .PHONY: pdf clean
 
 pdf: $(MAIN).pdf
 
-$(MAIN).pdf: $(MAIN).tex references.bib
+$(MAIN).pdf: $(MAIN).tex references.bib $(FIGS)
 	$(LATEX) $(MAIN)
 	$(BIBTEX) $(MAIN)
 	$(LATEX) $(MAIN)

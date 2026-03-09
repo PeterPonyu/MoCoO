@@ -146,12 +146,12 @@ def make_heatmap(ax, data, panel_name, metrics_spec, configs):
             # Format: use integer for large values, 3 decimal otherwise
             txt = f"{val:.0f}" if abs(val) > 10 else f"{val:.3f}"
             weight = "bold" if i == best_idx else "normal"
-            color = "white" if norm_mat[i, j] < 0.3 or norm_mat[i, j] > 0.85 else "black"
+            color = "white" if norm_mat[i, j] > 0.55 else "black"
             # Add rank as superscript
             rank_idx = np.where(valid_indices == i)[0]
             if len(rank_idx) > 0:
                 rank = ranks[rank_idx[0]]
-                txt = f"{txt} ⁽{rank}⁾"
+                txt = f"{txt} ({rank})"
             ax.text(j, i, txt, ha="center", va="center",
                     fontsize=FS_SMALL, fontweight=weight, color=color)
 
@@ -161,6 +161,8 @@ def make_heatmap(ax, data, panel_name, metrics_spec, configs):
     # Append win count to y-labels
     ylabels = [f"{SHORT_NAMES.get(c, c)} [{wins[i]}W]" for i, c in enumerate(configs)]
     ax.set_yticklabels(ylabels, fontsize=FS_TICK)
+    # Extra padding so y-labels don't overlap with leftmost column annotations
+    ax.tick_params(axis="y", pad=6)
     ax.set_title(panel_name, fontsize=FS_TITLE, fontweight="bold", pad=4)
     return im, wins
 
@@ -188,16 +190,33 @@ def main():
     panel_names = list(PANELS.keys())
     n_panels = len(panel_names)
 
-    fig, axes = plt.subplots(n_panels, 1, figsize=(FIG_WIDTH_IN, 3.0 * n_panels),
-                              gridspec_kw={"hspace": 0.45})
+    # Grid layout: 3 columns x 2 rows (5 panels + 1 empty) for better space use
+    n_cols = 3
+    n_rows = 2
+    fig, axes = plt.subplots(n_rows, n_cols,
+                              figsize=(FIG_WIDTH_IN * 1.35, FIG_HEIGHT_IN * 0.85),
+                              gridspec_kw={"hspace": 0.40, "wspace": 0.35})
 
     letters = "ABCDE"
     total_wins = np.zeros(len(CONFIGS), dtype=int)
+    last_im = None
     for idx, (pname, metrics_spec) in enumerate(PANELS.items()):
-        ax = axes[idx]
-        _, wins = make_heatmap(ax, data, pname, metrics_spec, CONFIGS)
+        row, col = divmod(idx, n_cols)
+        ax = axes[row, col]
+        im, wins = make_heatmap(ax, data, pname, metrics_spec, CONFIGS)
+        last_im = im
         total_wins += wins
-        panel_label(fig, ax, letters[idx], x_off=-0.02, y_off=0.008)
+
+    # Use empty cell for colorbar instead of hiding
+    for idx in range(n_panels, n_rows * n_cols):
+        row, col = divmod(idx, n_cols)
+        cbar_ax = axes[row, col]
+        cbar_ax.set_visible(True)
+        # Add colorbar in the empty cell
+        cb = fig.colorbar(last_im, ax=cbar_ax, shrink=0.7, pad=0.05,
+                          label="Column-normalised score")
+        cb.ax.tick_params(labelsize=FS_TICK)
+        cbar_ax.set_axis_off()
 
     # Print win summary
     print("Win counts per config (across all panels):")
@@ -205,7 +224,17 @@ def main():
         print(f"  {cfg}: {total_wins[i]} wins")
 
     fig.suptitle("Subcategory Metric Breakdown ($\\beta = 0.1$, IRALL, 3000 cells)",
-                 fontsize=FS_LABEL, fontweight="bold", y=0.995)
+                 fontsize=FS_LABEL, fontweight="bold", y=0.99)
+
+    # Finalise layout BEFORE adding panel labels so that ax.get_position()
+    # returns the correct post-adjustment coordinates.
+    fig.subplots_adjust(left=0.10, right=0.97, top=0.93, bottom=0.06)
+
+    # Add panel labels after layout adjustment to avoid overlap with cells.
+    for idx in range(n_panels):
+        row, col = divmod(idx, n_cols)
+        ax = axes[row, col]
+        panel_label(fig, ax, letters[idx], x_off=-0.04, y_off=0.035)
 
     out_path = outdir / "fig5_subcategory_heatmap.png"
     fig.savefig(out_path, **SAVEFIG_KW, facecolor="white")

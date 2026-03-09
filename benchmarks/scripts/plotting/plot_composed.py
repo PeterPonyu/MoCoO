@@ -299,6 +299,8 @@ def _draw_training_curves(fig, gs_parent, configs, val_losses, val_scores):
                     ax.plot(range(vs_a.shape[0]), vs_a[:, src], color=c,
                             lw=1, label=_s(cfg))
         ax.set_title(title, fontsize=FONT_PANEL_TITLE)
+        if src == "loss":
+            ax.set_ylabel("Loss", fontsize=FONT_AXIS_LABEL - 1)
         if has_scores and pidx // 4 == 1:
             ax.set_xlabel("Epoch", fontsize=FONT_AXIS_LABEL - 1)
         elif not has_scores:
@@ -338,22 +340,15 @@ def _draw_heatmap(ax, configs, mets):
     readability at publication scale.
     """
     # Curated metric list: (key, display_label)
+    # Reduced to ~9 most important metrics for readability at publication scale.
     CURATED = [
         ("ARI",  "ARI"),  ("NMI",  "NMI"),  ("ASW",  "ASW"),
-        ("DAV",  "DAV"),  ("CAL",  "CAL"),
-        ("DRE_umap_overall_quality",  "DRE_U"),
-        ("DRE_tsne_overall_quality",  "DRE_T"),
-        ("LSE_overall_quality",       "LSE"),
-        ("LSE_participation_ratio",   "PR"),
-        ("LSE_anisotropy_score",      "Aniso"),
-        ("DREX_trustworthiness",      "Trust"),
-        ("DREX_distance_spearman",    "Spear"),
+        ("DRE_umap_overall_quality",  "DRE"),
         ("DREX_overall_quality",      "DREX"),
+        ("LSE_overall_quality",       "LSE"),
         ("LSEX_overall_quality",      "LSEX"),
-        ("COR",                       "Corr"),
-        ("train_time_s",              "t(s)"),
-        ("peak_mem_gb",               "mem"),
-        ("test_ARI",                  "tARI"),
+        ("train_time_s",              "Time(s)"),
+        ("peak_mem_gb",               "Mem(GB)"),
     ]
     # Filter to keys present in all configs
     keys, labels = [], []
@@ -375,7 +370,7 @@ def _draw_heatmap(ax, configs, mets):
     im = ax.imshow(norm, aspect="auto", cmap="YlOrRd")
     short_c = [_s(c) for c in configs if mets[configs.index(c)] is not None]
     ax.set_xticks(range(len(keys)))
-    ax.set_xticklabels(labels, rotation=55, ha="right",
+    ax.set_xticklabels(labels, rotation=45, ha="right",
                        fontsize=FONT_TICK)
     ax.set_yticks(range(len(short_c)))
     ax.set_yticklabels(short_c, fontsize=FONT_TICK)
@@ -386,7 +381,7 @@ def _draw_heatmap(ax, configs, mets):
             fmt = f"{v:.2f}" if abs(v) < 100 else f"{v:.0f}"
             clr = "white" if norm[r, c] > 0.45 else "black"
             ax.text(c, r, fmt, ha="center", va="center",
-                    fontsize=FONT_ANNOT + 0.5, color=clr)
+                    fontsize=FONT_ANNOT + 2.5, color=clr)
     ax.set_title("Key Metrics Heatmap (col-normalized)",
                  fontsize=FONT_PANEL_TITLE)
     cb = ax.figure.colorbar(im, ax=ax, shrink=0.55, pad=0.02)
@@ -549,7 +544,7 @@ def _draw_vector_field(ax, configs, latents, labels_arr, gradients,
     for j, lab in enumerate(unique):
         mask = lbl == lab
         ax.scatter(emb[mask, 0], emb[mask, 1],
-                   s=3, alpha=0.25,
+                   s=5, alpha=0.40,
                    c=[cmap(j / n_types)], rasterized=True, zorder=0)
 
     # --- grid-based velocity & streamplot (scVelo / scTour style) ---
@@ -559,11 +554,11 @@ def _draw_vector_field(ax, configs, latents, labels_arr, gradients,
     # Speed-proportional linewidth (scVelo: base * 2 * speed / max_speed)
     speed = np.sqrt(np.nan_to_num(U_grid) ** 2 + np.nan_to_num(V_grid) ** 2)
     max_speed = speed.max() if speed.max() > 0 else 1.0
-    lw = 1.0 + 1.5 * speed / max_speed          # range ≈ [1, 2.5]
+    lw = 1.2 + 2.0 * speed / max_speed          # range ~ [1.2, 3.2]
 
     ax.streamplot(X_grid, Y_grid, U_grid, V_grid,
                   density=2, linewidth=lw,
-                  color="black", arrowsize=0.8,
+                  color="black", arrowsize=1.2,
                   arrowstyle="-|>", maxlength=4,
                   integration_direction="both", zorder=3)
 
@@ -642,7 +637,7 @@ def build_composed(data, outpath: Path, cache_dir: Path | None = None):
     fig = plt.figure(figsize=(FIG_W, FIG_H * 0.62), dpi=DPI)
     outer = gridspec.GridSpec(
         4, 1, figure=fig,
-        height_ratios=[4.2, 2.8, 2.2, 2.8],
+        height_ratios=[4.2, 2.8, 3.2, 2.8],
         hspace=0.42,
     )
 
@@ -659,7 +654,8 @@ def build_composed(data, outpath: Path, cache_dir: Path | None = None):
     _draw_training_curves(fig, gs_r1[0, 1], configs, val_losses, val_scores)
 
     # Row 2 — Diagnostics (D) | Vector Field (E)
-    gs_r2 = outer[2].subgridspec(1, 2, wspace=0.40)
+    gs_r2 = outer[2].subgridspec(1, 2, wspace=0.40,
+                                  width_ratios=[1.0, 1.5])
     ax_diag = fig.add_subplot(gs_r2[0, 0])
     _bar(ax_diag, configs, mets, diag_specs, "Latent Diag.")
     ax_vf = fig.add_subplot(gs_r2[0, 1])

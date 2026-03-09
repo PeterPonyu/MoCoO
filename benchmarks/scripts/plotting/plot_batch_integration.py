@@ -128,6 +128,34 @@ def _draw_batch_bars(ax, metrics):
     configs_present = [c for c in _CONFIGS if c in metrics]
     n_cfg = len(configs_present)
     n_metrics = len(batch_keys)
+
+    # Check if ANY config has actual batch metric data
+    has_any_data = False
+    for cfg in configs_present:
+        m = metrics[cfg]
+        for k in batch_keys:
+            v = m.get(k, np.nan)
+            if v is not None and not np.isnan(v) and v > 1e-6:
+                has_any_data = True
+                break
+        if has_any_data:
+            break
+
+    if not has_any_data:
+        ax.text(0.5, 0.5,
+                "Batch integration metrics not computed.\n"
+                "Run: python benchmarks/scripts/evaluation/compute_batch_metrics.py",
+                transform=ax.transAxes, ha="center", va="center",
+                fontsize=FS_AXIS, color="#888888",
+                bbox=dict(boxstyle="round,pad=0.5", fc="#f8f8f8", ec="#cccccc", lw=0.8))
+        ax.set_title("Batch Integration Metrics (IRALL, 8 batches)",
+                     fontsize=FS_TITLE, pad=4)
+        ax.spines["top"].set_visible(False)
+        ax.spines["right"].set_visible(False)
+        ax.set_xticks(np.arange(n_metrics))
+        ax.set_xticklabels(batch_labels, fontsize=FS_TICK, rotation=0)
+        return
+
     x = np.arange(n_metrics)
     width = 0.12
 
@@ -157,12 +185,12 @@ def _draw_batch_bars(ax, metrics):
     ax.set_title("Batch Integration Metrics (IRALL, 8 batches)",
                  fontsize=FS_TITLE, pad=4)
     ax.tick_params(axis="both", labelsize=FS_TICK)
-    ax.set_ylim(0, 1.25) # Increased y-limit to prevent text overlap with legend/title
+    ax.set_ylim(0, 1.25)
     ax.legend(fontsize=FS_LEG, ncol=3, loc="upper center",
-              bbox_to_anchor=(0.5, -0.12), frameon=False) # Moved legend down slightly
+              bbox_to_anchor=(0.5, -0.12), frameon=False)
     ax.spines["top"].set_visible(False)
     ax.spines["right"].set_visible(False)
-    ax.grid(alpha=0.22, linestyle="--", linewidth=0.4, axis="y") # Added grid for readability
+    ax.grid(alpha=0.22, linestyle="--", linewidth=0.4, axis="y")
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -173,6 +201,7 @@ def _draw_bio_batch_scatter(ax, metrics):
     """Scatter: x=batch_correction, y=bio_conservation, sized by overall."""
     configs_present = [c for c in _CONFIGS if c in metrics]
 
+    plotted = False
     for cfg in configs_present:
         m = metrics[cfg]
         bc = m.get("batch_correction", np.nan)
@@ -184,19 +213,25 @@ def _draw_bio_batch_scatter(ax, metrics):
                    edgecolors="black", linewidths=0.4, zorder=5, alpha=0.85)
         ax.annotate(_SHORT[cfg], (bc, bio), fontsize=FS_SMALL,
                     xytext=(3, 3), textcoords="offset points")
+        plotted = True
+
+    if not plotted:
+        ax.text(0.5, 0.5, "No batch integration\ndata available",
+                transform=ax.transAxes, ha="center", va="center",
+                fontsize=FS_AXIS, color="#888888")
 
     # Reference diagonal
     ax.plot([0, 1], [0, 1], "--", color="#cccccc", linewidth=0.5, zorder=1)
 
-    ax.set_xlabel("Batch Correction →", fontsize=FS_AXIS)
-    ax.set_ylabel("Bio Conservation →", fontsize=FS_AXIS)
+    ax.set_xlabel("Batch Correction \u2192", fontsize=FS_AXIS)
+    ax.set_ylabel("Bio Conservation \u2192", fontsize=FS_AXIS)
     ax.set_title("Integration Trade-off", fontsize=FS_TITLE, pad=4)
     ax.tick_params(axis="both", labelsize=FS_TICK)
-    ax.set_xlim(0.45, 0.60) # Adjusted limits to better fit the data points
-    ax.set_ylim(0.75, 0.90) # Adjusted limits to better fit the data points
+    ax.set_xlim(0.0, 1.0)
+    ax.set_ylim(0.0, 1.0)
     ax.spines["top"].set_visible(False)
     ax.spines["right"].set_visible(False)
-    ax.grid(alpha=0.22, linestyle="--", linewidth=0.4) # Added grid for readability
+    ax.grid(alpha=0.22, linestyle="--", linewidth=0.4)
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -325,7 +360,7 @@ def build_figure(results_base: Path, outdir: Path):
 
     # ── Create figure ──
     fig = plt.figure(figsize=(FIG_WIDTH_IN, FIG_HEIGHT_IN))
-    gs = gridspec.GridSpec(4, 2, figure=fig, hspace=0.50, wspace=0.35,
+    gs = gridspec.GridSpec(4, 2, figure=fig, hspace=0.42, wspace=0.30,
                            height_ratios=[1, 0.9, 1.1, 1.1])
 
     # Panel A: Batch integration bars (span full width)
@@ -351,6 +386,7 @@ def build_figure(results_base: Path, outdir: Path):
     ax_B2.set_xlabel("Overall Score (0.4·bio + 0.6·batch)", fontsize=FS_AXIS)
     ax_B2.set_title("scIB Overall Score", fontsize=FS_TITLE, pad=4)
     ax_B2.tick_params(axis="both", labelsize=FS_TICK)
+    ax_B2.set_xlim(0, 1.0)
     ax_B2.spines["top"].set_visible(False)
     ax_B2.spines["right"].set_visible(False)
 
@@ -362,7 +398,7 @@ def build_figure(results_base: Path, outdir: Path):
     ax_D = fig.add_subplot(gs[3, :], polar=True)
     _draw_cross_radar(ax_D, cross_data)
 
-    fig.subplots_adjust(left=0.12, right=0.94, top=0.96, bottom=0.06)
+    fig.subplots_adjust(left=0.12, right=0.95, top=0.96, bottom=0.06)
 
     panel_label(fig, ax_A, "A")
     panel_label(fig, ax_B, "B")

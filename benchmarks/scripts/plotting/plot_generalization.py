@@ -88,15 +88,26 @@ def _draw_paired_bars(ax, data, metric_key, metric_label, configs):
                         color="#DD8452", edgecolor="white", linewidth=0.3,
                         alpha=0.85)
 
-    # Annotate val-test gap
+    # Annotate val-test gap (staggered heights to avoid overlap)
     for i in range(n):
         if np.isfinite(val_vals[i]) and np.isfinite(test_vals[i]):
             gap = test_vals[i] - val_vals[i]
             sign = "+" if gap >= 0 else ""
-            y_pos = max(val_vals[i], test_vals[i]) + 0.01
+            base_y = max(val_vals[i], test_vals[i]) + 0.005
+            # Stagger: even indices at base, odd indices higher
+            stagger = 0.02 * (i % 2)
+            y_pos = base_y + stagger
             ax.text(x[i], y_pos, f"{sign}{gap:.3f}",
-                    ha="center", va="bottom", fontsize=FS_SMALL,
-                    color="#666666")
+                    ha="center", va="bottom", fontsize=FS_SMALL - 0.5,
+                    color="#666666", rotation=60)
+
+    # Zoom y-axis to data range for better readability
+    all_vals = [v for v in val_vals + test_vals if np.isfinite(v)]
+    if all_vals:
+        ymin = min(all_vals)
+        ymax = max(all_vals)
+        margin = (ymax - ymin) * 0.30
+        ax.set_ylim(max(0, ymin - margin), ymax + margin * 2.2)
 
     ax.set_xticks(x)
     ax.set_xticklabels([get_short_name(c) for c in configs],
@@ -118,38 +129,46 @@ def build_figure(rdir: Path, outdir: Path):
 
     n_row1 = len(_ROW1)
     n_row2 = len(_ROW2)
-    n_cols = max(n_row1, n_row2)
 
-    fig, axes = plt.subplots(2, n_cols, figsize=(FIG_WIDTH_IN, FIG_HEIGHT_IN * 0.65),
-                              gridspec_kw={"hspace": 0.55, "wspace": 0.40})
+    # Use GridSpec with 12 sub-columns for proper uneven layout
+    from matplotlib.gridspec import GridSpec
 
-    # Row 1: clustering
+    fig = plt.figure(figsize=(FIG_WIDTH_IN, FIG_HEIGHT_IN * 0.55))
+    gs = GridSpec(2, 12, figure=fig, hspace=0.35, wspace=0.40,
+                  left=0.08, right=0.96, top=0.94, bottom=0.12)
+
+    # Row 1: 3 panels, each spanning 4 of 12 sub-columns (fills full width)
+    ax_row1 = [fig.add_subplot(gs[0, 0:4]),
+               fig.add_subplot(gs[0, 4:8]),
+               fig.add_subplot(gs[0, 8:12])]
+
+    # Row 2: 4 panels, each spanning 3 of 12 sub-columns
+    ax_row2 = [fig.add_subplot(gs[1, 0:3]),
+               fig.add_subplot(gs[1, 3:6]),
+               fig.add_subplot(gs[1, 6:9]),
+               fig.add_subplot(gs[1, 9:12])]
+
+    # Row 1: clustering (3 metrics, now spanning full width)
     for j, (mk, ml) in enumerate(_ROW1):
-        _draw_paired_bars(axes[0, j], data, mk, ml, configs_present)
+        _draw_paired_bars(ax_row1[j], data, mk, ml, configs_present)
         if j == 0:
-            axes[0, j].set_ylabel("Score", fontsize=FS_AXIS)
+            ax_row1[j].set_ylabel("Score", fontsize=FS_AXIS)
 
-    # Hide unused axes in row 1
-    for j in range(n_row1, n_cols):
-        axes[0, j].set_visible(False)
-
-    # Row 2: quality aggregates
+    # Row 2: quality aggregates (4 metrics)
     for j, (mk, ml) in enumerate(_ROW2):
-        _draw_paired_bars(axes[1, j], data, mk, ml, configs_present)
+        _draw_paired_bars(ax_row2[j], data, mk, ml, configs_present)
         if j == 0:
-            axes[1, j].set_ylabel("Score", fontsize=FS_AXIS)
+            ax_row2[j].set_ylabel("Score", fontsize=FS_AXIS)
 
-    # Single legend
-    handles, labels = axes[0, 0].get_legend_handles_labels()
+    # Single legend adjacent to top-right
+    handles, labels = ax_row1[0].get_legend_handles_labels()
     fig.legend(handles, labels, fontsize=FS_LEGEND, ncol=2,
-               loc="upper right", bbox_to_anchor=(0.98, 1.0),
+               loc="upper right", bbox_to_anchor=(0.96, 0.98),
                frameon=True, framealpha=0.65)
 
-    fig.subplots_adjust(left=0.10, right=0.96, top=0.92, bottom=0.12)
-
     # Panel labels
-    panel_label(fig, axes[0, 0], "A", x_off=-0.06, y_off=0.008)
-    panel_label(fig, axes[1, 0], "B", x_off=-0.06, y_off=0.008)
+    panel_label(fig, ax_row1[0], "A", x_off=-0.04, y_off=0.008)
+    panel_label(fig, ax_row2[0], "B", x_off=-0.04, y_off=0.008)
 
     outpath = outdir / "fig7_generalization.png"
     fig.savefig(outpath, **SAVEFIG_KW)

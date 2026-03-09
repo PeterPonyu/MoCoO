@@ -73,6 +73,7 @@ MULTISEED_CSV   := $(MULTI_DIR)/multiseed_IRALL.csv
         metrics significance \
         figures fig-ablation fig-comparison fig-composed fig-dynamics \
         fig-batch fig-trajectory fig-biovalidation \
+        fig-heatmap fig-sensitivity fig-generalization \
         paper paper-clean
 
 # ═══════════════════════════════════════════════════════════════════════════
@@ -112,8 +113,11 @@ help: ## Show all available targets
 	@echo "  make figures          Generate all figures"
 	@echo "  make fig-ablation     Fig 3: ablation summary"
 	@echo "  make fig-comparison   Fig 2: quantitative comparison"
-	@echo "  make fig-composed     Fig 5: composed multi-panel"
+	@echo "  make fig-composed     Fig 5b: composed multi-panel"
 	@echo "  make fig-dynamics     Fig 4: training dynamics"
+	@echo "  make fig-heatmap      Fig 5a: subcategory heatmap"
+	@echo "  make fig-sensitivity  Fig 6: beta sensitivity"
+	@echo "  make fig-generalization Fig 7: generalization val vs test"
 	@echo "  make fig-batch        Supplemental: batch integration"
 	@echo "  make fig-trajectory   Supplemental: ODE trajectory"
 	@echo "  make fig-biovalidation Supplemental: biological validation"
@@ -312,7 +316,7 @@ beta-sweep: beta-ablation ## DEPRECATED: use beta-ablation
 # ═══════════════════════════════════════════════════════════════════════════
 
 # All figures depend on benchmark results existing.
-figures: fig-ablation fig-comparison fig-composed fig-dynamics fig-batch fig-trajectory fig-biovalidation ## Generate all figures
+figures: fig-ablation fig-comparison fig-composed fig-dynamics fig-heatmap fig-sensitivity fig-generalization fig-batch fig-trajectory fig-biovalidation ## Generate all figures
 	@echo ""
 	@echo "══════════════════════════════════════════════════════════════"
 	@echo "  All figures generated in $(FIGURES_DIR)/"
@@ -389,6 +393,36 @@ fig-biovalidation: ## Supplemental: biological validation (perturbation, gene ex
 		--resultsdir $(SINGLE_DIR) \
 		--outdir $(FIGURES_DIR) \
 		--data $(DATA_DIR)/LAB/scRL/IRALL.h5ad
+
+fig-heatmap: ## Fig 5a: subcategory metric heatmap
+	@echo ""
+	@echo "══════════════════════════════════════════════════════════════"
+	@echo "  Figure: Subcategory heatmap"
+	@echo "══════════════════════════════════════════════════════════════"
+	@mkdir -p $(FIGURES_DIR)
+	$(PYTHON) $(PLOTTING)/plot_subcategory_heatmap.py \
+		--resultsdir $(BETA_DIR)/beta_0.1 \
+		--outdir $(FIGURES_DIR)
+
+fig-sensitivity: ## Fig 6: beta sensitivity analysis
+	@echo ""
+	@echo "══════════════════════════════════════════════════════════════"
+	@echo "  Figure: Beta sensitivity"
+	@echo "══════════════════════════════════════════════════════════════"
+	@mkdir -p $(FIGURES_DIR)
+	$(PYTHON) $(PLOTTING)/plot_beta_sensitivity.py \
+		--resultsdir $(RESULTS_DIR) \
+		--outdir $(FIGURES_DIR)
+
+fig-generalization: ## Fig 7: generalization val vs test
+	@echo ""
+	@echo "══════════════════════════════════════════════════════════════"
+	@echo "  Figure: Generalization"
+	@echo "══════════════════════════════════════════════════════════════"
+	@mkdir -p $(FIGURES_DIR)
+	$(PYTHON) $(PLOTTING)/plot_generalization.py \
+		--resultsdir $(BETA_DIR)/beta_0.1 \
+		--outdir $(FIGURES_DIR)
 
 # ═══════════════════════════════════════════════════════════════════════════
 # PAPER TARGETS
