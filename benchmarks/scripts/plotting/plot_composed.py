@@ -94,9 +94,7 @@ def _bar(ax, configs, mets, specs, title, *, rotation=40):
     avail = [(k, l, h) for k, l, h in specs
              if any(np.isfinite(m.get(k, np.nan)) for m in mets if m)]
     if not avail:
-        ax.set_title(title, fontsize=FONT_PANEL_TITLE)
-        ax.text(0.5, 0.5, "N/A", transform=ax.transAxes,
-                ha="center", va="center", fontsize=FONT_AXIS_LABEL)
+        ax.set_visible(False)
         return
 
     ncols = len(avail)
@@ -177,7 +175,7 @@ def _draw_umap_panel(fig, gs_parent, configs, latents, labels_arr,
     if umap_embeddings is None:
         return
 
-    inner = gs_parent.subgridspec(2, 3, wspace=0.04, hspace=0.18)
+    inner = gs_parent.subgridspec(2, 3, wspace=0.03, hspace=0.14)
     n = len(configs)
     for i in range(n):
         ax = fig.add_subplot(inner[i // 3, i % 3])
@@ -189,7 +187,7 @@ def _draw_umap_panel(fig, gs_parent, configs, latents, labels_arr,
             mask = labels_arr[i] == lbl
             ax.scatter(emb[mask, 0], emb[mask, 1], s=1.5, alpha=0.45,
                        c=[cmap(j / n_types)], label=str(lbl), rasterized=True)
-        ax.set_title(configs[i], fontsize=FONT_PANEL_TITLE)
+        ax.set_title(_s(configs[i]), fontsize=FONT_PANEL_TITLE)
         ax.set_xticks([]); ax.set_yticks([])
         for sp in ax.spines.values():
             sp.set_visible(False)
@@ -217,8 +215,7 @@ def _draw_radar(ax, configs, mets):
     avail = [(k,l) for k,l in cats
              if any(np.isfinite(m.get(k, np.nan)) for m in mets if m)]
     if len(avail) < 3:
-        ax.text(0.5, 0.5, "N/A", transform=ax.transAxes,
-                ha="center", va="center")
+        ax.set_visible(False)
         return
     nc = len(avail)
     angles = np.linspace(0, 2*np.pi, nc, endpoint=False).tolist() + [0]
@@ -245,7 +242,7 @@ def _draw_radar(ax, configs, mets):
     pax.set_rlabel_position(0)
     pax.set_title("Radar Summary", fontsize=FONT_PANEL_TITLE, pad=12)
     pax.legend(fontsize=FONT_LEGEND - 0.5, frameon=False,
-               loc="upper left", bbox_to_anchor=(1.55, 0.95),
+               loc="upper left", bbox_to_anchor=(1.35, 0.95),
                handlelength=1, labelspacing=0.2, ncol=1)
     return pax  # caller may need ref
 
@@ -267,7 +264,7 @@ def _draw_training_curves(fig, gs_parent, configs, val_losses, val_scores):
 
     if has_scores:
         # Full layout: 2x4 subgrid
-        inner = gs_parent.subgridspec(2, 4, wspace=0.40, hspace=0.65)
+        inner = gs_parent.subgridspec(2, 4, wspace=0.32, hspace=0.52)
         panels = [
             ("Val Loss",  "loss"),
             ("Val ARI",   0),
@@ -279,7 +276,7 @@ def _draw_training_curves(fig, gs_parent, configs, val_losses, val_scores):
         ]
     else:
         # Compact layout: just loss curve + legend
-        inner = gs_parent.subgridspec(1, 2, wspace=0.35)
+        inner = gs_parent.subgridspec(1, 2, wspace=0.28)
         panels = [("Val Loss", "loss")]
 
     for pidx, (title, src) in enumerate(panels):
@@ -357,8 +354,7 @@ def _draw_heatmap(ax, configs, mets):
             keys.append(k)
             labels.append(lbl)
     if len(keys) < 3:
-        ax.text(0.5, 0.5, "N/A", transform=ax.transAxes,
-                ha="center", va="center")
+        ax.set_visible(False)
         return
 
     matrix = np.array([[m.get(k, np.nan) for k in keys] for m in mets if m])
@@ -506,13 +502,7 @@ def _draw_vector_field(ax, configs, latents, labels_arr, gradients,
                 if gradients is not None and i < len(gradients)
                 and gradients[i] is not None]
     if not ode_cfgs or umap_embeddings is None:
-        ax.text(0.5, 0.5, "N/A\n(no gradients saved;\nre-run benchmark)",
-                transform=ax.transAxes, ha="center", va="center",
-                fontsize=FONT_AXIS_LABEL, color="grey")
-        ax.set_title("ODE Vector Field", fontsize=FONT_PANEL_TITLE)
-        for sp in ax.spines.values():
-            sp.set_visible(False)
-        ax.set_xticks([]); ax.set_yticks([])
+        ax.set_visible(False)
         return
 
     # Policy: prefer Full; otherwise highest NMI among ODE configs
@@ -638,7 +628,7 @@ def build_composed(data, outpath: Path, cache_dir: Path | None = None):
     outer = gridspec.GridSpec(
         4, 1, figure=fig,
         height_ratios=[4.2, 2.8, 3.2, 2.8],
-        hspace=0.42,
+        hspace=0.34,
     )
 
     # Row 0 — UMAP grid (A)
@@ -647,14 +637,14 @@ def build_composed(data, outpath: Path, cache_dir: Path | None = None):
                      umap_embeddings=umap_embeddings)
 
     # Row 1 — Radar (B) | Training curves (C)
-    gs_r1 = outer[1].subgridspec(1, 2, wspace=0.35,
+    gs_r1 = outer[1].subgridspec(1, 2, wspace=0.28,
                                   width_ratios=[1.0, 1.4])
     ax_radar = fig.add_subplot(gs_r1[0, 0])
     _draw_radar(ax_radar, configs, mets)
     _draw_training_curves(fig, gs_r1[0, 1], configs, val_losses, val_scores)
 
     # Row 2 — Diagnostics (D) | Vector Field (E)
-    gs_r2 = outer[2].subgridspec(1, 2, wspace=0.40,
+    gs_r2 = outer[2].subgridspec(1, 2, wspace=0.32,
                                   width_ratios=[1.0, 1.5])
     ax_diag = fig.add_subplot(gs_r2[0, 0])
     _bar(ax_diag, configs, mets, diag_specs, "Latent Diag.")

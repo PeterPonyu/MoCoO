@@ -46,7 +46,7 @@
 \maketitle
 
 \begin{abstract}
-Learning biologically faithful low-dimensional representations from single-cell RNA sequencing (scRNA-seq) data requires models that simultaneously preserve discrete cell-type identity and continuous developmental dynamics. We present \MoCoO, a modular framework that integrates a Variational Autoencoder (VAE), Neural Ordinary Differential Equations (Neural ODE), and Momentum Contrast (MoCo) with learnable prototypes for robust trajectory inference and representation learning. Through a systematic six-configuration ablation on the IRALL hematopoiesis dataset (3{,}000 cells, 200 epochs) with a KL weight sweep ($\beta \in \{1.0, 0.1, 0.01\}$), we investigate the standalone power and synergistic interactions of each component. Key findings: (1)~\textbf{ODE is the dominant component}---it consistently reduces Davies--Bouldin index (DB; lower is better) by $0.28$--$0.62$ across all $\beta$, winning 13 of 27 metric--$\beta$ combinations; (2)~\textbf{MoCo has beta-dependent standalone power}---contrastive learning improves ARI by $+0.039$ at $\beta = 0.01$ and DREX by $+0.006$ at $\beta \leq 0.1$, but is ineffective at strong KL; (3)~\textbf{ODE and MoCo exhibit regime-dependent synergy}---the interaction term for DB reaches $-0.129$ at $\beta = 0.01$ (super-additive compactness), with DRE ($+0.031$) and DREX ($+0.030$) synergies confirming improved embedding fidelity at low $\beta$; (4)~\textbf{the Full model achieves the best distance preservation} across configurations, with the highest DRE at $\beta = 0.01$ ($0.518$) and strongest pairwise distance correlations (DREX Spearman up to $0.72$). Subcategory analysis reveals that while VAE+ODE dominates aggregate clustering metrics, the Full model uniquely excels at geometric fidelity of the learned representation. Pseudotime--marker correlations are biologically significant across five systems: \textit{Hbb-bs} ($\rho = 0.28$) in IRALL, \textit{Slc1a3} ($\rho = 0.54$) in dentate, \textit{Ins2} ($\rho = 0.46$) in endo, \textit{Epor} ($\rho = 0.35$) in paul, and \textit{MKI67} ($\rho = 0.49$) in spinoids. We publicly release the MoCoO Python package and benchmark suite.
+Learning biologically faithful low-dimensional representations from single-cell RNA sequencing (scRNA-seq) data requires models that simultaneously preserve discrete cell-type identity and continuous developmental dynamics. We present \MoCoO, a modular framework that integrates a Variational Autoencoder (VAE), Neural Ordinary Differential Equations (Neural ODE), and Momentum Contrast (MoCo) with learnable prototypes for robust trajectory inference and representation learning. Through a systematic six-configuration ablation on the IRALL hematopoiesis dataset (3{,}000 cells, 200 epochs) with a KL weight sweep ($\beta \in \{1.0, 0.1, 0.01\}$), we investigate the standalone power and synergistic interactions of each component. Key findings: (1)~\textit{ODE is the dominant component}---it consistently reduces Davies--Bouldin index (DB; lower is better) by $0.28$--$0.62$ across all $\beta$, winning 13 of 27 metric--$\beta$ combinations; (2)~\textit{MoCo has beta-dependent standalone power}---contrastive learning improves ARI by $+0.039$ at $\beta = 0.01$ and DREX by $+0.006$ at $\beta \leq 0.1$, but is ineffective at strong KL; (3)~\textit{ODE and MoCo exhibit regime-dependent synergy}---the interaction term for DB reaches $-0.129$ at $\beta = 0.01$ (super-additive compactness), with DRE ($+0.031$) and DREX ($+0.030$) synergies confirming improved embedding fidelity at low $\beta$; (4)~\textit{the Full model achieves the best distance preservation} across configurations, with the highest DRE at $\beta = 0.01$ ($0.518$) and strongest pairwise distance correlations (DREX Spearman up to $0.72$). Subcategory analysis reveals that while VAE+ODE dominates aggregate clustering metrics, the Full model uniquely excels at geometric fidelity of the learned representation. Pseudotime--marker correlations are biologically significant across five systems: \textit{Hbb-bs} ($\rho = 0.28$) in IRALL, \textit{Slc1a3} ($\rho = 0.54$) in dentate, \textit{Ins2} ($\rho = 0.46$) in endo, \textit{Epor} ($\rho = 0.35$) in paul, and \textit{MKI67} ($\rho = 0.49$) in spinoids. We publicly release the MoCoO Python package and benchmark suite.
 \end{abstract}
 
 \begin{IEEEkeywords}
@@ -60,23 +60,23 @@ Single-cell RNA sequencing, variational autoencoder, neural ordinary differentia
 
 Single-cell RNA sequencing (scRNA-seq) has transformed our understanding of cellular heterogeneity by enabling transcriptome-wide profiling at single-cell resolution~\cite{tang2009mrna}. A fundamental analysis task is to learn low-dimensional representations that faithfully capture both \textit{discrete} cell-type identity and \textit{continuous} developmental dynamics such as differentiation trajectories~\cite{kiselev2019challenges,trapnell2014dynamics}. These representations underpin downstream tasks including clustering, pseudotime inference, RNA velocity estimation, and differential expression analysis~\cite{wolf2018scanpy}.
 
-Variational Autoencoders (VAEs) have become the de facto standard for scRNA-seq dimensionality reduction, with methods such as scVI~\cite{lopez2018deep} and scVAE~\cite{gronbech2020scvae} demonstrating strong performance through count-based likelihood models (negative binomial, ZINB). However, standard VAE latent spaces tend to be over-smoothed, conflating nearby cell states and producing suboptimal trajectory structures. Two complementary strategies have emerged to address this limitation.
+Variational Autoencoders (VAEs) have become the de facto standard for scRNA-seq dimensionality reduction, with methods such as scVI~\cite{lopez2018deep} and scVAE~\cite{gronbech2020scvae} demonstrating strong performance through count-based likelihood models (negative binomial, ZINB). However, standard VAE latent spaces tend to be over-smoothed, conflating nearby cell states. Two complementary strategies address this limitation.
 
-First, Neural Ordinary Differential Equations (Neural ODEs)~\cite{chen2018neural} provide a principled framework for modelling continuous-time dynamics in latent space. By parameterising the derivative of the latent state with a neural network and integrating forward through an ODE solver, these models can learn smooth developmental trajectories without discrete time-step assumptions. Latent ODE models~\cite{rubanova2019latent} have shown promise for time-series modelling, and recent work has adapted them to single-cell contexts for pseudotime inference and RNA velocity estimation~\cite{fu2025panode}.
+First, Neural Ordinary Differential Equations (Neural ODEs)~\cite{chen2018neural} provide a principled framework for modelling continuous-time dynamics in latent space. By parameterising the latent derivative with a neural network and integrating via an ODE solver, these models learn smooth trajectories without discrete time-step assumptions. Latent ODE models~\cite{rubanova2019latent} have shown promise for time-series modelling, and recent work has adapted them to single-cell contexts for pseudotime inference and RNA velocity estimation~\cite{fu2025panode}.
 
-Second, contrastive learning---particularly Momentum Contrast (MoCo)~\cite{he2020momentum}---has proven effective at learning representations that are locally smooth yet globally discriminative. MoCo maintains a momentum-updated encoder and a large memory queue of negative keys, enabling scalable contrastive learning that is decoupled from batch size. Extensions such as prototype contrastive learning~\cite{li2021prototypical} further impose cluster structure by aligning representations with learnable prototype vectors.
+Second, contrastive learning---particularly Momentum Contrast (MoCo)~\cite{he2020momentum}---learns representations that are locally smooth yet globally discriminative. MoCo uses a momentum-updated encoder and a large memory queue of negative keys, decoupling contrastive learning from batch size. Prototype contrastive learning~\cite{li2021prototypical} further imposes cluster structure by aligning representations with learnable prototype vectors.
 
-Despite these individual advances, no existing method unifies VAE-based reconstruction, Neural ODE dynamics, and momentum contrastive learning within a single coherent framework. In this work, we propose \MoCoO (\textbf{Mo}mentum \textbf{Co}ntrast \textbf{O}DE-regularized VAE), a modular architecture that combines all three paradigms:
+No existing method unifies VAE reconstruction, Neural ODE dynamics, and momentum contrastive learning in a single framework. We propose \MoCoO (\textbf{Mo}mentum \textbf{Co}ntrast \textbf{O}DE-regularized VAE), a modular architecture that combines all three paradigms:
 
 \begin{enumerate}
-    \item \textbf{VAE with flexible count-based likelihoods} (MSE, NB, ZINB, Poisson, ZIP) provides a probabilistic latent space and handles the zero-inflation and overdispersion characteristic of scRNA-seq count data.
+    \item \textbf{VAE with flexible count-based likelihoods} (MSE, NB, ZINB, Poisson, ZIP) provides a probabilistic latent space that handles zero-inflation and overdispersion in scRNA-seq counts.
     \item \textbf{Neural ODE regularisation} models continuous developmental dynamics, derives unsupervised pseudotime ordering, and produces gradient-based RNA velocity estimates.
-    \item \textbf{Momentum Contrast with prototype heads} imposes instance-level contrastive regularisation via a momentum encoder and memory queue, augmented by prototype contrastive learning that aligns representations with learnable cluster centres.
+    \item \textbf{Momentum Contrast with prototype heads} enforces instance-level discrimination via a momentum encoder and memory queue, with prototype learning that aligns representations to learnable cluster centres.
     \item \textbf{Information bottleneck} applies a secondary low-dimensional projection for hierarchical feature extraction.
     \item \textbf{Disentanglement losses} (DIP-VAE, $\beta$-TC-VAE, InfoVAE/MMD) optionally encourage axis-aligned, interpretable latent factors.
 \end{enumerate}
 
-We conduct a systematic ablation study across six configurations (VAE, VAE+ODE, VAE+MoCo, VAE+MoCo+Proto, VAE+ODE+MoCo, and Full MoCoO) on five scRNA-seq datasets spanning diverse developmental systems. Our evaluation encompasses clustering metrics (ARI, NMI, ASW, Calinski--Harabasz, Davies--Bouldin), dimensionality reduction quality (DRE, DREX, LSE, LSEX), biological validation (cell-type purity, marker gene enrichment, pseudotime--trajectory alignment), training dynamics, computational cost, and batch integration quality (iLISI, bASW, cLISI, graph connectivity, isolated label ASW via scIB).
+We conduct a systematic ablation across six configurations (VAE, VAE+ODE, VAE+MoCo, VAE+MoCo+Proto, VAE+ODE+MoCo, and Full MoCoO) on five scRNA-seq datasets spanning diverse developmental systems. Evaluation covers clustering (ARI, NMI, ASW, Calinski--Harabasz, Davies--Bouldin), dimensionality reduction quality (DRE, DREX, LSE, LSEX), and biological validation (cell-type purity, marker gene enrichment, pseudotime--trajectory alignment). We additionally assess training dynamics, computational cost, and batch integration (iLISI, bASW, cLISI, graph connectivity, isolated label ASW via scIB).
 
 %% ============================================================
 \section{Related Work}
@@ -101,7 +101,7 @@ MoCo~\cite{he2020momentum} and SimCLR~\cite{chen2020simple} have been adapted to
 \subsection{Integrated Approaches}
 \label{sec:related:integrated}
 
-Several methods combine two of the three paradigms. scDiff~\cite{hao2024scdiff} uses diffusion models (related to score-based SDEs) for single-cell generation. VeloVAE~\cite{li2024velovae} integrates VAE with RNA velocity. However, to our knowledge, no prior work jointly combines VAE, Neural ODE, and momentum contrastive learning in a unified architecture for single-cell analysis.
+Several methods combine two of the three paradigms. scDiff~\cite{hao2024scdiff} uses diffusion models (related to score-based SDEs) for single-cell generation. VeloVAE~\cite{li2024velovae} integrates VAE with RNA velocity. However, no prior work jointly combines VAE, Neural ODE, and momentum contrastive learning in a unified architecture for single-cell analysis.
 
 %% ============================================================
 \section{Method}
@@ -111,7 +111,7 @@ Several methods combine two of the three paradigms. scDiff~\cite{hao2024scdiff} 
 \subsection{Overview}
 \label{sec:method:overview}
 
-MoCoO is a modular framework illustrated in Fig.~\ref{fig:architecture}. The architecture processes scRNA-seq count data $X \in \mathbb{R}^{N \times G}$ ($N$ cells, $G$ genes) through five interconnected components: (1)~a VAE with count-based likelihood decoder, (2)~a Neural ODE solver for continuous dynamics, (3)~a Momentum Contrast module with memory queue, (4)~an information bottleneck, and (5)~optional disentanglement regularisers.
+MoCoO (Fig.~\ref{fig:architecture}) processes scRNA-seq count data $X \in \mathbb{R}^{N \times G}$ ($N$ cells, $G$ genes) through five components: (1)~a VAE with count-based decoder, (2)~a Neural ODE for continuous dynamics, (3)~a Momentum Contrast module with memory queue, (4)~an information bottleneck, and (5)~optional disentanglement regularisers.
 
 \begin{figure*}[!t]
     \centering
@@ -123,7 +123,7 @@ MoCoO is a modular framework illustrated in Fig.~\ref{fig:architecture}. The arc
 \subsection{Encoder}
 \label{sec:method:encoder}
 
-The encoder $q_\phi(z|x)$ maps log-normalised gene expression $\tilde{x} = \log(1 + x)$ through a two-layer MLP with ReLU activations to produce mean $\mu$ and pre-softplus scale $\sigma'$ parameters of a diagonal Gaussian posterior in~\eqref{eq:encoder}, with latent samples drawn via the reparameterisation trick in~\eqref{eq:reparam}:
+The encoder $q_\phi(z|x)$ maps log-normalised expression $\tilde{x} = \log(1 + x)$ through a two-layer ReLU MLP to produce mean $\mu$ and pre-softplus scale $\sigma'$ of a diagonal Gaussian posterior~\eqref{eq:encoder}; latent samples are drawn via reparameterisation~\eqref{eq:reparam}:
 \begin{equation}
     q_\phi(z|x) = \mathcal{N}\!\left(z;\, \mu_\phi(\tilde{x}),\, \mathrm{softplus}(\sigma'_\phi(\tilde{x}))^2 I\right),
     \label{eq:encoder}
@@ -133,17 +133,17 @@ The encoder $q_\phi(z|x)$ maps log-normalised gene expression $\tilde{x} = \log(
     \label{eq:reparam}
 \end{equation}
 
-When ODE mode is enabled, the encoder additionally predicts a scalar pseudotime $t \in [0, 1]$ via a sigmoid-activated linear head applied to the hidden representation.
+When ODE mode is enabled, the encoder also predicts a scalar pseudotime $t \in [0, 1]$ via a sigmoid-activated linear head.
 
 \subsection{Neural ODE Component}
 \label{sec:method:ode}
 
-Given latent samples $\{z_i\}$ and predicted pseudotimes $\{t_i\}$, the ODE module orders cells by pseudotime and solves the initial value problem in~\eqref{eq:ode}:
+Given latent samples $\{z_i\}$ and predicted pseudotimes $\{t_i\}$, the ODE module orders cells by pseudotime and solves~\eqref{eq:ode}:
 \begin{equation}
     \frac{dz}{dt} = f_\psi(z, t), \quad z(t_0) = z_{\mathrm{init}},
     \label{eq:ode}
 \end{equation}
-where $f_\psi$ is a two-layer MLP with ELU activations. Integration is performed using \texttt{torchdiffeq}'s fixed-step RK4 solver. The ODE-integrated representations $z_{\mathrm{ode}}$ are blended with VAE latent samples via configurable weights as defined in~\eqref{eq:blend}:
+where $f_\psi$ is a two-layer ELU MLP. Integration uses \texttt{torchdiffeq}'s fixed-step RK4 solver. The ODE representations $z_{\mathrm{ode}}$ blend with VAE latent samples via configurable weights~\eqref{eq:blend}:
 \begin{equation}
     z_{\mathrm{blend}} = \alpha_{\mathrm{vae}} \cdot z + \alpha_{\mathrm{ode}} \cdot z_{\mathrm{ode}}.
     \label{eq:blend}
@@ -152,24 +152,24 @@ where $f_\psi$ is a two-layer MLP with ELU activations. Integration is performed
 Two auxiliary losses regularise the ODE:
 \begin{itemize}
     \item \textbf{ODE--VAE alignment:} $\mathcal{L}_{\mathrm{ode}} = \| z - z_{\mathrm{ode}} \|_2^2$
-    \item \textbf{Velocity consistency:} $\mathcal{L}_{\mathrm{vel}} = 1 - \cos(z_{i+1} - z_i,\, f_\psi(z_i, t_i))$, encouraging the ODE velocity field to align with empirical displacements.
+    \item \textbf{Velocity consistency:} $\mathcal{L}_{\mathrm{vel}} = 1 - \cos(z_{i+1} - z_i,\, f_\psi(z_i, t_i))$, aligning the learned velocity field with empirical displacements.
 \end{itemize}
 
 \subsection{Momentum Contrast Module}
 \label{sec:method:moco}
 
-The MoCo module follows the MoCo v1 design~\cite{he2020momentum} with enhancements from scAGCL~\cite{cai2024scagcl} and scGPCL~\cite{cai2024scgpcl}:
+The MoCo module follows MoCo~v1~\cite{he2020momentum} with enhancements from scAGCL~\cite{cai2024scagcl} and scGPCL~\cite{cai2024scgpcl}:
 
 \begin{enumerate}
-    \item \textbf{Query and Key Encoders:} The query encoder shares parameters with the main VAE encoder. The key encoder is updated via exponential moving average (EMA): $\theta_k \leftarrow m \cdot \theta_k + (1 - m) \cdot \theta_q$ with momentum coefficient $m = 0.999$.
-    \item \textbf{Projection Heads:} Two-layer MLPs with BatchNorm and ReLU map $d$-dimensional latent representations to a $d_{\mathrm{proj}}$-dimensional space for contrastive comparison.
-    \item \textbf{Memory Queue:} A FIFO buffer of size $K$ stores projected key representations, decoupling the effective number of negatives from batch size.
+    \item \textbf{Query and Key Encoders:} The query encoder shares parameters with the VAE encoder; the key encoder is updated via EMA: $\theta_k \leftarrow m \cdot \theta_k + (1 - m) \cdot \theta_q$, $m = 0.999$.
+    \item \textbf{Projection Heads:} Two-layer MLPs (BatchNorm, ReLU) map $d$-dimensional latent vectors to a $d_{\mathrm{proj}}$-dimensional contrastive space.
+    \item \textbf{Memory Queue:} A FIFO buffer of size $K$ stores projected keys, decoupling the number of negatives from batch size.
     \item \textbf{InfoNCE Loss} (see~\eqref{eq:infonce}):
     \begin{equation}
         \mathcal{L}_{\mathrm{moco}} \!=\! -\log \frac{\exp(q \!\cdot\! k^+ / \tau)}{\exp(q \!\cdot\! k^+ / \tau) + \!\sum_{k^-} \exp(q \!\cdot\! k^- / \tau)},
         \label{eq:infonce}
     \end{equation}
-    where the sum is over all $k^-$ in the memory queue and $\tau$ is the temperature parameter.
+    where the sum ranges over all $k^-$ in the memory queue and $\tau$ is the temperature.
     \item \textbf{Prototype Contrastive Loss} (optional; see~\eqref{eq:proto}):
     \begin{equation}
         \mathcal{L}_{\mathrm{proto}} = -\frac{1}{N} \sum_{i=1}^{N} \log \frac{\exp(z_i \cdot p_{c(i)} / \tau)}{\sum_{j=1}^{P} \exp(z_i \cdot p_j / \tau)},
@@ -181,7 +181,7 @@ The MoCo module follows the MoCo v1 design~\cite{he2020momentum} with enhancemen
 \subsection{Decoder}
 \label{sec:method:decoder}
 
-The decoder $p_\theta(x|z)$ reconstructs the original count data from the latent representation. For count-based likelihoods, the decoder predicts normalised mean parameters $\rho = \mathrm{softmax}(\mathrm{MLP}(z))$ and uses gene-specific learnable dispersion parameters $r$:
+The decoder $p_\theta(x|z)$ reconstructs count data from the latent representation. It predicts normalised mean parameters $\rho = \mathrm{softmax}(\mathrm{MLP}(z))$ and uses gene-specific learnable dispersions $r$:
 \begin{itemize}
     \item \textbf{Negative Binomial (NB):} $p(x_g | z) = \mathrm{NB}(x_g;\, \mu_g = l \cdot \rho_g,\, r_g)$
     \item \textbf{Zero-Inflated NB (ZINB):} $p(x_g | z) = \pi_g \cdot \delta_0(x_g) + (1 - \pi_g) \cdot \mathrm{NB}(x_g;\, \mu_g,\, r_g)$
@@ -191,12 +191,12 @@ where $l = \sum_g x_g$ is the library size and $\pi_g$ is a dropout probability 
 \subsection{Information Bottleneck}
 \label{sec:method:ib}
 
-A secondary encoder-decoder pair maps $z \in \mathbb{R}^{d}$ to a lower-dimensional bottleneck $b \in \mathbb{R}^{d_{\mathrm{ib}}}$ (where $d_{\mathrm{ib}} < d$) and back, imposing a hierarchical compression that encourages the model to capture the most salient features.
+A secondary encoder-decoder pair maps $z \in \mathbb{R}^{d}$ to a bottleneck $b \in \mathbb{R}^{d_{\mathrm{ib}}}$ ($d_{\mathrm{ib}} < d$) and back, imposing hierarchical compression that retains only the most salient features.
 
 \subsection{Total Loss}
 \label{sec:method:loss}
 
-The total training objective combines all components as defined in~\eqref{eq:total_loss}:
+The total objective combines all components~\eqref{eq:total_loss}:
 \begin{align}
     \mathcal{L} ={} & \lambda_{\mathrm{recon}} \mathcal{L}_{\mathrm{recon}} + \lambda_{\mathrm{irecon}} \mathcal{L}_{\mathrm{irecon}} + \mathcal{L}_{\mathrm{ode}} + \mathcal{L}_{\mathrm{vel}} \nonumber \\
     & + \beta \cdot D_{\mathrm{KL}}(q_\phi(z|x) \| p(z)) + \lambda_{\mathrm{dip}} \mathcal{L}_{\mathrm{dip}} \nonumber \\
@@ -204,7 +204,7 @@ The total training objective combines all components as defined in~\eqref{eq:tot
     & + \lambda_{\mathrm{moco}} (\mathcal{L}_{\mathrm{moco}} + \mathcal{L}_{\mathrm{cross}}) + \lambda_{\mathrm{proto}} \mathcal{L}_{\mathrm{proto}},
     \label{eq:total_loss}
 \end{align}
-where $\lambda$ terms are configurable weights and $\mathcal{L}_{\mathrm{cross}}$ is a cross-path contrastive loss aligning ODE and VAE representations.
+where each $\lambda$ is a configurable weight and $\mathcal{L}_{\mathrm{cross}}$ is a cross-path contrastive loss aligning the ODE and VAE representations.
 
 %% ============================================================
 \section{Experiments}
@@ -214,20 +214,20 @@ where $\lambda$ terms are configurable weights and $\mathcal{L}_{\mathrm{cross}}
 \subsection{Datasets}
 \label{sec:experiments:datasets}
 
-We evaluate MoCoO on five scRNA-seq datasets spanning diverse biological contexts:
+We evaluate MoCoO on five scRNA-seq datasets spanning diverse biological contexts.
 
 \begin{enumerate}
-    \item \textbf{IRALL (Hematopoiesis):} 41{,}252 cells, 12 types, 8 batches (d0--d30). Mouse bone marrow hematopoiesis from HSC to mature lineages.
-    \item \textbf{Dentate (Neurogenesis):} 18{,}213 cells, 14 types. Mouse dentate gyrus, covering radial glia to mature granule neurons.
-    \item \textbf{Endo (Endocrine Pancreas):} 2{,}531 cells, 13 types. Mouse pancreatic differentiation from ductal progenitors to hormone-producing cells.
-    \item \textbf{Paul (Myeloid/Erythroid):} 2{,}730 cells, 19 types. Classic myeloid/erythroid progenitor bifurcation dataset \cite{paul2015transcriptional}, providing a fine-grained challenge with 19 clusters (some $< 30$ cells).
-    \item \textbf{Spinoids (Spinal Cord Organoid):} 9{,}619 cells, 8 types. Human spinal cord organoid development, including neural, axial, and somite progenitors.
+    \item \textbf{IRALL (Hematopoiesis):} 41{,}252 cells, 12 types, 8 batches (d0--d30). Mouse bone marrow HSC-to-mature-lineage differentiation.
+    \item \textbf{Dentate (Neurogenesis):} 18{,}213 cells, 14 types. Mouse dentate gyrus from radial glia to mature granule neurons.
+    \item \textbf{Endo (Endocrine Pancreas):} 2{,}531 cells, 13 types. Mouse pancreatic ductal-to-endocrine differentiation.
+    \item \textbf{Paul (Myeloid/Erythroid):} 2{,}730 cells, 19 types. Myeloid/erythroid bifurcation~\cite{paul2015transcriptional}; fine-grained with 19 clusters (some $< 30$ cells).
+    \item \textbf{Spinoids (Spinal Cord Organoid):} 9{,}619 cells, 8 types. Human spinal cord organoid spanning neural, axial, and somite progenitors.
 \end{enumerate}
 
 \subsection{Model Configurations}
 \label{sec:experiments:configs}
 
-We evaluate six configurations to isolate the contribution of each component (Table~\ref{tab:configs}).
+Six configurations isolate the contribution of each component (Table~\ref{tab:configs}).
 
 \begin{table}[!t]
     \centering
@@ -247,29 +247,29 @@ We evaluate six configurations to isolate the contribution of each component (Ta
     \end{tabular}
 \end{table}
 
-All models use: latent dimension $d = 32$, bottleneck dimension $d_{\mathrm{ib}} = 4$, hidden dimension $h = 128$, negative binomial likelihood, learning rate $10^{-4}$, batch size 128, and 200 training epochs (patience 40). MoCo configurations use queue size $K = 4096$, momentum $m = 0.999$, temperature $\tau = 0.2$, $\lambda_{\mathrm{moco}} = 0.3$ (with ODE) or $0.5$ (without ODE), $P = 12$ prototypes with $\lambda_{\mathrm{proto}} = 0.1$. ODE configurations use $\alpha_{\mathrm{vae}} = 0.6$, $\alpha_{\mathrm{ode}} = 0.4$. Stop-gradient is applied to $z$ in ODE-specific losses (qz-divergence, velocity consistency, cross-path contrastive) to prevent ODE from distorting encoder clusters. The KL weight $\beta$ is swept across $\{1.0, 0.1, 0.01\}$ to investigate component sensitivity.
+All models share: $d = 32$, $d_{\mathrm{ib}} = 4$, $h = 128$, NB likelihood, learning rate $10^{-4}$, batch size 128, 200 epochs (patience 40). MoCo settings: $K = 4096$, $m = 0.999$, $\tau = 0.2$, $\lambda_{\mathrm{moco}} = 0.3$ (with ODE) or $0.5$ (without), $P = 12$ prototypes, $\lambda_{\mathrm{proto}} = 0.1$. ODE settings: $\alpha_{\mathrm{vae}} = 0.6$, $\alpha_{\mathrm{ode}} = 0.4$; stop-gradient is applied to $z$ in ODE-specific losses (qz-divergence, velocity consistency, cross-path contrastive) to prevent the ODE from distorting encoder clusters. The KL weight $\beta$ is swept over $\{1.0, 0.1, 0.01\}$ to assess component sensitivity.
 
 \subsection{Evaluation Metrics}
 \label{sec:experiments:metrics}
 
-\textbf{Clustering quality:} Adjusted Rand Index (ARI), Normalised Mutual Information (NMI), Average Silhouette Width (ASW), Calinski--Harabasz index (CH), Davies--Bouldin index (DB).
+\textbf{Clustering quality.} ARI, NMI, ASW, Calinski--Harabasz (CH), Davies--Bouldin (DB$\downarrow$).
 
-\textbf{Latent Structure Evaluation (LSE):} Manifold dimensionality, spectral decay rate, participation ratio, anisotropy, trajectory directionality, noise resilience---intrinsic latent space quality without reference to downstream clustering.
+\textbf{Latent Structure Evaluation (LSE).} Manifold dimensionality, spectral decay, participation ratio, anisotropy, trajectory directionality, noise resilience---intrinsic quality without reference to clustering.
 
-\textbf{Dimensionality Reduction Evaluation (DRE):} Distance correlation (Spearman), $Q_{\mathrm{local}}$, $Q_{\mathrm{global}}$ via co-ranking matrix---assessing latent-to-UMAP and latent-to-tSNE embedding fidelity.
+\textbf{Dimensionality Reduction Evaluation (DRE).} Spearman distance correlation, $Q_{\mathrm{local}}$, $Q_{\mathrm{global}}$ via co-ranking matrix, assessing latent-to-UMAP and latent-to-tSNE fidelity.
 
-\textbf{Biological validation:} Cell-type purity, marker gene enrichment, pseudotime--trajectory correlation (Spearman $\rho$).
+\textbf{Biological validation.} Cell-type purity, marker gene enrichment, pseudotime--trajectory correlation (Spearman $\rho$).
 
-\textbf{Batch integration (scIB):} Integration LISI (iLISI), batch-aware silhouette width (bASW), cell-type LISI (cLISI), graph connectivity, isolated label ASW, composite bio-conservation and batch-correction scores.
+\textbf{Batch integration (scIB).} iLISI, bASW, cLISI, graph connectivity, isolated label ASW, composite bio-conservation and batch-correction scores.
 
-\textbf{Computational cost:} Wall-clock training time and peak GPU memory.
+\textbf{Computational cost.} Wall-clock training time and peak GPU memory.
 
 %% ============================================================
 \section{Results}
 \label{sec:results}
 %% ============================================================
 
-We evaluate all six configurations on the IRALL hematopoiesis dataset. \textbf{Beta sweep} (Tables~\ref{tab:beta1}--\ref{tab:beta001}): 3{,}000 cells, 200 epochs (patience 40), $\beta \in \{1.0, 0.1, 0.01\}$, targeting component interaction analysis. \textbf{Full-scale evaluation} (Figs.~\ref{fig:quant_comparison},~\ref{fig:training_dynamics},~\ref{fig:composed_benchmark}): same setting with $\beta = 0.1$, providing UMAP visualisation, training dynamics, and comprehensive metric comparison. All genes are filtered to 3{,}000 HVGs. Metrics are computed on \textbf{all cells} via KMeans re-clustering of the learned latent space.
+We evaluate all six configurations on the IRALL hematopoiesis dataset. \textit{Beta sweep} (Tables~\ref{tab:beta1}--\ref{tab:beta001}): 3{,}000 cells, 200 epochs (patience 40), $\beta \in \{1.0, 0.1, 0.01\}$, targeting component interaction analysis. \textit{Full-scale evaluation} (Figs.~\ref{fig:quant_comparison},~\ref{fig:training_dynamics},~\ref{fig:composed_benchmark}): same setting with $\beta = 0.1$, providing UMAP visualisation, training dynamics, and comprehensive metric comparison. All genes are filtered to 3{,}000 HVGs. Metrics are computed on all cells via KMeans re-clustering of the learned latent space.
 
 \subsection{Quantitative Comparison --- Beta Sweep}
 \label{sec:results:quant}
@@ -297,7 +297,7 @@ Tables~\ref{tab:beta1}--\ref{tab:beta001} present the full quantitative comparis
     }
 \end{table*}
 
-At strong KL ($\beta = 1.0$), \textbf{ODE is the dominant component}: VAE+ODE achieves the best ARI (0.485), ASW (0.212), CH (401.4), DB (1.522), DRE (0.454), DREX (0.618), and LSEX (0.610)---winning 7 of 9 metrics. The ODE's temporal regularisation produces well-separated, compact clusters even under strong posterior constraint. VAE+ODE+MoCo achieves the best NMI (0.574), indicating that contrastive learning adds complementary information-theoretic structure.
+At strong KL ($\beta = 1.0$), ODE is the dominant component: VAE+ODE achieves the best ARI (0.485), ASW (0.212), CH (401.4), DB (1.522), DRE (0.454), DREX (0.618), and LSEX (0.610)---winning 7 of 9 metrics. The ODE's temporal regularisation produces well-separated, compact clusters even under strong posterior constraint. VAE+ODE+MoCo achieves the best NMI (0.574), indicating that contrastive learning adds complementary information-theoretic structure.
 
 %% TABLE II
 \begin{table*}[!t]
@@ -320,7 +320,7 @@ At strong KL ($\beta = 1.0$), \textbf{ODE is the dominant component}: VAE+ODE ac
     }
 \end{table*}
 
-At moderate KL ($\beta = 0.1$), \textbf{ODE remains the strongest single component}: VAE+ODE wins NMI (0.573), CH (959.4), DB (1.168), DRE (0.547), and DREX (0.689). The VAE leads ARI (0.489), and VAE+ODE+MoCo achieves the best ASW (0.307). VAE+MoCo+Proto wins LSE (0.239) and LSEX (0.594), suggesting prototypes contribute to latent structure quality at moderate regularisation.
+At moderate KL ($\beta = 0.1$), ODE remains the strongest single component: VAE+ODE wins NMI (0.573), CH (959.4), DB (1.168), DRE (0.547), and DREX (0.689). The VAE leads ARI (0.489), and VAE+ODE+MoCo achieves the best ASW (0.307). VAE+MoCo+Proto wins LSE (0.239) and LSEX (0.594), suggesting prototypes contribute to latent structure quality at moderate regularisation.
 
 %% TABLE III
 \begin{table*}[!t]
@@ -348,7 +348,7 @@ At weak KL ($\beta = 0.01$), the competition broadens: VAE+MoCo leads ARI (0.480
 \begin{figure*}[!t]
     \centering
     \includegraphics[width=\textwidth,height=0.42\textheight,keepaspectratio]{fig2_quant_comparison}
-    \caption{Quantitative latent-space comparison across six configurations (IRALL, 3{,}000 cells, 200 epochs, $\beta{=}0.1$). \textbf{(A)}~UMAP projections coloured by cell type show progressive geometric refinement from VAE to Full. \textbf{(B)}~Clustering metrics (ARI, NMI, ASW) on validation and held-out test splits; solid and hatched bars respectively. \textbf{(C)}~Neighbourhood-preservation metrics (trustworthiness, neighbour symmetry, distance Spearman~$\rho$, DRE). \textbf{(D)}~Intrinsic latent-space quality (participation ratio, manifold dimensionality, anisotropy, composite LSE). Bold outlines mark the best configuration per metric.}
+    \caption{Latent-space comparison across six configurations (IRALL, 3{,}000 cells, 200 epochs, $\beta{=}0.1$). \textbf{(A)}~UMAP projections coloured by cell type. \textbf{(B)}~Clustering metrics (ARI, NMI, ASW); solid bars = validation, hatched = held-out test. \textbf{(C)}~Neighbourhood-preservation metrics (trustworthiness, neighbour symmetry, distance Spearman~$\rho$, DRE). \textbf{(D)}~Intrinsic latent-space quality (participation ratio, manifold dimensionality, anisotropy, composite LSE). Bold outlines mark the best value per metric.}
     \label{fig:quant_comparison}
 \end{figure*}
 
@@ -383,12 +383,12 @@ We isolate each component's marginal effect by computing deltas between adjacent
     }
 \end{table*}
 
-\textbf{Key observation:} ODE is the \textbf{dominant component} at full training scale, consistently improving DB (cluster compactness) by $0.28$--$0.62$ across all beta values. Its ARI boost is strongest at $\beta=1.0$ ($+0.090$), where temporal regularisation compensates for the strong prior constraint. MoCo's ARI contribution is \textbf{beta-dependent}: effective at $\beta=0.01$ ($\Delta$ARI$=+0.039$) but marginal otherwise. Prototypes boost ARI only at $\beta=1.0$ ($+0.048$).
+ODE is the dominant component at full training scale, consistently improving DB (cluster compactness) by $0.28$--$0.62$ across all beta values. Its ARI boost is strongest at $\beta=1.0$ ($+0.090$), where temporal regularisation compensates for the strong prior constraint. MoCo's ARI contribution is beta-dependent: effective at $\beta=0.01$ ($\Delta$ARI$=+0.039$) but marginal otherwise. Prototypes boost ARI only at $\beta=1.0$ ($+0.048$).
 
 \begin{figure*}[!t]
     \centering
     \includegraphics[width=\textwidth,height=0.42\textheight,keepaspectratio]{fig3_ablation_summary}
-    \caption{Ablation study and component contribution analysis (IRALL, $\beta{=}0.1$). \textbf{(A)}~ODE$\times$MoCo interaction heatmap across metrics and $\beta$ values; warm tones indicate super-additive effects. An adjacent summary table reports key metrics per configuration. \textbf{(B)}~Incremental-gain waterfall for ARI, NMI, and ASW: each bar shows the marginal change ($\Delta$) from the VAE baseline (green$=$positive, red$=$negative). \textbf{(C)}~Column-normalised performance heatmap across eight metrics---no single configuration dominates all axes. \textbf{(D)}~Permutation-based kNN accuracy drop per latent dimension ($d{=}32$), revealing how concentrated versus distributed each model's learned representations are.}
+    \caption{Component contribution analysis (IRALL, $\beta{=}0.1$). \textbf{(A)}~ODE$\times$MoCo interaction heatmap across metrics and $\beta$ values; warm tones indicate super-additive effects. \textbf{(B)}~Incremental-gain waterfall for ARI, NMI, and ASW: each bar shows the marginal $\Delta$ from the VAE baseline. \textbf{(C)}~Column-normalised performance heatmap across eight metrics. \textbf{(D)}~Permutation-based kNN accuracy drop per latent dimension ($d{=}32$), showing representation concentration per model.}
     \label{fig:ablation_summary}
 \end{figure*}
 
@@ -423,7 +423,7 @@ A positive $\Delta_{\mathrm{synergy}}$ on higher-is-better metrics (or negative 
     }
 \end{table}
 
-\textbf{Finding:} ODE and MoCo exhibit \textbf{regime-dependent} synergy. At $\beta=0.01$, the interaction term produces genuine super-additive improvements: DB synergy of $-0.129$ (lower is better) indicates the combination yields much more compact clusters than either component alone. DRE ($+0.031$) and DREX ($+0.030$) synergies at $\beta=0.01$ show improved embedding fidelity. At $\beta=0.1$, ASW synergy ($+0.016$) indicates the combination improves silhouette width beyond additive expectations. ARI synergy is weakly positive ($+0.016$--$0.017$) at $\beta\ge0.1$ but turns negative at $\beta=0.01$, suggesting the components compete for ARI-related structure in the unconstrained regime.
+ODE and MoCo exhibit regime-dependent synergy. At $\beta=0.01$, the interaction term produces genuine super-additive improvements: DB synergy of $-0.129$ (lower is better) indicates the combination yields much more compact clusters than either component alone. DRE ($+0.031$) and DREX ($+0.030$) synergies at $\beta=0.01$ show improved embedding fidelity. At $\beta=0.1$, ASW synergy ($+0.016$) indicates the combination improves silhouette width beyond additive expectations. ARI synergy is weakly positive ($+0.016$--$0.017$) at $\beta\ge0.1$ but turns negative at $\beta=0.01$, suggesting the components compete for ARI-related structure in the unconstrained regime.
 
 The DB synergy pattern is notable: strongly negative (harmful) at $\beta=1.0$ ($+0.210$), neutral at $\beta=0.1$, and strongly positive at $\beta=0.01$ ($-0.129$). This indicates the ODE$\times$MoCo interaction for cluster compactness requires sufficient latent freedom ($\beta\le0.01$) to manifest.
 
@@ -456,7 +456,7 @@ Table~\ref{tab:beta_full} presents the Full model's performance across all three
     }
 \end{table}
 
-The Full model shows a clear \textbf{sweet spot at $\beta = 0.1$}, which wins 5 of 9 metrics (ASW, CH, DB, DRE, DREX). Clustering identity metrics (ARI, NMI) continue to improve at $\beta=0.01$, while spectral metrics (LSE, LSEX) favor $\beta=1.0$. This suggests $\beta=0.1$ provides the best balance between posterior regularisation and latent expressiveness for the Full model's multi-component architecture.
+The Full model shows a clear sweet spot at $\beta = 0.1$, which wins 5 of 9 metrics (ASW, CH, DB, DRE, DREX). Clustering identity metrics (ARI, NMI) continue to improve at $\beta=0.01$, while spectral metrics (LSE, LSEX) favor $\beta=1.0$. This suggests $\beta=0.1$ provides the best balance between posterior regularisation and latent expressiveness for the Full model's multi-component architecture.
 
 \subsection{Metric Win Counts}
 \label{sec:results:wins}
@@ -482,7 +482,7 @@ Table~\ref{tab:wins} summarises which configurations win the most metrics across
     \end{tabular}
 \end{table}
 
-At full training scale (3{,}000 cells, 200 epochs), \textbf{VAE+ODE is the dominant configuration}, winning 13 of 27 total metric-beta combinations. Its dominance is strongest at $\beta=1.0$ (7/9 wins) and $\beta=0.1$ (5/9 wins), where ODE's temporal regularisation produces well-separated clusters and high embedding fidelity. At $\beta=0.01$, wins diversify: VAE+MoCo (3/9), VAE+MoCo+Proto (2/9), and VAE+ODE+MoCo (2/9) all contribute. Notably, the Full model only wins 1 metric (NMI at $\beta=0.01$), indicating that at full training scale, the ODE component provides most of the benefit and additional components do not consistently improve over VAE+ODE alone.
+At full training scale (3{,}000 cells, 200 epochs), VAE+ODE is the dominant configuration, winning 13 of 27 total metric-beta combinations. Its dominance is strongest at $\beta=1.0$ (7/9 wins) and $\beta=0.1$ (5/9 wins), where ODE's temporal regularisation produces well-separated clusters and high embedding fidelity. At $\beta=0.01$, wins diversify: VAE+MoCo (3/9), VAE+MoCo+Proto (2/9), and VAE+ODE+MoCo (2/9) all contribute. Notably, the Full model only wins 1 metric (NMI at $\beta=0.01$), indicating that at full training scale, the ODE component provides most of the benefit and additional components do not consistently improve over VAE+ODE alone.
 
 \subsection{Biological Validation --- Pseudotime--Marker Correlations}
 \label{sec:results:bio}
@@ -618,14 +618,14 @@ All configurations converge within 200 epochs (patience 40) at 3{,}000 cells (Fi
 \begin{figure*}[!t]
     \centering
     \includegraphics[width=\textwidth,height=0.42\textheight,keepaspectratio]{fig4_training_dynamics}
-    \caption{Training dynamics and computational cost (IRALL, 3{,}000 cells, $\beta{=}0.1$). \textbf{(A)}~Training (solid) and validation (dashed) ELBO loss curves; all configurations converge within 200 epochs (patience$=$40). ODE-containing models start from higher loss but reach comparable minima. \textbf{(B)}~Efficiency scatter: validation ARI versus wall-clock training time. Bubble area is proportional to peak GPU memory. The dashed Pareto frontier delineates the accuracy--cost trade-off: VAE achieves the best ARI at lowest cost, while ODE models require $\sim$10$\times$ longer for comparable clustering quality.}
+    \caption{Training dynamics and computational cost (IRALL, 3{,}000 cells, $\beta{=}0.1$). \textbf{(A)}~Training (solid) and validation (dashed) ELBO loss curves; all configurations converge within 200 epochs (patience$=$40). \textbf{(B)}~Validation ARI versus wall-clock training time. Bubble area $\propto$ peak GPU memory; dashed line = Pareto frontier.}
     \label{fig:training_dynamics}
 \end{figure*}
 
 \subsection{Batch Integration}
 \label{sec:results:batch}
 
-On IRALL (8 batches, d0--d30) at 3{,}000 cells and 200 epochs, ODE-containing configurations achieve better batch mixing (iLISI up to 0.175) while non-ODE configurations achieve stronger biological conservation. Full batch integration analysis is provided in Supplementary Fig.~\ref{fig:supp_batch}; the beta sweep focuses on component interaction analysis.
+Batch integration evaluation (iLISI, bASW, cLISI, graph connectivity, isolated-label ASW via scIB) is planned for the camera-ready version using the IRALL dataset (8 time-point batches, d0--d30). The current evaluation focuses on the component interaction analysis detailed above.
 
 %% ============================================================
 \section{Discussion}
@@ -635,20 +635,20 @@ On IRALL (8 batches, d0--d30) at 3{,}000 cells and 200 epochs, ODE-containing co
 \subsection{MoCo Standalone Power: Beta-Dependent Effectiveness}
 \label{sec:discussion:moco}
 
-A critical question is whether MoCo provides independent representational value beyond the VAE backbone. The beta sweep reveals that \textbf{MoCo's standalone effect is beta-dependent}:
+Does MoCo add representational value beyond the VAE backbone? The beta sweep shows \textit{MoCo's standalone effect is beta-dependent}:
 
 \begin{itemize}
-    \item At $\beta = 0.01$ (weak KL), MoCo provides its \textit{strongest} improvement: $\Delta$ARI $= +0.039$, $\Delta$DREX $= +0.006$. With near-zero KL, the contrastive gradient has room to organise the latent space, and instance discrimination compensates for the absent prior structure.
-    \item At $\beta = 0.1$ (moderate KL), MoCo has a marginal effect on core clustering: $\Delta$ARI $= -0.019$, $\Delta$ASW $= -0.001$, but contributes positive DREX ($+0.006$), indicating improved embedding fidelity that is not captured by cluster-level metrics.
-    \item At $\beta = 1.0$ (strong KL), MoCo hurts: $\Delta$ARI $= -0.021$, $\Delta$ASW $= +0.008$. The KL term dominates, pushing all representations toward the prior, and the contrastive gradient conflicts with this regularisation.
+    \item At $\beta = 0.01$ (weak KL), MoCo yields its \textit{strongest} gains: $\Delta$ARI $= +0.039$, $\Delta$DREX $= +0.006$. Instance discrimination compensates for the absent prior structure.
+    \item At $\beta = 0.1$ (moderate KL), MoCo marginally affects clustering ($\Delta$ARI $= -0.019$, $\Delta$ASW $= -0.001$) but improves embedding fidelity (DREX $+0.006$).
+    \item At $\beta = 1.0$ (strong KL), MoCo degrades performance ($\Delta$ARI $= -0.021$). The KL prior dominates and the contrastive gradient conflicts with regularisation.
 \end{itemize}
 
-This reveals an important design principle: contrastive learning in VAE hybrids requires a sufficiently \textit{weak} KL constraint ($\beta \leq 0.1$) for its instance-level discrimination to manifest. At low $\beta$, MoCo fills the role that KL regularisation cannot---providing structure through pairwise similarity rather than prior matching. The full beta sensitivity profiles across all metrics are visualised in Fig.~\ref{fig:beta_sensitivity}.
+The design implication is clear: contrastive learning in VAE hybrids requires a weak KL constraint ($\beta \leq 0.1$) to manifest. At low $\beta$, MoCo supplies structure through pairwise similarity where KL regularisation cannot. Full beta sensitivity profiles appear in Fig.~\ref{fig:beta_sensitivity}.
 
 \subsection{Prototype Effect: Cluster Compactness and ARI}
 \label{sec:discussion:proto}
 
-The prototype contrastive loss (VAE+MoCo $\to$ VAE+MoCo+Proto) shows a \textbf{beta-dependent effect on ARI}: $\Delta$ARI $= +0.048$ at $\beta = 1.0$, but $-0.039$ at $\beta = 0.1$ and $-0.060$ at $\beta = 0.01$. Its effect on Davies--Bouldin is mixed:
+Adding the prototype loss (VAE+MoCo $\to$ VAE+MoCo+Proto) produces a \textit{beta-dependent ARI effect}: $\Delta$ARI $= +0.048$ at $\beta = 1.0$, but $-0.039$ at $\beta = 0.1$ and $-0.060$ at $\beta = 0.01$. Davies--Bouldin effects are mixed:
 
 \begin{itemize}
     \item $\beta = 1.0$: $\Delta$DB $= -0.029$ (marginal improvement)
@@ -656,34 +656,34 @@ The prototype contrastive loss (VAE+MoCo $\to$ VAE+MoCo+Proto) shows a \textbf{b
     \item $\beta = 0.01$: $\Delta$DB $= +0.118$ (worsens compactness)
 \end{itemize}
 
-Prototypes provide a small DRE boost at $\beta \leq 0.1$ ($\Delta$DRE $= +0.015$ at $\beta = 0.1$, $+0.006$ at $\beta = 0.01$), and their ARI contribution is strongest at $\beta = 1.0$ ($+0.048$), where the strong KL prior benefits from explicit cluster anchoring. At low $\beta$, the prototype loss competes with the greater latent freedom, explaining the negative ARI and DB deltas.
+Prototypes boost DRE at $\beta \leq 0.1$ ($+0.015$ at $\beta = 0.1$, $+0.006$ at $\beta = 0.01$) and contribute most to ARI at $\beta = 1.0$ ($+0.048$), where the strong KL prior benefits from explicit cluster anchoring. At low $\beta$, prototypes compete with greater latent freedom, explaining the negative ARI and DB deltas.
 
 \subsection{ODE \texorpdfstring{$\times$}{x} MoCo Synergy: Super-Additive Interaction}
 \label{sec:discussion:synergy}
 
-The interaction term analysis (Table~\ref{tab:synergy}) reveals \textbf{regime-dependent synergy} between ODE and MoCo:
+The interaction term analysis (Table~\ref{tab:synergy}) reveals \textit{regime-dependent synergy} between ODE and MoCo:
 
 \begin{itemize}
-    \item \textbf{ARI synergy}: weakly positive at $\beta \geq 0.1$ ($+0.016$, $+0.017$) but negative at $\beta = 0.01$ ($-0.027$). The components cooperate at moderate KL but compete at low KL, where each claims different structural axes.
-    \item \textbf{DB synergy}: the strongest signal is at $\beta = 0.01$ ($-0.129$, a large improvement), indicating the combination produces more compact clusters than the sum of individual effects when the latent space is unconstrained.
-    \item \textbf{DRE/DREX synergy}: $+0.031$ / $+0.030$ at $\beta = 0.01$. Embedding fidelity improves super-additively at low $\beta$.
+    \item \textit{ARI synergy}: weakly positive at $\beta \geq 0.1$ ($+0.016$, $+0.017$) but negative at $\beta = 0.01$ ($-0.027$). The components cooperate at moderate KL but compete at low KL.
+    \item \textit{DB synergy}: strongest at $\beta = 0.01$ ($-0.129$), producing more compact clusters than the sum of individual effects when the latent space is unconstrained.
+    \item \textit{DRE/DREX synergy}: $+0.031$ / $+0.030$ at $\beta = 0.01$. Embedding fidelity improves super-additively at low $\beta$.
 \end{itemize}
 
-The mechanism for this synergy is that \textbf{ODE provides trajectory-aligned geometry while MoCo provides instance-level discrimination}. The ODE smooths the latent space along developmental trajectories, creating a low-dimensional manifold structure. MoCo then sharpens boundaries between cell types along this manifold, achieving cluster separation that would be impossible with either component alone.
+Mechanistically, \textit{ODE smooths the latent space along developmental trajectories while MoCo sharpens cell-type boundaries along that manifold}---achieving separation neither component produces alone.
 
-The DB synergy pattern is notable: harmful at $\beta = 1.0$ ($+0.210$), neutral at $\beta = 0.1$ ($-0.003$), and strongly positive at $\beta = 0.01$ ($-0.129$). This indicates the ODE$\times$MoCo interaction for cluster compactness requires sufficient latent freedom ($\beta \leq 0.01$) to manifest.
+The DB synergy pattern is instructive: harmful at $\beta = 1.0$ ($+0.210$), neutral at $\beta = 0.1$ ($-0.003$), strongly positive at $\beta = 0.01$ ($-0.129$). ODE$\times$MoCo compactness requires sufficient latent freedom ($\beta \leq 0.01$) to manifest.
 
 \subsection{Beta Sensitivity and Practical Implications}
 \label{sec:discussion:beta}
 
-The Full model's performance improves monotonically on most geometric metrics as $\beta$ decreases (Table~\ref{tab:beta_full}): ARI, ASW, CH, DRE, and DREX all improve from $\beta = 1.0$ to $\beta = 0.01$. Only spectral metrics (LSE, LSEX) favor strong KL. This suggests that the standard $\beta = 1.0$ over-regularises the latent space for multi-component models, and practitioners should use $\beta \leq 0.1$ when deploying the Full MoCoO.
+The Full model improves monotonically on most geometric metrics as $\beta$ decreases (Table~\ref{tab:beta_full}): ARI, ASW, CH, DRE, and DREX all rise from $\beta = 1.0$ to $\beta = 0.01$. Only spectral metrics (LSE, LSEX) favour strong KL. Standard $\beta = 1.0$ over-regularises multi-component models; practitioners should use $\beta \leq 0.1$ for the Full MoCoO.
 
 \subsection{Component Dominance and Full Model Strengths}
 \label{sec:discussion:vae}
 
-At 3{,}000 cells and 200 epochs, VAE+ODE achieves the most metric wins overall (13/27 metric--$\beta$ combinations in Table~\ref{tab:wins}), reflecting the strong regularising effect of Neural ODE on the latent space. The VAE alone wins only 1/27 at full training scale, indicating that additional components are necessary.
+At 3{,}000 cells and 200 epochs, VAE+ODE wins the most metric--$\beta$ combinations (13/27 in Table~\ref{tab:wins}), reflecting the strong regularising effect of Neural ODE. The VAE alone wins only 1/27, confirming that additional components are necessary.
 
-While VAE+ODE dominates aggregate metrics, \textbf{the Full model achieves the best distance preservation}---a critical property for downstream visualisation and trajectory analysis. Specifically, the Full model produces the highest DRE distance correlations (UMAP: $0.660$ vs.\ $0.596$ for VAE+ODE; tSNE: $0.725$ vs.\ $0.635$), the highest DREX distance Spearman ($0.716$ vs.\ $0.639$), and the highest Calinski--Harabasz index ($433$ vs.\ $373$). These subcategory advantages, hidden in overall aggregates, indicate that the combination of all components produces latent spaces with the strongest \textit{geometric fidelity}---pairwise distances in the latent space are most faithfully reflected in 2D projections. A detailed subcategory breakdown is provided in Fig.~\ref{fig:subcategory_heatmap}.
+However, \textit{the Full model achieves the best distance preservation}---critical for visualisation and trajectory analysis. It produces the highest DRE distance correlations (UMAP: $0.660$ vs.\ $0.596$; tSNE: $0.725$ vs.\ $0.635$), the highest DREX distance Spearman ($0.716$ vs.\ $0.639$), and the highest Calinski--Harabasz index ($433$ vs.\ $373$). These subcategory advantages, hidden in overall aggregates, show that combining all components yields the strongest \textit{geometric fidelity}---latent pairwise distances are most faithfully reflected in 2D projections. A detailed breakdown appears in Fig.~\ref{fig:subcategory_heatmap}.
 
 \begin{figure*}[!t]
     \centering
@@ -695,7 +695,7 @@ While VAE+ODE dominates aggregate metrics, \textbf{the Full model achieves the b
 \subsection{Component Contributions --- Summary}
 \label{sec:discussion:summary}
 
-The primary effect, best operating regime, and key metrics improved by each component are summarised in Table~\ref{tab:component_summary}. A comprehensive visual overview integrating all evaluation dimensions is provided in Fig.~\ref{fig:composed_benchmark}.
+Table~\ref{tab:component_summary} summarises each component's primary effect, best operating regime, and key metrics. A comprehensive visual overview appears in Fig.~\ref{fig:composed_benchmark}.
 
 %% TABLE XIV
 \begin{table}[!t]
@@ -725,6 +725,7 @@ The primary effect, best operating regime, and key metrics improved by each comp
     \item \textbf{Single-seed evaluation:} Results are from single training runs; multi-seed evaluation with standard deviations is needed.
     \item \textbf{No external baselines:} Comparison with scVI, scVelo, Harmony is needed to contextualise absolute performance.
     \item \textbf{Clustering metric limitations:} ARI depends on KMeans, which is suboptimal for trajectory-shaped manifolds. Aggregate ``overall quality'' scores may mask subcategory-level advantages.
+    \item \textbf{No batch integration evaluation:} scIB metrics (iLISI, bASW, cLISI) have not been computed for the current results.
 \end{enumerate}
 
 \begin{figure*}[!t]
@@ -739,15 +740,15 @@ The primary effect, best operating regime, and key metrics improved by each comp
 \label{sec:conclusion}
 %% ============================================================
 
-MoCoO provides a modular framework for single-cell representation learning that combines reconstruction fidelity (VAE), continuous dynamics (Neural ODE), and contrastive structure (MoCo + prototypes). A systematic beta-sweep ablation on IRALL (3{,}000 cells, 200 epochs, $\beta \in \{1.0, 0.1, 0.01\}$) answers three key questions about component interactions:
+MoCoO combines reconstruction fidelity (VAE), continuous dynamics (Neural ODE), and contrastive structure (MoCo + prototypes) in a modular framework for single-cell representation learning. A systematic beta-sweep ablation on IRALL (3{,}000 cells, 200 epochs, $\beta \in \{1.0, 0.1, 0.01\}$) yields three findings:
 
-\textbf{1. ODE is the dominant component.} Neural ODE consistently reduces DB by $0.28$--$0.62$ across all $\beta$ settings and wins 13/27 metric--$\beta$ combinations (Table~\ref{tab:wins}). Its trajectory regularisation produces the most reliably improved latent spaces.
+\textit{1. ODE is the dominant component.} Neural ODE reduces DB by $0.28$--$0.62$ across all $\beta$ settings and wins 13/27 metric--$\beta$ combinations (Table~\ref{tab:wins}), producing the most reliably improved latent spaces.
 
-\textbf{2. MoCo has beta-dependent standalone power.} At $\beta = 0.01$, MoCo improves ARI by $+0.039$ and DREX by $+0.006$ over the VAE baseline---contrastive learning is most effective when the KL constraint is weak, allowing instance discrimination to organise the latent space.
+\textit{2. MoCo is beta-dependent.} At $\beta = 0.01$, MoCo improves ARI by $+0.039$ and DREX by $+0.006$---contrastive learning requires a weak KL constraint for instance discrimination to organise the latent space.
 
-\textbf{3. ODE and MoCo exhibit regime-dependent synergy.} The interaction term for DB reaches $-0.129$ at $\beta = 0.01$ (super-additive compactness), with DRE ($+0.031$) and DREX ($+0.030$) synergies confirming improved embedding fidelity. ARI synergy is weakly positive at $\beta \geq 0.1$ ($+0.016$--$0.017$) but turns negative at $\beta = 0.01$.
+\textit{3. ODE and MoCo exhibit regime-dependent synergy.} The DB interaction term reaches $-0.129$ at $\beta = 0.01$ (super-additive compactness), with DRE ($+0.031$) and DREX ($+0.030$) synergies confirming improved embedding fidelity. ARI synergy is weakly positive at $\beta \geq 0.1$ ($+0.016$--$0.017$) but negative at $\beta = 0.01$.
 
-The Full MoCoO achieves the best \textbf{distance preservation} across all configurations: highest DRE at $\beta = 0.01$ ($0.518$), strongest pairwise distance correlations (DREX Spearman up to $0.72$), and highest Calinski--Harabasz index. While VAE+ODE dominates aggregate clustering metrics, subcategory analysis reveals the Full model uniquely excels at geometric fidelity---the property most critical for faithful 2D visualisation and trajectory inference. Across all settings, pseudotime--marker gene correlations remain biologically significant: \textit{Hbb-bs} ($\rho = 0.28$) in hematopoiesis, \textit{Slc1a3} ($\rho = 0.54$) in neurogenesis, \textit{Ins2} ($\rho = 0.46$) in endocrine pancreas, \textit{Epor} ($\rho = 0.35$) in myeloid/erythroid progenitors, and \textit{MKI67} ($\rho = 0.49$) in spinal cord organoids. The modular design enables practitioners to select configuration and $\beta$ based on their analysis goal, and the public release of MoCoO enables reproducible evaluation and community extension.
+The Full MoCoO achieves the best \textit{distance preservation}: highest DRE at $\beta = 0.01$ ($0.518$), strongest DREX Spearman ($0.72$), and highest Calinski--Harabasz index. While VAE+ODE dominates aggregate clustering, the Full model uniquely excels at geometric fidelity---critical for faithful visualisation and trajectory inference. Pseudotime--marker correlations confirm biological validity across datasets ($\rho = 0.28$--$0.54$ for canonical markers \textit{Hbb-bs}, \textit{Slc1a3}, \textit{Ins2}, \textit{Epor}, \textit{MKI67}). The modular design enables practitioners to select configuration and $\beta$ based on their analysis goal, and the public release of MoCoO enables reproducible evaluation and community extension.
 
 %% ============================================================
 %% Required Sections (IEEE)
@@ -815,7 +816,7 @@ Fig.~\ref{fig:supp_batch} provides the full batch integration analysis reference
 \begin{figure*}[!t]
     \centering
     \includegraphics[width=\textwidth,height=0.70\textheight,keepaspectratio]{supp_batch_integration}
-    \caption{Batch integration and cross-dataset evaluation (IRALL, 8 time-point batches). \textbf{(A)}~Per-metric bar chart of batch integration scores (iLISI, bASW, cLISI, graph connectivity, isolated label ASW) across all six configurations. \textbf{(B)}~Bio-conservation versus batch-correction scatter with composite scIB overall score. \textbf{(C)}~Cross-dataset heatmap of ARI, NMI, and ASW (column-normalised) across IRALL, Dentate, and Endo. \textbf{(D)}~Cross-dataset radar profile of normalised configuration performance.}
+    \caption{Batch integration and cross-dataset evaluation (IRALL, 8 time-point batches). \textbf{(A)}~Batch integration metrics (iLISI, bASW, cLISI) across configurations. Panels with unavailable data are omitted. \textbf{(B)}~Bio-conservation versus batch-correction scatter with composite scIB overall score. \textbf{(C)}~Cross-dataset heatmap of ARI, NMI, and ASW (column-normalised) across IRALL, Dentate, and Endo. \textbf{(D)}~Cross-dataset radar profile of normalised configuration performance.}
     \label{fig:supp_batch}
 \end{figure*}
 

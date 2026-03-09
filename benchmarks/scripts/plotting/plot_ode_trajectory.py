@@ -118,7 +118,7 @@ def _draw_pca_comparison(gs, fig, configs, latents, labels):
 
         ax_ct.set_xticks([]); ax_ct.set_yticks([])
         ax_ct.set_title(f"{cfg} (Cell type)", fontsize=FS_TITLE, pad=2,
-                        color=_CONFIG_COLOR.get(cfg, "black"), fontweight="bold")
+                        color=_CONFIG_COLOR.get(cfg, "black"))
         # No xlabel on top row to avoid overlap with row-below titles
         if j == 0:
             ax_ct.set_ylabel("PC 2", fontsize=FS_AXIS)
@@ -349,7 +349,7 @@ def _draw_trajectory_smoothness(gs, fig, configs, latents, labels):
                         xy=(oi, entropies[oi]),
                         xytext=(oi, label_y),
                         ha="center", va="bottom", fontsize=FS_SMALL,
-                        color="#DD8452", fontweight="bold",
+                        color="#DD8452",
                         clip_on=False,
                         arrowprops=dict(arrowstyle="->", color="#DD8452",
                                         lw=0.8, shrinkA=3, shrinkB=3))
@@ -366,17 +366,17 @@ def build_figure(rdir: Path, outdir: Path, adata_path: str):
     outer = gridspec.GridSpec(
         4, 1,
         height_ratios=[4.0, 2.5, 2.8, 2.5],
-        hspace=0.30,
+        hspace=0.24,
         figure=fig,
     )
 
     # A: 2-row × 3-col PCA grid (cell type + pseudotime)
     gs_A = gridspec.GridSpecFromSubplotSpec(
-        2, 3, subplot_spec=outer[0], wspace=0.18, hspace=0.28)
+        2, 3, subplot_spec=outer[0], wspace=0.14, hspace=0.22)
 
     # B: 2 violin plots
     gs_B = gridspec.GridSpecFromSubplotSpec(
-        1, 2, subplot_spec=outer[1], wspace=0.30)
+        1, 2, subplot_spec=outer[1], wspace=0.24)
 
     # C: single wide gene expression panel
     gs_C = gridspec.GridSpecFromSubplotSpec(
@@ -384,7 +384,7 @@ def build_figure(rdir: Path, outdir: Path, adata_path: str):
 
     # D: 2 panels — pairwise dist histogram + NN entropy bars
     gs_D = gridspec.GridSpecFromSubplotSpec(
-        1, 2, subplot_spec=outer[3], wspace=0.30)
+        1, 2, subplot_spec=outer[3], wspace=0.24)
 
     print("  Drawing Panel A (PCA pseudotime)...")
     ax_A = _draw_pca_comparison(gs_A, fig, configs, latents, labels)
@@ -398,7 +398,7 @@ def build_figure(rdir: Path, outdir: Path, adata_path: str):
     print("  Drawing Panel D (Trajectory smoothness)...")
     ax_D = _draw_trajectory_smoothness(gs_D, fig, configs, latents, labels)
 
-    fig.subplots_adjust(left=0.12, right=0.95, top=0.97, bottom=0.05)
+    fig.subplots_adjust(left=0.10, right=0.96, top=0.97, bottom=0.06)
 
     panel_label(fig, ax_A, "A")
     panel_label(fig, ax_B, "B")

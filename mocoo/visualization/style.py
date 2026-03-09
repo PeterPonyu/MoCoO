@@ -131,13 +131,17 @@ def apply_style() -> None:
         "savefig.bbox": "tight",
         "savefig.pad_inches": 0.08,
 
-        # Font
+        # Font — Arial normal weight throughout
         "font.family": "sans-serif",
         "font.size": FS_AXIS,
+        "font.weight": "normal",
+        "font.style": "normal",
 
-        # Axes
+        # Axes — normal weight titles and labels
         "axes.titlesize": FS_TITLE,
+        "axes.titleweight": "normal",
         "axes.labelsize": FS_AXIS,
+        "axes.labelweight": "normal",
         "axes.linewidth": 0.5,
         "axes.grid": True,
         "axes.grid.which": "major",

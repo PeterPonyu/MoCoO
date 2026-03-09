@@ -146,7 +146,6 @@ def make_heatmap(ax, data, panel_name, metrics_spec, configs):
                 continue
             # Format: use integer for large values, 3 decimal otherwise
             txt = f"{val:.0f}" if abs(val) > 10 else f"{val:.3f}"
-            weight = "bold" if i == best_idx else "normal"
             color = "white" if norm_mat[i, j] > HEATMAP_DARK_THRESHOLD else "black"
             # Add rank as superscript
             rank_idx = np.where(valid_indices == i)[0]
@@ -154,7 +153,7 @@ def make_heatmap(ax, data, panel_name, metrics_spec, configs):
                 rank = ranks[rank_idx[0]]
                 txt = f"{txt} ({rank})"
             ax.text(j, i, txt, ha="center", va="center",
-                    fontsize=FS_SMALL, fontweight=weight, color=color)
+                    fontsize=FS_SMALL, fontweight="normal", color=color)
 
     ax.set_xticks(range(n_met))
     ax.set_xticklabels([m[1] for m in metrics_spec], fontsize=FS_TICK, rotation=45, ha="right")
@@ -162,9 +161,10 @@ def make_heatmap(ax, data, panel_name, metrics_spec, configs):
     # Append win count to y-labels
     ylabels = [f"{SHORT_NAMES.get(c, c)} [{wins[i]}W]" for i, c in enumerate(configs)]
     ax.set_yticklabels(ylabels, fontsize=FS_TICK)
-    # Extra padding so y-labels don't overlap with leftmost column annotations
+    # Extra padding so labels don't overlap with heatmap boundaries
     ax.tick_params(axis="y", pad=6)
-    ax.set_title(panel_name, fontsize=FS_TITLE, fontweight="bold", pad=4)
+    ax.tick_params(axis="x", pad=4)
+    ax.set_title(panel_name, fontsize=FS_TITLE, pad=4)
     return im, wins
 
 
@@ -196,7 +196,7 @@ def main():
     n_rows = 2
     fig, axes = plt.subplots(n_rows, n_cols,
                               figsize=(FIG_WIDTH_IN * 1.35, FIG_HEIGHT_IN * 0.85),
-                              gridspec_kw={"hspace": 0.40, "wspace": 0.35})
+                              gridspec_kw={"hspace": 0.32, "wspace": 0.28})
 
     letters = "ABCDE"
     total_wins = np.zeros(len(CONFIGS), dtype=int)
@@ -225,11 +225,11 @@ def main():
         print(f"  {cfg}: {total_wins[i]} wins")
 
     fig.suptitle("Subcategory Metric Breakdown ($\\beta = 0.1$, IRALL, 3000 cells)",
-                 fontsize=FS_LABEL, fontweight="bold", y=0.99)
+                 fontsize=FS_LABEL, y=0.99)
 
     # Finalise layout BEFORE adding panel labels so that ax.get_position()
     # returns the correct post-adjustment coordinates.
-    fig.subplots_adjust(left=0.10, right=0.97, top=0.93, bottom=0.06)
+    fig.subplots_adjust(left=0.09, right=0.97, top=0.93, bottom=0.08)
 
     # Add panel labels after layout adjustment to avoid overlap with cells.
     for idx in range(n_panels):

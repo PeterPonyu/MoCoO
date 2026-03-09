@@ -196,7 +196,7 @@ def _draw_synergy_heatmap(gs, fig, rdir):
             txt = f"{sign}{v:.3f}"
             text_col = "white" if abs(v) > vabs * 0.65 else "black"
             ax.text(bi, mi, txt, ha="center", va="center",
-                    fontsize=FS_SMALL + 0.5, color=text_col, fontweight="bold")
+                    fontsize=FS_SMALL + 0.5, color=text_col)
 
     ax.set_xticks(np.arange(len(beta_labels)))
     ax.set_xticklabels(beta_labels, fontsize=FS_TICK)
@@ -250,7 +250,7 @@ def _draw_incremental_gain(gs, fig, configs, metrics):
                 txt_y = baseline + delta * 0.5  # midpoint of delta bar
                 ax.text(k, txt_y, f"{sign}{delta:.3f}",
                         ha="center", va="center", fontsize=FS_SMALL,
-                        color=delta_c, fontweight="bold", zorder=10)
+                        color=delta_c, zorder=10)
 
         ax.axhline(baseline, color="gray", ls="--", lw=0.8, alpha=0.7, zorder=1)
         ax.yaxis.set_major_locator(plt.MaxNLocator(4, prune="upper"))
@@ -392,15 +392,15 @@ def build_figure(rdir: Path, outdir: Path):
     outer = gridspec.GridSpec(
         4, 1,
         height_ratios=[3.2, 2.5, 3.2, 2.5],
-        hspace=0.58,
+        hspace=0.46,
         figure=fig,
     )
 
     # A: Synergy heatmap (left) + summary table (right)
     gs_A_row = gridspec.GridSpecFromSubplotSpec(
-        1, 2, subplot_spec=outer[0], wspace=0.30)
+        1, 2, subplot_spec=outer[0], wspace=0.24)
     gs_B = gridspec.GridSpecFromSubplotSpec(
-        1, 3, subplot_spec=outer[1], wspace=0.35)
+        1, 3, subplot_spec=outer[1], wspace=0.28)
     gs_C = gridspec.GridSpecFromSubplotSpec(
         1, 1, subplot_spec=outer[2])
     gs_D = gridspec.GridSpecFromSubplotSpec(
@@ -422,7 +422,7 @@ def build_figure(rdir: Path, outdir: Path):
     print("  Drawing Panel D (Permutation box plots)...")
     ax_D = _draw_perm_boxplots(gs_D, fig, configs, latents, labels)
 
-    fig.subplots_adjust(left=0.13, right=0.94, top=0.96, bottom=0.10)
+    fig.subplots_adjust(left=0.10, right=0.96, top=0.97, bottom=0.07)
 
     panel_label(fig, ax_A, "A")
     panel_label(fig, ax_B, "B")
@@ -473,7 +473,7 @@ def _draw_summary_table(ax, configs, metrics):
     for (r, c), cell in tbl.get_celld().items():
         if r == 0:
             cell.set_facecolor("#4C72B0")
-            cell.set_text_props(color="white", fontweight="bold")
+            cell.set_text_props(color="white")
         elif r % 2 == 0:
             cell.set_facecolor("#f0f4ff")
         cell.set_edgecolor("#cccccc")
@@ -484,7 +484,7 @@ def _draw_summary_table(ax, configs, metrics):
         vals = [metrics[c].get(key, -np.inf) for c in configs]
         best = int(np.argmax(vals))
         tbl[(best + 1, mi + 1)].set_facecolor("#c8e6c9")
-        tbl[(best + 1, mi + 1)].set_text_props(fontweight="bold")
+        tbl[(best + 1, mi + 1)].set_text_props()
 
     ax.set_title("Summary Table", fontsize=FS_TITLE, pad=3)
 

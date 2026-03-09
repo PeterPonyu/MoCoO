@@ -89,8 +89,7 @@ def _highlight_best(ax, bars, vals, higher_better=True):
     fmt = f"{yval:.3f}" if yval < 1.0 else f"{yval:.1f}"
     ax.annotate(fmt, xy=(best_i, yval),
                 xytext=(0, 3), textcoords="offset points",
-                ha="center", fontsize=FS_SMALL, color="crimson",
-                fontweight="bold")
+                ha="center", fontsize=FS_SMALL, color="crimson")
 
 
 # ── Panel drawing ──────────────────────────────────────────────────────────
@@ -111,7 +110,7 @@ def _draw_umap_grid(gs, fig, configs, latents, labels, cache_dir):
             ax.scatter(emb[m, 0], emb[m, 1], color=cm20(k % 20), **_SCATTER)
         ax.set_xticks([]); ax.set_yticks([])
         ax.set_title(cfg, fontsize=FS_TITLE, pad=2,
-                     color=_CONFIG_COLOR[cfg], fontweight="bold")
+                     color=_CONFIG_COLOR[cfg])
         for spine in ax.spines.values():
             spine.set_edgecolor(_CONFIG_COLOR[cfg])
             spine.set_linewidth(1.0)
@@ -263,7 +262,7 @@ def build_figure(rdir: Path, outdir: Path):
     outer = gridspec.GridSpec(
         4, 1,
         height_ratios=[3.8, 2.6, 2.6, 2.6],
-        hspace=0.35,
+        hspace=0.28,
         figure=fig,
     )
 
@@ -273,15 +272,15 @@ def build_figure(rdir: Path, outdir: Path):
 
     # Row B: 3 bar charts
     gs_B = gridspec.GridSpecFromSubplotSpec(
-        1, 3, subplot_spec=outer[1], wspace=0.32)
+        1, 3, subplot_spec=outer[1], wspace=0.28)
 
     # Row C: 4 neighbourhood quality bars
     gs_C = gridspec.GridSpecFromSubplotSpec(
-        1, 4, subplot_spec=outer[2], wspace=0.32)
+        1, 4, subplot_spec=outer[2], wspace=0.28)
 
     # Row D: 4 latent structure bars
     gs_D = gridspec.GridSpecFromSubplotSpec(
-        1, 4, subplot_spec=outer[3], wspace=0.32)
+        1, 4, subplot_spec=outer[3], wspace=0.28)
 
     print("  Drawing Panel A (UMAP grid)...")
     ax_A = _draw_umap_grid(gs_A, fig, configs, latents, labels, cache_dir)
@@ -295,7 +294,7 @@ def build_figure(rdir: Path, outdir: Path):
     print("  Drawing Panel D (Latent structure)...")
     ax_D = _draw_latent_structure(gs_D, fig, configs, metrics)
 
-    fig.subplots_adjust(left=0.10, right=0.97, top=0.96, bottom=0.08)
+    fig.subplots_adjust(left=0.08, right=0.98, top=0.97, bottom=0.06)
 
     panel_label(fig, ax_A, "A", x_off=-0.026)
     panel_label(fig, ax_B, "B", x_off=-0.026)

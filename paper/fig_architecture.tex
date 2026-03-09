@@ -76,12 +76,12 @@
 % =====================================================================
 
 \node[iobox] (input) at (0,0) {
-  \textbf{Input}\\[-1pt]
+  Input\\[-1pt]
   {\scriptsize $X\!\in\!\mathbb{R}^{N\times G}$}
 };
 
 \node[vaebox] (enc) at (2.8,0) {
-  \textbf{Encoder}\\[-1pt]
+  Encoder\\[-1pt]
   {\scriptsize $q_\phi(z\!\mid\!x)$}
 };
 
@@ -95,12 +95,12 @@
       minimum size=4.5mm, font=\scriptsize\sffamily] (blend) at (7.2,0) {$+$};
 
 \node[vaebox] (dec) at (9.2,0) {
-  \textbf{Decoder}\\[-1pt]
+  Decoder\\[-1pt]
   {\scriptsize NB\,/\,ZINB}
 };
 
 \node[iobox] (output) at (11.6,0) {
-  \textbf{Output}\\[-1pt]
+  Output\\[-1pt]
   {\scriptsize $\hat{X}$, $\hat{r}$}
 };
 
@@ -119,7 +119,7 @@
 % =====================================================================
 
 \node[odebox, text width=22mm] (ode) at (6.2,1.8) {
-  \textbf{Neural ODE}\\[-1pt]
+  Neural ODE\\[-1pt]
   {\scriptsize $\frac{dz}{dt}\!=\!f_\psi(z,t)$}
 };
 
@@ -152,7 +152,7 @@
 % =====================================================================
 
 \node[ibbox, text width=26mm] (ib) at (7.5,-1.5) {
-  \textbf{Info.\ Bottleneck}\\[-1pt]
+  Info.\ Bottleneck\\[-1pt]
   {\scriptsize $z\!\to\! b\!\in\!\mathbb{R}^4\!\to\!\hat{z}$}
 };
 
@@ -194,29 +194,29 @@
 
 % Query encoder (shared weights with main encoder)
 \node[mocobox, text width=21mm] (encq) at (2.8,-3.3) {
-  \textbf{Query Enc.}\\[-1pt]
+  Query Enc.\\[-1pt]
   {\scriptsize shared with $\phi$}
 };
 
 % Key encoder (EMA-updated copy)
 \node[mocobox, text width=21mm] (enck) at (2.8,-4.6) {
-  \textbf{Key Enc.}\\[-1pt]
+  Key Enc.\\[-1pt]
   {\scriptsize momentum}
 };
 
 % Projection heads
 \node[mocobox, text width=16mm] (projq) at (5.3,-3.3) {
-  \textbf{Proj.\ $h_q$}\\[-1pt]
+  Proj.\ $h_q$\\[-1pt]
   {\scriptsize MLP+BN}
 };
 \node[mocobox, text width=16mm] (projk) at (5.3,-4.6) {
-  \textbf{Proj.\ $h_k$}\\[-1pt]
+  Proj.\ $h_k$\\[-1pt]
   {\scriptsize MLP+BN}
 };
 
 % InfoNCE
 \node[mocobox, text width=15mm, minimum height=9.5mm] (infonce) at (7.8,-3.3) {
-  \textbf{InfoNCE}\\[-1pt]
+  InfoNCE\\[-1pt]
   {\scriptsize $\tau\!=\!0.2$}
 };
 
@@ -227,7 +227,7 @@
 
 % Prototypes
 \node[mocobox, text width=18mm] (proto) at (10.0,-3.95) {
-  \textbf{Prototypes}\\[-1pt]
+  Prototypes\\[-1pt]
   {\scriptsize $P\!=\!12$ learnable}
 };
 
@@ -305,8 +305,7 @@
 %  LEGEND (right side, compact vertical strip — eliminates bottom space)
 % =====================================================================
 \begin{scope}[shift={(13.0,-1.0)}]
-  \node[font=\scriptsize\sffamily\bfseries, anchor=north west] at (0,0) {Legend};
-  \draw[black!25, line width=0.35pt] (-0.3mm,-1.5mm) -- (18mm,-1.5mm);
+  \node[font=\scriptsize\sffamily, anchor=north west] at (0,0) {Legend};
 
   % Colour patches
   \node[fill=cVAE!15, draw=cVAE!65, rounded corners=1pt,

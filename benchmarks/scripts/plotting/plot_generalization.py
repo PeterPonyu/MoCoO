@@ -98,8 +98,8 @@ def _draw_paired_bars(ax, data, metric_key, metric_label, configs):
             stagger = 0.02 * (i % 2)
             y_pos = base_y + stagger
             ax.text(x[i], y_pos, f"{sign}{gap:.3f}",
-                    ha="center", va="bottom", fontsize=FS_SMALL - 0.5,
-                    color="#666666", rotation=60)
+                    ha="center", va="bottom", fontsize=FS_SMALL - 1.0,
+                    color="#666666", rotation=45)
 
     # Zoom y-axis to data range for better readability
     all_vals = [v for v in val_vals + test_vals if np.isfinite(v)]
@@ -134,8 +134,8 @@ def build_figure(rdir: Path, outdir: Path):
     from matplotlib.gridspec import GridSpec
 
     fig = plt.figure(figsize=(FIG_WIDTH_IN, FIG_HEIGHT_IN * 0.55))
-    gs = GridSpec(2, 12, figure=fig, hspace=0.35, wspace=0.40,
-                  left=0.08, right=0.96, top=0.94, bottom=0.12)
+    gs = GridSpec(2, 12, figure=fig, hspace=0.28, wspace=0.32,
+                  left=0.07, right=0.97, top=0.95, bottom=0.10)
 
     # Row 1: 3 panels, each spanning 4 of 12 sub-columns (fills full width)
     ax_row1 = [fig.add_subplot(gs[0, 0:4]),

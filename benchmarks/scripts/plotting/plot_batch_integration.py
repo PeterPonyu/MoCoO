@@ -143,18 +143,7 @@ def _draw_batch_bars(ax, metrics):
             break
 
     if not has_any_data:
-        ax.text(0.5, 0.5,
-                "Batch integration metrics not computed.\n"
-                "Run: python benchmarks/scripts/evaluation/compute_batch_metrics.py",
-                transform=ax.transAxes, ha="center", va="center",
-                fontsize=FS_AXIS, color="#888888",
-                bbox=dict(boxstyle="round,pad=0.5", fc="#f8f8f8", ec="#cccccc", lw=0.8))
-        ax.set_title("Batch Integration Metrics (IRALL, 8 batches)",
-                     fontsize=FS_TITLE, pad=4)
-        ax.spines["top"].set_visible(False)
-        ax.spines["right"].set_visible(False)
-        ax.set_xticks(np.arange(n_metrics))
-        ax.set_xticklabels(batch_labels, fontsize=FS_TICK, rotation=0)
+        ax.set_visible(False)
         return
 
     x = np.arange(n_metrics)
@@ -217,9 +206,8 @@ def _draw_bio_batch_scatter(ax, metrics):
         plotted = True
 
     if not plotted:
-        ax.text(0.5, 0.5, "No batch integration\ndata available",
-                transform=ax.transAxes, ha="center", va="center",
-                fontsize=FS_AXIS, color="#888888")
+        ax.set_visible(False)
+        return
 
     # Reference diagonal
     ax.plot([0, 1], [0, 1], "--", color="#cccccc", linewidth=0.5, zorder=1)
@@ -248,6 +236,10 @@ def _draw_cross_dataset_heatmap(ax, cross_data):
     datasets = [d for d in _DATASETS if d in cross_data]
     configs_present = [c for c in _CONFIGS
                        if any(c in cross_data[d] for d in datasets)]
+
+    if not datasets or not configs_present:
+        ax.set_visible(False)
+        return
 
     n_ds = len(datasets)
     n_met = len(metric_keys)
@@ -361,7 +353,7 @@ def build_figure(results_base: Path, outdir: Path):
 
     # ── Create figure ──
     fig = plt.figure(figsize=(FIG_WIDTH_IN, FIG_HEIGHT_IN))
-    gs = gridspec.GridSpec(4, 2, figure=fig, hspace=0.42, wspace=0.30,
+    gs = gridspec.GridSpec(4, 2, figure=fig, hspace=0.34, wspace=0.24,
                            height_ratios=[1, 0.9, 1.1, 1.1])
 
     # Panel A: Batch integration bars (span full width)
@@ -376,20 +368,23 @@ def build_figure(results_base: Path, outdir: Path):
     ax_B2 = fig.add_subplot(gs[1, 1])
     configs_present = [c for c in _CONFIGS if c in batch_metrics]
     overall = [batch_metrics[c].get("overall_score", 0) for c in configs_present]
-    bars = ax_B2.barh(
-        [_SHORT[c] for c in configs_present], overall,
-        color=[_CONFIG_COLOR[c] for c in configs_present],
-        edgecolor="white", linewidth=0.3, height=0.6,
-    )
-    for bar_obj, val in zip(bars, overall):
-        ax_B2.text(bar_obj.get_width() + 0.005, bar_obj.get_y() + bar_obj.get_height() / 2,
-                   f"{val:.3f}", ha="left", va="center", fontsize=FS_SMALL)
-    ax_B2.set_xlabel("Overall Score (0.4·bio + 0.6·batch)", fontsize=FS_AXIS)
-    ax_B2.set_title("scIB Overall Score", fontsize=FS_TITLE, pad=4)
-    ax_B2.tick_params(axis="both", labelsize=FS_TICK)
-    ax_B2.set_xlim(0, 1.0)
-    ax_B2.spines["top"].set_visible(False)
-    ax_B2.spines["right"].set_visible(False)
+    if not configs_present or all(v == 0 for v in overall):
+        ax_B2.set_visible(False)
+    else:
+        bars = ax_B2.barh(
+            [_SHORT[c] for c in configs_present], overall,
+            color=[_CONFIG_COLOR[c] for c in configs_present],
+            edgecolor="white", linewidth=0.3, height=0.6,
+        )
+        for bar_obj, val in zip(bars, overall):
+            ax_B2.text(bar_obj.get_width() + 0.005, bar_obj.get_y() + bar_obj.get_height() / 2,
+                       f"{val:.3f}", ha="left", va="center", fontsize=FS_SMALL)
+        ax_B2.set_xlabel("Overall Score (0.4·bio + 0.6·batch)", fontsize=FS_AXIS)
+        ax_B2.set_title("scIB Overall Score", fontsize=FS_TITLE, pad=4)
+        ax_B2.tick_params(axis="both", labelsize=FS_TICK)
+        ax_B2.set_xlim(0, 1.0)
+        ax_B2.spines["top"].set_visible(False)
+        ax_B2.spines["right"].set_visible(False)
 
     # Panel C: Cross-dataset heatmap (span full width)
     ax_C = fig.add_subplot(gs[2, :])
@@ -399,7 +394,7 @@ def build_figure(results_base: Path, outdir: Path):
     ax_D = fig.add_subplot(gs[3, :], polar=True)
     _draw_cross_radar(ax_D, cross_data)
 
-    fig.subplots_adjust(left=0.12, right=0.95, top=0.96, bottom=0.06)
+    fig.subplots_adjust(left=0.10, right=0.96, top=0.97, bottom=0.05)
 
     panel_label(fig, ax_A, "A")
     panel_label(fig, ax_B, "B")

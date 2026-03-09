@@ -81,7 +81,7 @@ def build_figure(results_base: Path, outdir: Path):
     betas_present = sorted(all_data.keys())
 
     fig, axes = plt.subplots(3, 3, figsize=(FIG_WIDTH_IN, FIG_HEIGHT_IN * 0.75),
-                              gridspec_kw={"hspace": 0.28, "wspace": 0.32})
+                              gridspec_kw={"hspace": 0.22, "wspace": 0.26})
 
     for idx, (metric_key, metric_label, higher_better) in enumerate(_METRICS):
         row, col = divmod(idx, 3)
@@ -125,7 +125,7 @@ def build_figure(results_base: Path, outdir: Path):
                loc="lower center", bbox_to_anchor=(0.50, 0.01),
                frameon=False, handlelength=1.5, columnspacing=1.0)
 
-    fig.subplots_adjust(left=0.10, right=0.96, top=0.97, bottom=0.10)
+    fig.subplots_adjust(left=0.08, right=0.98, top=0.97, bottom=0.08)
 
     # Panel labels
     letters = "ABCDEFGHI"

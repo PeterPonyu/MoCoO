@@ -186,9 +186,17 @@ def _draw_efficiency(gs, fig, configs, metrics):
             elif "ODE" in cfg and "MoCo" not in cfg:
                 dx, dy = 6, 8
 
+        # Prevent labels from overlapping axes edges
+        ymin, ymax = ax.get_ylim() if ax.get_ylim()[0] != ax.get_ylim()[1] else (0, 1)
+        yrange = ymax - ymin
+        if a - ymin < 0.12 * yrange and dy < 0:
+            dy = 8  # push label above when near bottom axis
+        if ymax - a < 0.12 * yrange and dy > 0:
+            dy = -10  # push label below when near top axis
+
         ax.annotate(short, (t, a),
                     textcoords="offset points", xytext=(dx, dy),
-                    fontsize=FS_SMALL + 0.5, color=col, fontweight="bold",
+                    fontsize=FS_SMALL + 0.5, color=col,
                     arrowprops=dict(arrowstyle="-", color=col, lw=0.4, alpha=0.5)
                     if abs(dx) > 5 or abs(dy) > 10 else None)
         placed.append((t, a))
@@ -237,11 +245,11 @@ def build_figure(rdir: Path, outdir: Path):
         outer = gridspec.GridSpec(
             3, 1,
             height_ratios=[2.5, 2.5, 3.5],
-            hspace=0.30,
+            hspace=0.24,
             figure=fig,
         )
-        gs_A = gridspec.GridSpecFromSubplotSpec(1, 2, subplot_spec=outer[0], wspace=0.30)
-        gs_B = gridspec.GridSpecFromSubplotSpec(1, 3, subplot_spec=outer[1], wspace=0.30)
+        gs_A = gridspec.GridSpecFromSubplotSpec(1, 2, subplot_spec=outer[0], wspace=0.24)
+        gs_B = gridspec.GridSpecFromSubplotSpec(1, 3, subplot_spec=outer[1], wspace=0.24)
         gs_C = gridspec.GridSpecFromSubplotSpec(1, 1, subplot_spec=outer[2])
 
         print("  Drawing Panel A (Loss convergence)...")
@@ -251,7 +259,7 @@ def build_figure(rdir: Path, outdir: Path):
         print("  Drawing Panel C (Efficiency)...")
         ax_C = _draw_efficiency(gs_C, fig, configs, metrics)
 
-        fig.subplots_adjust(left=0.12, right=0.95, top=0.92, bottom=0.05)
+        fig.subplots_adjust(left=0.09, right=0.97, top=0.94, bottom=0.04)
 
         handles, labels = ax_A.get_legend_handles_labels()
         fig.legend(
@@ -277,11 +285,11 @@ def build_figure(rdir: Path, outdir: Path):
         outer = gridspec.GridSpec(
             2, 1,
             height_ratios=[1.0, 1.2],
-            hspace=0.15,
+            hspace=0.12,
             figure=fig,
         )
 
-        gs_A = gridspec.GridSpecFromSubplotSpec(1, 2, subplot_spec=outer[0], wspace=0.30)
+        gs_A = gridspec.GridSpecFromSubplotSpec(1, 2, subplot_spec=outer[0], wspace=0.24)
         gs_B = gridspec.GridSpecFromSubplotSpec(1, 1, subplot_spec=outer[1])
 
         print("  Drawing Panel A (Loss convergence)...")
@@ -290,7 +298,7 @@ def build_figure(rdir: Path, outdir: Path):
         print("  Drawing Panel B (Efficiency)...")
         ax_B = _draw_efficiency(gs_B, fig, configs, metrics)
 
-        fig.subplots_adjust(left=0.12, right=0.95, top=0.92, bottom=0.07)
+        fig.subplots_adjust(left=0.09, right=0.97, top=0.94, bottom=0.05)
 
         handles, labels = ax_A.get_legend_handles_labels()
         fig.legend(

@@ -465,24 +465,24 @@ def build_figure(data, adata, outpath: Path):
     outer = gridspec.GridSpec(
         4, 1,
         height_ratios=[2.5, 2.5, 2.5, 5.5],
-        hspace=0.35,
+        hspace=0.28,
         figure=fig,
     )
     # Row 0: Panel A (2 columns)
     gs_A = gridspec.GridSpecFromSubplotSpec(
-        1, 2, subplot_spec=outer[0], wspace=0.25)
+        1, 2, subplot_spec=outer[0], wspace=0.20)
 
     # Row 1: Panel B (full width)
     gs_B = gridspec.GridSpecFromSubplotSpec(
-        1, UMAP_COMPS + 1, subplot_spec=outer[1], wspace=0.15)
+        1, UMAP_COMPS + 1, subplot_spec=outer[1], wspace=0.12)
 
     # Row 2: Panel C (full width)
     gs_C = gridspec.GridSpecFromSubplotSpec(
-        1, UMAP_COMPS + 1, subplot_spec=outer[2], wspace=0.15)
+        1, UMAP_COMPS + 1, subplot_spec=outer[2], wspace=0.12)
 
     # Row 3: Panel D — 2 rows x 3 cols (all 6 configs)
     gs_D = gridspec.GridSpecFromSubplotSpec(
-        2, 3, subplot_spec=outer[3], wspace=0.65, hspace=0.35)
+        2, 3, subplot_spec=outer[3], wspace=0.52, hspace=0.28)
 
     # ── 7. Draw panels ────────────────────────────────────────────────────
     print("  Drawing Panel A ...")
@@ -498,7 +498,7 @@ def build_figure(data, adata, outpath: Path):
     ax_D = _draw_panel_D(gs_D, fig, configs, latents, X_raw, n_cells, gene_names)
 
     # ── 8. Global layout before placing panel letters ─────────────────────
-    fig.subplots_adjust(left=0.12, right=0.95, top=0.96, bottom=0.04)
+    fig.subplots_adjust(left=0.10, right=0.96, top=0.97, bottom=0.03)
 
     # ── 9. Panel letters — placed AFTER subplots_adjust fixes positions ───
     panel_label(fig, ax_A, "A", x_off=-0.018)
