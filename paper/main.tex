@@ -247,7 +247,7 @@ We evaluate six configurations to isolate the contribution of each component (Ta
     \end{tabular}
 \end{table}
 
-All models use: latent dimension $d = 32$, bottleneck dimension $d_{\mathrm{ib}} = 4$, hidden dimension $h = 128$, negative binomial likelihood, learning rate $10^{-4}$, batch size 128, and 50 training epochs (patience 15). MoCo configurations use queue size $K = 4096$, momentum $m = 0.999$, temperature $\tau = 0.2$, $\lambda_{\mathrm{moco}} = 0.6$, $P = 12$ prototypes with $\lambda_{\mathrm{proto}} = 0.1$. ODE configurations use $\alpha_{\mathrm{vae}} = 0.8$, $\alpha_{\mathrm{ode}} = 0.2$. Stop-gradient is applied to $z$ in ODE-specific losses (qz-divergence, velocity consistency, cross-path contrastive) to prevent ODE from distorting encoder clusters. The KL weight $\beta$ is swept across $\{1.0, 0.1, 0.01\}$ to investigate component sensitivity.
+All models use: latent dimension $d = 32$, bottleneck dimension $d_{\mathrm{ib}} = 4$, hidden dimension $h = 128$, negative binomial likelihood, learning rate $10^{-4}$, batch size 128, and 200 training epochs (patience 40). MoCo configurations use queue size $K = 4096$, momentum $m = 0.999$, temperature $\tau = 0.2$, $\lambda_{\mathrm{moco}} = 0.3$ (with ODE) or $0.5$ (without ODE), $P = 12$ prototypes with $\lambda_{\mathrm{proto}} = 0.1$. ODE configurations use $\alpha_{\mathrm{vae}} = 0.6$, $\alpha_{\mathrm{ode}} = 0.4$. Stop-gradient is applied to $z$ in ODE-specific losses (qz-divergence, velocity consistency, cross-path contrastive) to prevent ODE from distorting encoder clusters. The KL weight $\beta$ is swept across $\{1.0, 0.1, 0.01\}$ to investigate component sensitivity.
 
 \subsection{Evaluation Metrics}
 \label{sec:experiments:metrics}
@@ -269,81 +269,81 @@ All models use: latent dimension $d = 32$, bottleneck dimension $d_{\mathrm{ib}}
 \label{sec:results}
 %% ============================================================
 
-We evaluate all six configurations on the IRALL hematopoiesis dataset under two experimental protocols. \textbf{Beta sweep} (Tables~\ref{tab:beta1}--\ref{tab:beta001}): 1{,}000 cells, 50 epochs, $\beta \in \{1.0, 0.1, 0.01\}$, targeting component interaction analysis. \textbf{Full-scale evaluation} (Figs.~\ref{fig:quant_comparison},~\ref{fig:training_dynamics},~\ref{fig:composed_benchmark}): 3{,}000 cells, 200 epochs, $\beta = 0.1$, providing higher-resolution latent spaces for UMAP visualisation, training dynamics, and comprehensive metric comparison. All genes are filtered to 2{,}000 HVGs. Metrics are computed on \textbf{all cells} via KMeans re-clustering of the learned latent space.
+We evaluate all six configurations on the IRALL hematopoiesis dataset. \textbf{Beta sweep} (Tables~\ref{tab:beta1}--\ref{tab:beta001}): 3{,}000 cells, 200 epochs (patience 40), $\beta \in \{1.0, 0.1, 0.01\}$, targeting component interaction analysis. \textbf{Full-scale evaluation} (Figs.~\ref{fig:quant_comparison},~\ref{fig:training_dynamics},~\ref{fig:composed_benchmark}): same setting with $\beta = 0.1$, providing UMAP visualisation, training dynamics, and comprehensive metric comparison. All genes are filtered to 3{,}000 HVGs. Metrics are computed on \textbf{all cells} via KMeans re-clustering of the learned latent space.
 
 \subsection{Quantitative Comparison --- Beta Sweep}
 \label{sec:results:quant}
 
-Tables~\ref{tab:beta1}--\ref{tab:beta001} present the full quantitative comparison across all six configurations at each KL weight setting (1{,}000 cells). Fig.~\ref{fig:quant_comparison} provides a complementary visual comparison at the full-scale setting (3{,}000 cells, $\beta = 0.1$).
+Tables~\ref{tab:beta1}--\ref{tab:beta001} present the full quantitative comparison across all six configurations at each KL weight setting (3{,}000 cells, 200 epochs). Fig.~\ref{fig:quant_comparison} provides a complementary visual comparison at $\beta = 0.1$.
 
 %% TABLE I
 \begin{table*}[!t]
     \centering
-    \caption{IRALL, 1{,}000 cells, 50 epochs --- $\beta = 1.0$ (standard KL). Best values in \textbf{bold}. DB$\downarrow$ indicates lower is better.}
+    \caption{IRALL, 3{,}000 cells, 200 epochs --- $\beta = 1.0$ (standard KL). Best values in \textbf{bold}. DB$\downarrow$ indicates lower is better.}
     \label{tab:beta1}
     \resizebox{\textwidth}{!}{%
     \begin{tabular}{lccccccccc}
         \toprule
         Config & ARI & NMI & ASW & CH & DB$\downarrow$ & LSE & DRE & DREX & LSEX \\
         \midrule
-        \textbf{VAE}     & \textbf{0.280} & \textbf{0.331} & \textbf{0.043} & 48.9  & 3.281 & 0.388          & \textbf{0.418} & 0.566          & \textbf{0.655} \\
-        VAE+ODE          & 0.185          & 0.266          & 0.034          & 58.0  & 3.291 & 0.323          & 0.362          & 0.559          & 0.649          \\
-        VAE+MoCo         & 0.198          & 0.302          & 0.035          & 47.6  & 3.175 & \textbf{0.400} & 0.411          & \textbf{0.589} & 0.650          \\
-        VAE+MoCo+Proto   & 0.188          & 0.291          & 0.041          & 48.7  & 3.200 & 0.397          & 0.407          & 0.577          & 0.651          \\
-        VAE+ODE+MoCo     & 0.206          & 0.297          & 0.035          & \textbf{61.1} & 3.228 & 0.324   & 0.371          & 0.576          & 0.647          \\
-        Full (MoCoO)     & 0.199          & 0.295          & 0.032          & 50.7  & \textbf{3.116} & 0.357 & 0.360          & 0.568          & 0.649          \\
+        VAE              & 0.395          & 0.543          & 0.122          & 203.4          & 2.139          & \textbf{0.317} & 0.415          & 0.591          & 0.608          \\
+        \textbf{VAE+ODE} & \textbf{0.485} & 0.558          & \textbf{0.212} & \textbf{401.4} & \textbf{1.522} & 0.208          & \textbf{0.454} & \textbf{0.618} & \textbf{0.610} \\
+        VAE+MoCo         & 0.374          & 0.513          & 0.130          & 204.8          & 2.054          & 0.315          & 0.421          & 0.587          & 0.608          \\
+        VAE+MoCo+Proto   & 0.422          & 0.528          & 0.140          & 202.4          & 2.025          & 0.319          & 0.402          & 0.574          & 0.609          \\
+        VAE+ODE+MoCo     & 0.480          & \textbf{0.574} & 0.192          & 389.9          & 1.647          & 0.204          & 0.444          & 0.586          & 0.608          \\
+        Full (MoCoO)     & 0.396          & 0.537          & 0.173          & 379.4          & 1.714          & 0.204          & 0.452          & 0.610          & 0.609          \\
         \bottomrule
     \end{tabular}%
     }
 \end{table*}
 
-At strong KL ($\beta = 1.0$), the VAE dominates clustering metrics (ARI, NMI, ASW, DRE, LSEX) while more complex models struggle---the posterior is tightly constrained, limiting the capacity for additional components to improve structure. Full MoCoO achieves the best DB (cluster compactness: 3.116).
+At strong KL ($\beta = 1.0$), \textbf{ODE is the dominant component}: VAE+ODE achieves the best ARI (0.485), ASW (0.212), CH (401.4), DB (1.522), DRE (0.454), DREX (0.618), and LSEX (0.610)---winning 7 of 9 metrics. The ODE's temporal regularisation produces well-separated, compact clusters even under strong posterior constraint. VAE+ODE+MoCo achieves the best NMI (0.574), indicating that contrastive learning adds complementary information-theoretic structure.
 
 %% TABLE II
 \begin{table*}[!t]
     \centering
-    \caption{IRALL, 1{,}000 cells, 50 epochs --- $\beta = 0.1$ (moderate KL). Best values in \textbf{bold}. DB$\downarrow$ indicates lower is better.}
+    \caption{IRALL, 3{,}000 cells, 200 epochs --- $\beta = 0.1$ (moderate KL). Best values in \textbf{bold}. DB$\downarrow$ indicates lower is better.}
     \label{tab:beta01}
     \resizebox{\textwidth}{!}{%
     \begin{tabular}{lccccccccc}
         \toprule
         Config & ARI & NMI & ASW & CH & DB$\downarrow$ & LSE & DRE & DREX & LSEX \\
         \midrule
-        VAE              & 0.299          & 0.429          & 0.063          & \textbf{159.5} & 2.830 & 0.179          & \textbf{0.472} & \textbf{0.643} & 0.628          \\
-        VAE+ODE          & 0.218          & 0.375          & 0.049          & 137.9          & 2.845 & 0.192          & 0.439          & 0.625          & \textbf{0.635} \\
-        \textbf{VAE+MoCo}& \textbf{0.352} & \textbf{0.438} & \textbf{0.081} & 156.9          & 2.843 & 0.182          & 0.441          & 0.623          & 0.626          \\
-        VAE+MoCo+Proto   & 0.296          & 0.431          & 0.071          & 147.5          & 2.723 & 0.187          & 0.449          & 0.630          & 0.626          \\
-        VAE+ODE+MoCo     & 0.283          & 0.371          & 0.050          & 146.2          & \textbf{2.601} & 0.177 & 0.438          & 0.629          & 0.633          \\
-        Full (MoCoO)     & 0.280          & 0.372          & 0.045          & 131.8          & 2.807 & \textbf{0.193} & 0.449          & 0.629          & 0.632          \\
+        VAE              & \textbf{0.489} & 0.561          & 0.189          & 371.0          & 1.675          & 0.228          & 0.494          & 0.650          & 0.593          \\
+        \textbf{VAE+ODE} & 0.475          & \textbf{0.573} & 0.292          & \textbf{959.4} & \textbf{1.168} & 0.138          & \textbf{0.547} & \textbf{0.689} & 0.588          \\
+        VAE+MoCo         & 0.470          & 0.554          & 0.188          & 360.2          & 1.700          & 0.232          & 0.500          & 0.656          & 0.593          \\
+        VAE+MoCo+Proto   & 0.431          & 0.563          & 0.157          & 355.6          & 1.813          & \textbf{0.239} & 0.515          & 0.664          & \textbf{0.594} \\
+        VAE+ODE+MoCo     & 0.473          & 0.561          & \textbf{0.307} & 680.6          & 1.190          & 0.174          & 0.529          & 0.666          & 0.591          \\
+        Full (MoCoO)     & 0.446          & 0.559          & 0.272          & 697.3          & 1.185          & 0.152          & 0.518          & 0.678          & 0.589          \\
         \bottomrule
     \end{tabular}%
     }
 \end{table*}
 
-At moderate KL ($\beta = 0.1$), \textbf{MoCo's standalone power emerges}: VAE+MoCo achieves the best ARI (0.352, $+0.054$ over VAE), NMI (0.438), and ASW (0.081). ODE+MoCo achieves the best DB (2.601). The Full model achieves the best LSE (0.193).
+At moderate KL ($\beta = 0.1$), \textbf{ODE remains the strongest single component}: VAE+ODE wins NMI (0.573), CH (959.4), DB (1.168), DRE (0.547), and DREX (0.689). The VAE leads ARI (0.489), and VAE+ODE+MoCo achieves the best ASW (0.307). VAE+MoCo+Proto wins LSE (0.239) and LSEX (0.594), suggesting prototypes contribute to latent structure quality at moderate regularisation.
 
 %% TABLE III
 \begin{table*}[!t]
     \centering
-    \caption{IRALL, 1{,}000 cells, 50 epochs --- $\beta = 0.01$ (weak KL). Best values in \textbf{bold}. DB$\downarrow$ indicates lower is better.}
+    \caption{IRALL, 3{,}000 cells, 200 epochs --- $\beta = 0.01$ (weak KL). Best values in \textbf{bold}. DB$\downarrow$ indicates lower is better.}
     \label{tab:beta001}
     \resizebox{\textwidth}{!}{%
     \begin{tabular}{lccccccccc}
         \toprule
         Config & ARI & NMI & ASW & CH & DB$\downarrow$ & LSE & DRE & DREX & LSEX \\
         \midrule
-        \textbf{VAE}     & \textbf{0.428} & \textbf{0.457} & \textbf{0.089} & 201.9          & \textbf{2.494} & 0.150          & 0.424          & 0.623          & 0.624          \\
-        VAE+ODE          & 0.335          & 0.389          & 0.056          & 141.4          & 2.676          & \textbf{0.177} & 0.418          & 0.616          & 0.633          \\
-        VAE+MoCo         & 0.294          & 0.433          & 0.080          & \textbf{205.0} & 2.750          & 0.140          & 0.321          & 0.570          & 0.623          \\
-        VAE+MoCo+Proto   & 0.296          & 0.433          & 0.080          & 192.0          & 2.528          & 0.153          & 0.459          & \textbf{0.635} & 0.625          \\
-        VAE+ODE+MoCo     & 0.332          & 0.374          & 0.055          & 158.9          & 2.534          & 0.163          & 0.448          & 0.635          & \textbf{0.634} \\
-        Full (MoCoO)     & 0.295          & 0.362          & 0.056          & 163.5          & 2.664          & 0.158          & \textbf{0.468} & 0.631          & 0.632          \\
+        VAE              & 0.441          & 0.570          & 0.199          & 485.4          & 1.557          & 0.188          & 0.526          & 0.680          & 0.595          \\
+        VAE+ODE          & 0.465          & 0.573          & \textbf{0.285} & 621.8          & 1.278          & 0.173          & 0.488          & 0.643          & 0.588          \\
+        \textbf{VAE+MoCo}& \textbf{0.480} & 0.579          & 0.188          & 431.8          & 1.630          & 0.203          & 0.535          & \textbf{0.686} & \textbf{0.596} \\
+        VAE+MoCo+Proto   & 0.420          & 0.566          & 0.162          & 437.6          & 1.748          & \textbf{0.205} & \textbf{0.541} & 0.685          & 0.596          \\
+        VAE+ODE+MoCo     & 0.477          & 0.570          & 0.259          & \textbf{719.0} & \textbf{1.222} & 0.163          & 0.528          & 0.679          & 0.590          \\
+        Full (MoCoO)     & 0.474          & \textbf{0.581} & 0.269          & 629.3          & 1.240          & 0.171          & 0.518          & 0.669          & 0.589          \\
         \bottomrule
     \end{tabular}%
     }
 \end{table*}
 
-At weak KL ($\beta = 0.01$), the VAE again leads ARI (0.428). However, the Full model achieves the \textbf{best DRE} (0.468)---the highest embedding fidelity of any configuration at any beta---and competitive DREX/LSEX.
+At weak KL ($\beta = 0.01$), the competition broadens: VAE+MoCo leads ARI (0.480), DREX (0.686), and LSEX (0.596); VAE+ODE+MoCo wins CH (719.0) and DB (1.222); Full achieves the best NMI (0.581). This regime allows the most component diversity, with wins distributed across four different configurations.
 
 \begin{figure*}[!t]
     \centering
@@ -367,23 +367,23 @@ We isolate each component's marginal effect by computing deltas between adjacent
         \toprule
         Component & Metric & $\beta{=}1.0$ & $\beta{=}0.1$ & $\beta{=}0.01$ & Interpretation \\
         \midrule
-        \textbf{ODE} (VAE$\to$VAE+ODE)     & $\Delta$ARI  & $-0.095$ & $-0.081$ & $-0.093$ & Consistently reduces ARI \\
-                                             & $\Delta$DB   & $+0.010$ & $+0.015$ & $+0.182$ & Increases DB (worse) \\
-                                             & $\Delta$LSEX & $-0.006$ & $+0.007$ & $+0.009$ & Marginal LSEX improvement \\
+        \textbf{ODE} (VAE$\to$VAE+ODE)     & $\Delta$ARI  & $\mathbf{+0.090}$ & $-0.014$ & $+0.024$ & Strong ARI boost at $\beta{=}1.0$ \\
+                                             & $\Delta$DB   & $\mathbf{-0.617}$ & $\mathbf{-0.507}$ & $-0.279$ & Consistently improves DB (better) \\
+                                             & $\Delta$LSEX & $+0.002$ & $-0.005$ & $-0.007$ & Marginal LSEX effect \\
         \midrule
-        \textbf{MoCo} (VAE$\to$VAE+MoCo)    & $\Delta$ARI  & $-0.083$ & $\mathbf{+0.054}$ & $-0.134$ & \textbf{Beta-dependent}: effective only at $\beta{=}0.1$ \\
-                                             & $\Delta$ASW  & $-0.008$ & $\mathbf{+0.018}$ & $-0.009$ & Same pattern \\
-                                             & $\Delta$DREX & $+0.023$ & $-0.021$ & $-0.053$ & Mixed \\
+        \textbf{MoCo} (VAE$\to$VAE+MoCo)    & $\Delta$ARI  & $-0.021$ & $-0.019$ & $\mathbf{+0.039}$ & \textbf{Beta-dependent}: effective at $\beta{=}0.01$ \\
+                                             & $\Delta$ASW  & $+0.008$ & $-0.001$ & $-0.011$ & Mixed \\
+                                             & $\Delta$DREX & $-0.004$ & $+0.006$ & $+0.006$ & Small positive DREX at low $\beta$ \\
         \midrule
-        \textbf{Proto} (MoCo$\to$MoCo+P)    & $\Delta$ARI  & $-0.010$ & $-0.057$ & $+0.002$ & Negligible ARI effect \\
-                                             & $\Delta$DB   & $+0.025$ & $\mathbf{-0.120}$ & $\mathbf{-0.223}$ & \textbf{Strong DB improvement at low $\beta$} \\
-                                             & $\Delta$DRE  & $-0.004$ & $+0.008$ & $\mathbf{+0.138}$ & Large DRE boost at $\beta{=}0.01$ \\
+        \textbf{Proto} (MoCo$\to$MoCo+P)    & $\Delta$ARI  & $\mathbf{+0.048}$ & $-0.039$ & $-0.060$ & Helps ARI at $\beta{=}1.0$ only \\
+                                             & $\Delta$DB   & $-0.029$ & $+0.113$ & $+0.118$ & Worsens DB at low $\beta$ \\
+                                             & $\Delta$DRE  & $-0.019$ & $+0.015$ & $+0.006$ & Small DRE boost at $\beta{\le}0.1$ \\
         \bottomrule
     \end{tabular}%
     }
 \end{table*}
 
-\textbf{Key observation:} MoCo has \textbf{beta-dependent standalone power}. At $\beta=0.1$, contrastive learning actively improves clustering ($\Delta$ARI$=+0.054$, $\Delta$ASW$=+0.018$), but at $\beta=1.0$ or $\beta=0.01$, MoCo's effect is masked by strong/weak KL constraints respectively.
+\textbf{Key observation:} ODE is the \textbf{dominant component} at full training scale, consistently improving DB (cluster compactness) by $0.28$--$0.62$ across all beta values. Its ARI boost is strongest at $\beta=1.0$ ($+0.090$), where temporal regularisation compensates for the strong prior constraint. MoCo's ARI contribution is \textbf{beta-dependent}: effective at $\beta=0.01$ ($\Delta$ARI$=+0.039$) but marginal otherwise. Prototypes boost ARI only at $\beta=1.0$ ($+0.048$).
 
 \begin{figure*}[!t]
     \centering
@@ -413,19 +413,19 @@ A positive $\Delta_{\mathrm{synergy}}$ on higher-is-better metrics (or negative 
         \toprule
         Metric & $\beta{=}1.0$ & $\beta{=}0.1$ & $\beta{=}0.01$ & Synergistic? \\
         \midrule
-        ARI         & $\mathbf{+0.103}$ & $+0.012$          & $\mathbf{+0.131}$ & \textbf{Yes}---strong at $\beta{=}1.0$ and $\beta{=}0.01$ \\
-        ASW         & $+0.010$          & $-0.017$          & $+0.009$          & Weak \\
-        DB$\downarrow$ & $+0.043$       & $\mathbf{-0.257}$ & $\mathbf{-0.398}$ & \textbf{Yes}---strong DB improvement at low $\beta$ \\
-        DRE         & $+0.016$          & $+0.031$          & $\mathbf{+0.133}$ & \textbf{Yes}---strong at $\beta{=}0.01$ \\
-        DREX        & $-0.007$          & $+0.025$          & $\mathbf{+0.072}$ & \textbf{Yes}---at low $\beta$ \\
+        ARI         & $+0.016$          & $+0.017$          & $-0.027$          & Weak positive at $\beta{\ge}0.1$ \\
+        ASW         & $-0.028$          & $\mathbf{+0.016}$ & $-0.015$          & Positive at $\beta{=}0.1$ only \\
+        DB$\downarrow$ & $+0.210$       & $-0.003$          & $\mathbf{-0.129}$ & \textbf{Yes}---strong DB improvement at $\beta{=}0.01$ \\
+        DRE         & $-0.016$          & $-0.024$          & $\mathbf{+0.031}$ & \textbf{Yes}---at $\beta{=}0.01$ \\
+        DREX        & $-0.028$          & $-0.029$          & $\mathbf{+0.030}$ & \textbf{Yes}---at $\beta{=}0.01$ \\
         \bottomrule
     \end{tabular}%
     }
 \end{table}
 
-\textbf{Finding:} ODE and MoCo exhibit genuine super-additive synergy. The interaction term is consistently positive for ARI across all three beta values ($+0.103$, $+0.012$, $+0.131$), meaning that the combination recovers more cluster structure than either component alone. The synergy is strongest at extreme beta values ($\beta=1.0$ and $\beta=0.01$), where individual components underperform but their combination partially compensates.
+\textbf{Finding:} ODE and MoCo exhibit \textbf{regime-dependent} synergy. At $\beta=0.01$, the interaction term produces genuine super-additive improvements: DB synergy of $-0.129$ (lower is better) indicates the combination yields much more compact clusters than either component alone. DRE ($+0.031$) and DREX ($+0.030$) synergies at $\beta=0.01$ show improved embedding fidelity. At $\beta=0.1$, ASW synergy ($+0.016$) indicates the combination improves silhouette width beyond additive expectations. ARI synergy is weakly positive ($+0.016$--$0.017$) at $\beta\ge0.1$ but turns negative at $\beta=0.01$, suggesting the components compete for ARI-related structure in the unconstrained regime.
 
-The DB synergy is particularly striking: at $\beta=0.01$, the interaction term is $-0.398$ (lower is better), indicating that ODE and MoCo jointly produce much more compact clusters than either alone. The DRE synergy ($+0.133$ at $\beta=0.01$) shows the same pattern for embedding fidelity.
+The DB synergy pattern is notable: strongly negative (harmful) at $\beta=1.0$ ($+0.210$), neutral at $\beta=0.1$, and strongly positive at $\beta=0.01$ ($-0.129$). This indicates the ODE$\times$MoCo interaction for cluster compactness requires sufficient latent freedom ($\beta\le0.01$) to manifest.
 
 \subsection{Beta Sensitivity --- Full Model}
 \label{sec:results:beta}
@@ -442,21 +442,21 @@ Table~\ref{tab:beta_full} presents the Full model's performance across all three
         \toprule
         Metric & $\beta{=}1.0$ & $\beta{=}0.1$ & $\beta{=}0.01$ & Best $\beta$ & Trend \\
         \midrule
-        ARI         & 0.199          & 0.280          & \textbf{0.295} & 0.01 & $\uparrow$ with lower $\beta$ \\
-        NMI         & 0.295          & \textbf{0.372} & 0.362          & 0.1  & Peak at $\beta{=}0.1$ \\
-        ASW         & 0.032          & 0.045          & \textbf{0.056} & 0.01 & $\uparrow$ with lower $\beta$ \\
-        CH          & 50.7           & 131.8          & \textbf{163.5} & 0.01 & $\uparrow$ with lower $\beta$ \\
-        DB$\downarrow$ & 3.116       & 2.807          & \textbf{2.664} & 0.01 & $\downarrow$ with lower $\beta$ (better) \\
-        LSE         & \textbf{0.357} & 0.193          & 0.158          & 1.0  & $\downarrow$ with lower $\beta$ \\
-        DRE         & 0.360          & 0.449          & \textbf{0.468} & 0.01 & $\uparrow$ with lower $\beta$ \\
-        DREX        & 0.568          & 0.629          & \textbf{0.631} & 0.01 & $\uparrow$ with lower $\beta$ \\
-        LSEX        & \textbf{0.649} & 0.632          & 0.632          & 1.0  & $\downarrow$ with lower $\beta$ \\
+        ARI         & 0.396          & 0.446          & \textbf{0.474} & 0.01 & $\uparrow$ with lower $\beta$ \\
+        NMI         & 0.537          & 0.559          & \textbf{0.581} & 0.01 & $\uparrow$ with lower $\beta$ \\
+        ASW         & 0.173          & \textbf{0.272} & 0.269          & 0.1  & Peak at $\beta{=}0.1$ \\
+        CH          & 379.4          & \textbf{697.3} & 629.3          & 0.1  & Peak at $\beta{=}0.1$ \\
+        DB$\downarrow$ & 1.714       & \textbf{1.185} & 1.240          & 0.1  & Best at $\beta{=}0.1$ \\
+        LSE         & \textbf{0.204} & 0.152          & 0.171          & 1.0  & $\uparrow$ with higher $\beta$ \\
+        DRE         & 0.452          & \textbf{0.518} & 0.518          & 0.1  & Plateau at $\beta{\le}0.1$ \\
+        DREX        & 0.610          & \textbf{0.678} & 0.669          & 0.1  & Peak at $\beta{=}0.1$ \\
+        LSEX        & \textbf{0.609} & 0.589          & 0.590          & 1.0  & $\uparrow$ with higher $\beta$ \\
         \bottomrule
     \end{tabular}%
     }
 \end{table}
 
-Reducing $\beta$ improves nearly all geometric/embedding metrics (ARI, ASW, CH, DB, DRE, DREX) for the Full model, while only spectral metrics (LSE, LSEX) favor strong KL. This suggests that the standard $\beta = 1.0$ over-regularises the latent space, collapsing structure that additional components need to function.
+The Full model shows a clear \textbf{sweet spot at $\beta = 0.1$}, which wins 5 of 9 metrics (ASW, CH, DB, DRE, DREX). Clustering identity metrics (ARI, NMI) continue to improve at $\beta=0.01$, while spectral metrics (LSE, LSEX) favor $\beta=1.0$. This suggests $\beta=0.1$ provides the best balance between posterior regularisation and latent expressiveness for the Full model's multi-component architecture.
 
 \subsection{Metric Win Counts}
 \label{sec:results:wins}
@@ -472,17 +472,17 @@ Table~\ref{tab:wins} summarises which configurations win the most metrics across
         \toprule
         Config & $\beta{=}1.0$ & $\beta{=}0.1$ & $\beta{=}0.01$ & Total (27) \\
         \midrule
-        VAE            & \textbf{5} & 3          & \textbf{4} & \textbf{12} \\
-        VAE+MoCo       & 2          & \textbf{3} & 1          & 6           \\
-        Full (MoCoO)   & 1          & 1          & 1          & 3           \\
-        VAE+ODE+MoCo   & 1          & 1          & 1          & 3           \\
-        VAE+ODE        & 0          & 1          & 1          & 2           \\
-        VAE+MoCo+Proto & 0          & 0          & 1          & 1           \\
+        \textbf{VAE+ODE}   & \textbf{7} & \textbf{5} & 1          & \textbf{13} \\
+        VAE+MoCo+Proto     & 1          & 2          & 2          & 5           \\
+        VAE+ODE+MoCo       & 1          & 1          & 2          & 4           \\
+        VAE+MoCo           & 0          & 0          & \textbf{3} & 3           \\
+        VAE                & 0          & 1          & 0          & 1           \\
+        Full (MoCoO)       & 0          & 0          & 1          & 1           \\
         \bottomrule
     \end{tabular}
 \end{table}
 
-At 1{,}000 cells / 50 epochs, the VAE wins the most metrics overall (12/27), reflecting its efficiency at low data/epoch regimes. VAE+MoCo is the strongest augmented configuration (6/27), driven by its $\beta=0.1$ performance. The Full model and VAE+ODE+MoCo each win 3, primarily on geometric metrics (DB, DRE, LSE). This pattern is expected: more complex models require more data and training to converge, and the advantage of multi-component architectures increases with dataset size and epochs.
+At full training scale (3{,}000 cells, 200 epochs), \textbf{VAE+ODE is the dominant configuration}, winning 13 of 27 total metric-beta combinations. Its dominance is strongest at $\beta=1.0$ (7/9 wins) and $\beta=0.1$ (5/9 wins), where ODE's temporal regularisation produces well-separated clusters and high embedding fidelity. At $\beta=0.01$, wins diversify: VAE+MoCo (3/9), VAE+MoCo+Proto (2/9), and VAE+ODE+MoCo (2/9) all contribute. Notably, the Full model only wins 1 metric (NMI at $\beta=0.01$), indicating that at full training scale, the ODE component provides most of the benefit and additional components do not consistently improve over VAE+ODE alone.
 
 \subsection{Biological Validation --- Pseudotime--Marker Correlations}
 \label{sec:results:bio}
