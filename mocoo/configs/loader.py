@@ -196,31 +196,6 @@ def _builtin_default() -> dict:
     }
 
 
-def _builtin_beta_sweep() -> dict:
-    """Return the built-in beta sweep config as a plain dict.
-
-    .. deprecated::
-        Use ``load_config("beta_ablation")`` instead for proper training
-        settings (200 epochs, patience 40) and all 6 model configurations.
-    """
-    return {
-        "shared": {k: v for k, v in _BUILTIN_SHARED.items() if k != "beta"},
-        "training": dict(epochs=50, patience=15, val_every=5),
-        "sweep": dict(parameter="beta", values=[0.01, 0.1, 1.0]),
-        "configs": {
-            "VAE": dict(
-                use_ode=False, use_moco=False, use_prototype=False,
-            ),
-            "Full": dict(
-                use_ode=True, use_moco=True, use_prototype=True,
-                vae_reg=0.6, ode_reg=0.4,
-                moco_weight=0.3, moco_T=0.2, moco_K=4096,
-                n_prototypes=12, proto_weight=0.1,
-            ),
-        },
-    }
-
-
 def _builtin_beta_ablation() -> dict:
     """Return the built-in beta ablation config as a plain dict.
 
@@ -240,7 +215,6 @@ def _builtin_beta_ablation() -> dict:
 
 _BUILTIN_REGISTRY: Dict[str, Any] = {
     "default": _builtin_default,
-    "beta_sweep": _builtin_beta_sweep,
     "beta_ablation": _builtin_beta_ablation,
 }
 
@@ -256,7 +230,7 @@ def load_config(name: str = "default", path: Optional[str] = None) -> dict:
     ----------
     name : str
         Config name.  Looks for ``<name>.yaml`` in the package configs
-        directory.  Built-in names: ``"default"``, ``"beta_sweep"``.
+        directory.  Built-in names: ``"default"``, ``"beta_ablation"``.
     path : str, optional
         Explicit path to a YAML file.  Overrides *name* when provided.
 
@@ -453,7 +427,7 @@ def get_dataset_paths(
 
 
 def get_sweep_params(config: dict) -> Optional[dict]:
-    """Extract sweep parameters if present (e.g. for beta_sweep.yaml).
+    """Extract sweep parameters if present (e.g. for beta_ablation.yaml).
 
     Parameters
     ----------

@@ -97,34 +97,20 @@ transition = model.get_transition()  # transition matrix (ODE)
 ```
 MoCoO/
 ├── mocoo/                      # Core Python package
-│   ├── __init__.py             # Package entry point (MoCoO class)
-│   ├── agent.py                # MoCoO model API
+│   ├── agent.py                # MoCoO model API (training, inference)
 │   ├── model.py                # VAE + ODE + MoCo architecture
-│   ├── module.py               # Encoder, decoder, ODE-func modules
-│   ├── mixin.py                # Training and inference mixins
+│   ├── module.py               # Encoder, decoder, ODE, MoCo modules
+│   ├── mixin.py                # ODE trajectory analysis mixins
 │   ├── environment.py          # Data loading and preprocessing
-│   ├── utils.py                # Shared utilities
-│   ├── configs/                # Experiment configuration
-│   │   ├── loader.py           # YAML config loader
-│   │   ├── default.yaml        # Default ablation hyperparameters
-│   │   └── beta_sweep.yaml     # Beta sensitivity sweep config
-│   ├── evaluation/             # Latent-space evaluation metrics
-│   │   ├── dre.py              # Dimensionality Reduction Evaluator
-│   │   └── lse.py              # Latent Structure Evaluator
+│   ├── configs/                # YAML experiment configurations
+│   ├── evaluation/             # Latent-space evaluation metrics (DRE, LSE, ...)
 │   └── visualization/          # Publication-quality figure generation
-│       ├── style.py            # Centralized rcParams and palette
-│       ├── plots.py            # Core plotting functions
-│       └── pipeline.py         # FigurePipeline batch generator
-├── benchmarks/                 # Benchmark scripts and results
+├── benchmarks/                 # Benchmark scripts, results, and figures
 │   └── scripts/                # Pipeline, evaluation, and plotting scripts
 ├── tests/                      # Test suite
 ├── paper/                      # LaTeX manuscript source
-│   ├── main.tex                # Paper source
-│   ├── references.bib          # Bibliography
-│   └── Makefile                # Paper build rules
 ├── Makefile                    # Top-level pipeline orchestration
-├── pyproject.toml              # Build and dependency configuration
-└── CONTRIBUTING.md             # Contributor guidelines
+└── pyproject.toml              # Build and dependency configuration
 ```
 
 ---
@@ -136,7 +122,7 @@ The `mocoo.configs` module provides centralized, version-controlled experiment c
 ```python
 from mocoo.configs import load_config, get_shared_params, get_model_configs
 
-cfg = load_config("default")            # or "beta_sweep"
+cfg = load_config("default")            # or "beta_ablation"
 shared = get_shared_params(cfg)          # epochs, patience, lr, etc.
 models = get_model_configs(cfg)          # per-config overrides (VAE, VAE+ODE, Full, ...)
 full_params = {**shared, **models["Full"]}
@@ -200,22 +186,16 @@ pipe.generate_figure("ablation")  # single figure by name
 
 ## Benchmarking Pipeline
 
-The top-level `Makefile` orchestrates the full reproducibility pipeline. Key targets:
+The top-level `Makefile` orchestrates the full reproducibility pipeline from data to paper. Run `make help` for the complete target listing. Key targets:
 
 ```bash
-make install          # Install MoCoO in editable mode
+make all              # Full pipeline: test -> benchmark -> figures -> paper
 make test             # Run pytest suite
-make benchmark        # Single-dataset ablation (IRALL)
-make cross-dataset    # 5-dataset cross-dataset benchmark
-make beta-sweep       # Beta sensitivity sweep
-make multiseed        # Multi-seed evaluation (5 seeds)
-make metrics          # Recompute expanded metrics from saved latents
 make figures          # Generate all paper figures
 make paper            # Build the LaTeX paper
-make all              # Full pipeline: test -> benchmark -> figures -> paper
 ```
 
-All variables are overridable: `make benchmark EPOCHS=300 PATIENCE=50 MAX_CELLS=5000`. Run `make help` for the complete target listing.
+All variables are overridable: `make benchmark EPOCHS=300 PATIENCE=50 MAX_CELLS=5000`.
 
 ---
 

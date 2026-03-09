@@ -40,19 +40,12 @@ import sys
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent.parent.parent))
 
 from benchmarks.scripts.pipeline.visual_conflict_detector import detect_all_conflicts
+from benchmarks.scripts.plotting.shared import setup_fonts, load_benchmark_npz, export_subpanels, panel_label
 
 warnings.filterwarnings("ignore", category=FutureWarning)
 warnings.filterwarnings("ignore", category=UserWarning, module="matplotlib")
 
-# ── Arial font (match benchmark figure) ──────────────────────────────────────
-_FONT_DIR = Path(__file__).resolve().parent.parent.parent / "fonts"
-for _fp in (_FONT_DIR / "Arial.ttf", _FONT_DIR / "Arial Bold.ttf"):
-    if _fp.exists():
-        fm.fontManager.addfont(str(_fp))
-if (_FONT_DIR / "Arial.ttf").exists():
-    matplotlib.rcParams["font.family"] = "sans-serif"
-    matplotlib.rcParams["font.sans-serif"] = ["Arial"] + list(
-        matplotlib.rcParams.get("font.sans-serif", []))
+setup_fonts()
 
 # ── Style constants (17 cm x 21 cm figure; max text) ─────────────────────────
 FIG_W = 17 / 2.54   # inches (~ 6.693)
@@ -82,12 +75,7 @@ _SCATTER_KW    = dict(s=0.8, alpha=0.45, linewidths=0, rasterized=True)
 # ══════════════════════════════════════════════════════════════════════════════
 
 def _load_benchmark(rdir: Path):
-    npz = np.load(rdir / "benchmark_data.npz", allow_pickle=True)
-    return {
-        "configs": [str(c) for c in npz["configs"]],
-        "latents": [np.asarray(z, dtype=np.float32) for z in npz["latents"]],
-        "labels":  [np.asarray(lb) for lb in npz["labels"]],
-    }
+    return load_benchmark_npz(rdir)
 
 
 def _load_expression(path: str, max_cells: int = 3000, hvg: int = 3000):
@@ -282,30 +270,6 @@ def _umap_scalar(ax, emb, values, title, cmap_name, cbar_label, fig, show_ylabel
         ax.set_ylabel("UMAP 2", fontsize=FS_AXIS)
     _inset_cbar(fig, ax, sc, label=cbar_label)
 
-
-def _export_subpanels(fig, sub_dir: Path, panels: list) -> None:
-    """Save each panel (axes) as a standalone PNG cropped tightly."""
-    renderer = fig.canvas.get_renderer()
-    for ax, name in panels:
-        if ax is None:
-            continue
-        try:
-            bbox = ax.get_tightbbox(renderer)
-            if bbox is None:
-                continue
-            extent = bbox.transformed(fig.dpi_scale_trans.inverted())
-            sp = sub_dir / f"{name}.png"
-            fig.savefig(sp, dpi=DPI, bbox_inches=extent)
-        except Exception as exc:
-            print(f"  sub-panel {name}: skipped ({exc})")
-
-
-def _panel_label(fig, ax, letter: str):
-    """Place bold panel letter at top-left corner, matching benchmark style."""
-    pos = ax.get_position()
-    fig.text(pos.x0 - 0.018, pos.y1 + 0.006,
-             f"({letter})", fontsize=FS_LABEL, fontweight="bold",
-             va="bottom", ha="right", clip_on=False)
 
 
 # ══════════════════════════════════════════════════════════════════════════════
@@ -539,10 +503,10 @@ def build_figure(data, adata, outpath: Path):
     fig.subplots_adjust(left=0.12, right=0.95, top=0.96, bottom=0.04)
 
     # ── 9. Panel letters — placed AFTER subplots_adjust fixes positions ───
-    _panel_label(fig, ax_A, "A")
-    _panel_label(fig, ax_B, "B")
-    _panel_label(fig, ax_C, "C")
-    _panel_label(fig, ax_D, "D")
+    panel_label(fig, ax_A, "A", x_off=-0.018)
+    panel_label(fig, ax_B, "B", x_off=-0.018)
+    panel_label(fig, ax_C, "C", x_off=-0.018)
+    panel_label(fig, ax_D, "D", x_off=-0.018)
 
     # ── 10. Conflict detection (all 13 passes) ────────────────────────────
     print("\n── Conflict Detection ──")
@@ -553,7 +517,7 @@ def build_figure(data, adata, outpath: Path):
     # Export individual panel sub-figures
     sub_dir = outpath.parent / "fig3_biological_validation"
     sub_dir.mkdir(parents=True, exist_ok=True)
-    _export_subpanels(fig, sub_dir, [(ax_A, "panelA_permutation_importance"),
+    export_subpanels(fig, sub_dir, [(ax_A, "panelA_permutation_importance"),
                                      (ax_B, "panelB_umap_components"),
                                      (ax_C, "panelC_gene_importance"),
                                      (ax_D, "panelD_all_configs_umap")])

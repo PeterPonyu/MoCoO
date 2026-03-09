@@ -2,7 +2,7 @@
 
 Provides centralized, version-controlled experiment configurations for
 the MoCoO ablation study.  All hyperparameters are defined once in YAML
-files (``mocoo/configs/default.yaml``, ``mocoo/configs/beta_sweep.yaml``)
+files (``mocoo/configs/default.yaml``, ``mocoo/configs/beta_ablation.yaml``)
 and loaded through a Python API.
 
 Quick start
@@ -17,7 +17,7 @@ See Also
 --------
 mocoo.configs.loader : Full API documentation.
 mocoo/configs/default.yaml : Canonical experiment configuration.
-mocoo/configs/beta_sweep.yaml : Beta hyperparameter sweep configuration.
+mocoo/configs/beta_ablation.yaml : Beta ablation study configuration.
 """
 
 from .loader import (

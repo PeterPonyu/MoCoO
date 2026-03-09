@@ -47,16 +47,9 @@ warnings.filterwarnings("ignore", category=FutureWarning)
 warnings.filterwarnings("ignore", category=UserWarning, module="matplotlib")
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent.parent.parent))
 from benchmarks.scripts.pipeline.visual_conflict_detector import detect_all_conflicts
+from benchmarks.scripts.plotting.shared import setup_fonts, load_benchmark_npz, export_subpanels, panel_label
 
-# ── Fonts ──────────────────────────────────────────────────────────────────
-_FONT_DIR = Path(__file__).resolve().parent.parent.parent / "fonts"
-for _fp in (_FONT_DIR / "Arial.ttf", _FONT_DIR / "Arial Bold.ttf"):
-    if _fp.exists():
-        fm.fontManager.addfont(str(_fp))
-if (_FONT_DIR / "Arial.ttf").exists():
-    matplotlib.rcParams["font.family"] = "sans-serif"
-    matplotlib.rcParams["font.sans-serif"] = ["Arial"] + list(
-        matplotlib.rcParams.get("font.sans-serif", []))
+setup_fonts()
 
 FIG_W = 17 / 2.54
 FIG_H = 21 / 2.54
@@ -74,36 +67,9 @@ _CONFIG_COLOR = dict(zip(_CONFIGS, _PALETTE))
 _SCATTER = dict(s=0.8, alpha=0.50, linewidths=0, rasterized=True)
 
 
-def _export_subpanels(fig, sub_dir: Path, panels: list) -> None:
-    """Save each panel (axes) as a standalone PNG cropped tightly."""
-    renderer = fig.canvas.get_renderer()
-    for ax, name in panels:
-        if ax is None:
-            continue
-        try:
-            bbox = ax.get_tightbbox(renderer)
-            if bbox is None:
-                continue
-            extent = bbox.transformed(fig.dpi_scale_trans.inverted())
-            sp = sub_dir / f"{name}.png"
-            fig.savefig(sp, dpi=DPI, bbox_inches=extent)
-        except Exception as exc:
-            print(f"  sub-panel {name}: skipped ({exc})")
-
-
-def _panel_label(fig, ax, letter):
-    pos = ax.get_position()
-    fig.text(pos.x0 - 0.042, pos.y1 + 0.006,
-             f"({letter})", fontsize=FS_LABEL, fontweight="bold",
-             va="bottom", ha="right", clip_on=False)
-
-
 def _load_data(rdir: Path):
-    npz = np.load(rdir / "benchmark_data.npz", allow_pickle=True)
-    configs = [str(c) for c in npz["configs"]]
-    latents = [np.asarray(z, dtype=np.float32) for z in npz["latents"]]
-    labels  = [np.asarray(lb) for lb in npz["labels"]]
-    return configs, latents, labels
+    data = load_benchmark_npz(rdir)
+    return data["configs"], data["latents"], data["labels"]
 
 
 def _pca2(latent):
@@ -437,10 +403,10 @@ def build_figure(rdir: Path, outdir: Path, adata_path: str):
 
     fig.subplots_adjust(left=0.13, right=0.94, top=0.96, bottom=0.05)
 
-    _panel_label(fig, ax_A, "A")
-    _panel_label(fig, ax_B, "B")
-    _panel_label(fig, ax_C, "C")
-    _panel_label(fig, ax_D, "D")
+    panel_label(fig, ax_A, "A")
+    panel_label(fig, ax_B, "B")
+    panel_label(fig, ax_C, "C")
+    panel_label(fig, ax_D, "D")
 
     fig.canvas.draw()
     print("\n── Conflict Detection ──")
@@ -452,7 +418,7 @@ def build_figure(rdir: Path, outdir: Path, adata_path: str):
     # Export individual panel sub-figures
     sub_dir = outdir / "fig6_ode_trajectory"
     sub_dir.mkdir(parents=True, exist_ok=True)
-    _export_subpanels(fig, sub_dir, [(ax_A, "panelA_pca"),
+    export_subpanels(fig, sub_dir, [(ax_A, "panelA_pca"),
                                      (ax_B, "panelB_pseudotime_violin"),
                                      (ax_C, "panelC_gene_expression"),
                                      (ax_D, "panelD_smoothness")])

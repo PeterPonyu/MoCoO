@@ -10,8 +10,8 @@ class TestConfigLoading:
         assert "shared" in cfg
         assert "training" in cfg
 
-    def test_load_beta_sweep(self):
-        cfg = load_config("beta_sweep")
+    def test_load_beta_ablation_basic(self):
+        cfg = load_config("beta_ablation")
         assert isinstance(cfg, dict)
 
     def test_get_shared_params(self):
@@ -85,9 +85,9 @@ class TestConfigLoading:
         # Default config has no sweep section
         assert sweep is None
 
-    def test_get_sweep_params_beta_sweep(self):
+    def test_get_sweep_params_beta_ablation(self):
         from mocoo.configs import get_sweep_params
-        cfg = load_config("beta_sweep")
+        cfg = load_config("beta_ablation")
         sweep = get_sweep_params(cfg)
         assert sweep is not None
         assert "parameter" in sweep
@@ -103,11 +103,11 @@ class TestConfigLoading:
         assert "dentate" in datasets
         assert datasets["IRALL"]["path"].startswith("/tmp/data")
 
-    def test_beta_sweep_has_fewer_configs(self):
-        cfg = load_config("beta_sweep")
+    def test_beta_ablation_has_all_six_configs(self):
+        cfg = load_config("beta_ablation")
         configs = get_model_configs(cfg)
         assert isinstance(configs, dict)
-        assert len(configs) == 2
+        assert len(configs) == 6
         assert "VAE" in configs
         assert "Full" in configs
 

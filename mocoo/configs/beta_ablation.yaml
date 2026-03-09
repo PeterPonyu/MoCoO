@@ -2,16 +2,13 @@
 # MoCoO Beta Ablation Configuration
 # =============================================================================
 #
-# Proper experimental settings for the beta ablation study (Paper Tables I-V).
+# Experimental settings for the beta ablation study (Paper Tables I-V).
 # Runs ALL 6 model configurations across beta={0.01, 0.1, 1.0} with
 # sufficient training for complex models (Full MoCoO) to converge.
 #
-# Key differences from the deprecated beta_sweep.yaml:
-#   - 200 epochs (was 50) with patience 40 (was 15)
-#   - All 6 configurations (was only VAE + Full)
+#   - 200 epochs with patience 40
+#   - All 6 configurations
 #   - 3000 cells (matches full-scale protocol)
-#
-# This replaces beta_sweep.yaml for production experiments.
 # =============================================================================
 
 
@@ -74,8 +71,7 @@ loss_weights:
 # -----------------------------------------------------------------------------
 # All 6 ablation configurations
 # -----------------------------------------------------------------------------
-# Unlike beta_sweep.yaml which only ran VAE + Full, this config runs
-# all 6 configurations to enable full component-effect and synergy analysis.
+# All 6 configurations enable full component-effect and synergy analysis.
 # -----------------------------------------------------------------------------
 
 _ode_params: &ode_params

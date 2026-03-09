@@ -32,23 +32,9 @@ warnings.filterwarnings("ignore", category=UserWarning, module="matplotlib")
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent.parent.parent))
 
 from benchmarks.scripts.pipeline.visual_conflict_detector import detect_all_conflicts, summarize_issues
+from benchmarks.scripts.plotting.shared import setup_fonts, unify_metric_keys, load_benchmark_npz, load_config_metrics
 
-# ── Register Arial font from workspace fonts/ folder ──────────────────
-_FONT_DIR = Path(__file__).resolve().parent.parent.parent / "fonts"
-_ARIAL_REGULAR = _FONT_DIR / "Arial.ttf"
-_ARIAL_BOLD    = _FONT_DIR / "Arial Bold.ttf"
-
-for _fp in (_ARIAL_REGULAR, _ARIAL_BOLD):
-    if _fp.exists():
-        fm.fontManager.addfont(str(_fp))
-
-if _ARIAL_REGULAR.exists():
-    matplotlib.rcParams["font.family"] = "sans-serif"
-    matplotlib.rcParams["font.sans-serif"] = ["Arial"] + matplotlib.rcParams.get(
-        "font.sans-serif", [])
-    print(f"  Font: Arial loaded from {_FONT_DIR}")
-else:
-    print(f"  Font: Arial not found at {_FONT_DIR}, using default")
+setup_fonts()
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # Style constants  (tuned for ~17 × 21 inch composed figure)
@@ -81,48 +67,18 @@ def _s(cfg):
 # Data helpers
 # ═══════════════════════════════════════════════════════════════════════════════
 
-def _unify_metric_keys(m: dict) -> dict:
-    """Normalise JSON metric keys so downstream code uses short names.
-
-    Handles output from both run_benchmark.py and run_cross_and_validate.py,
-    which produce different key formats for the same metrics.
-    """
-    _MAP = {
-        "full_ARI": "ARI", "full_NMI": "NMI", "full_ASW": "ASW",
-        "full_CH": "CAL", "full_DB": "DAV", "corr": "COR",
-        "CH": "CAL", "DB": "DAV",
-        # run_cross_and_validate.py keys -> plot-expected keys
-        "LSE_overall": "LSE_overall_quality",
-        "DRE_UMAP_overall": "DRE_umap_overall_quality",
-        "DRE_tSNE_overall": "DRE_tsne_overall_quality",
-    }
-    for src, dst in _MAP.items():
-        if src in m and dst not in m:
-            m[dst] = m[src]
-    return m
-
-
 def load_results(rdir: Path):
-    npz = np.load(rdir / "benchmark_data.npz", allow_pickle=True)
-    configs    = list(npz["configs"])
-    latents    = list(npz["latents"])
-    labels     = list(npz["labels"])
-    val_losses = list(npz["val_losses"])
-    val_scores = list(npz["val_scores"])
-    train_losses = list(npz["train_losses"])
+    data = load_benchmark_npz(rdir)
+    configs      = data["configs"]
+    latents      = data["latents"]
+    labels       = data["labels"]
+    val_losses   = data.get("val_losses", [])
+    val_scores   = data.get("val_scores", [])
+    train_losses = data.get("train_losses", [])
+    gradients    = data.get("gradients")
 
-    # Gradients are optional (only present after re-running benchmark)
-    gradients = list(npz["gradients"]) if "gradients" in npz else None
-
-    metrics = []
-    for c in configs:
-        p = rdir / f"{c.replace('+','_')}.json"
-        if p.exists():
-            with open(p) as f:
-                raw = json.load(f)
-        else:
-            raw = None
-        metrics.append(_unify_metric_keys(raw) if raw else None)
+    metrics_dict = load_config_metrics(rdir, configs)
+    metrics = [metrics_dict.get(c) for c in configs]
 
     return dict(configs=configs, latents=latents, labels=labels,
                 val_losses=val_losses, val_scores=val_scores,

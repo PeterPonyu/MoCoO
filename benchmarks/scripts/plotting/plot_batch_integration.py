@@ -35,16 +35,9 @@ warnings.filterwarnings("ignore", category=FutureWarning)
 warnings.filterwarnings("ignore", category=UserWarning, module="matplotlib")
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent.parent.parent))
 from benchmarks.scripts.pipeline.visual_conflict_detector import detect_all_conflicts
+from benchmarks.scripts.plotting.shared import setup_fonts, load_benchmark_npz, load_config_metrics, export_subpanels, panel_label
 
-# ── Fonts ──────────────────────────────────────────────────────────────────
-_FONT_DIR = Path(__file__).resolve().parent.parent.parent / "fonts"
-for _fp in (_FONT_DIR / "Arial.ttf", _FONT_DIR / "Arial Bold.ttf"):
-    if _fp.exists():
-        fm.fontManager.addfont(str(_fp))
-if (_FONT_DIR / "Arial.ttf").exists():
-    matplotlib.rcParams["font.family"] = "sans-serif"
-    matplotlib.rcParams["font.sans-serif"] = ["Arial"] + list(
-        matplotlib.rcParams.get("font.sans-serif", []))
+setup_fonts()
 
 # ── Style constants (17 cm × 21 cm) ────────────────────────────────────────
 FIG_W = 17 / 2.54
@@ -100,41 +93,6 @@ def _resolve_dataset_dir(results_base: Path, ds_name: str) -> Path | None:
     return None
 
 
-def _export_subpanels(fig, sub_dir: Path, panels: list) -> None:
-    renderer = fig.canvas.get_renderer()
-    for ax, name in panels:
-        if ax is None:
-            continue
-        try:
-            bbox = ax.get_tightbbox(renderer)
-            if bbox is None:
-                continue
-            extent = bbox.transformed(fig.dpi_scale_trans.inverted())
-            fig.savefig(sub_dir / f"{name}.png", dpi=DPI, bbox_inches=extent)
-        except Exception:
-            pass
-
-
-def _panel_label(fig, ax, letter):
-    pos = ax.get_position()
-    fig.text(pos.x0 - 0.042, pos.y1 + 0.006,
-             f"({letter})", fontsize=FS_LABEL, fontweight="bold",
-             va="bottom", ha="right", clip_on=False)
-
-
-def _unify_metric_keys(m: dict) -> dict:
-    """Normalise JSON metric keys so downstream code uses short names."""
-    _MAP = {
-        "full_ARI": "ARI", "full_NMI": "NMI", "full_ASW": "ASW",
-        "full_CH": "CAL", "full_DB": "DAV", "corr": "COR",
-        "CH": "CAL", "DB": "DAV",
-    }
-    for src, dst in _MAP.items():
-        if src in m and dst not in m:
-            m[dst] = m[src]
-    return m
-
-
 def _load_batch_metrics(rdir: Path) -> dict:
     """Load per-config batch metrics from summary_batch.csv."""
     metrics = {}
@@ -148,12 +106,7 @@ def _load_batch_metrics(rdir: Path) -> dict:
                 metrics[cfg] = row.to_dict()
     else:
         # Fallback to JSON if CSV doesn't exist
-        for cfg in _CONFIGS:
-            key = cfg.replace("+", "_")
-            jf = rdir / f"{key}.json"
-            if jf.exists():
-                with open(jf) as f:
-                    metrics[cfg] = _unify_metric_keys(json.load(f))
+        metrics = load_config_metrics(rdir, _CONFIGS)
     return metrics
 
 
@@ -165,13 +118,7 @@ def _load_cross_dataset_metrics(results_base: Path) -> dict:
         if ds_path is None:
             continue
         ds_key = ds_name  # Always use canonical name as key
-        ds_metrics = {}
-        for cfg in _CONFIGS:
-            key = cfg.replace("+", "_")
-            jf = ds_path / f"{key}.json"
-            if jf.exists():
-                with open(jf) as f:
-                    ds_metrics[cfg] = _unify_metric_keys(json.load(f))
+        ds_metrics = load_config_metrics(ds_path, _CONFIGS)
         if ds_metrics:
             cross[ds_key] = ds_metrics
     return cross
@@ -425,10 +372,10 @@ def build_figure(results_base: Path, outdir: Path):
 
     fig.subplots_adjust(left=0.12, right=0.94, top=0.96, bottom=0.06)
 
-    _panel_label(fig, ax_A, "A")
-    _panel_label(fig, ax_B, "B")
-    _panel_label(fig, ax_C, "C")
-    _panel_label(fig, ax_D, "D")
+    panel_label(fig, ax_A, "A")
+    panel_label(fig, ax_B, "B")
+    panel_label(fig, ax_C, "C")
+    panel_label(fig, ax_D, "D")
 
     fig.canvas.draw()
 
@@ -441,7 +388,7 @@ def build_figure(results_base: Path, outdir: Path):
     # Export individual panels
     sub_dir = outdir / "fig7_batch_integration"
     sub_dir.mkdir(parents=True, exist_ok=True)
-    _export_subpanels(fig, sub_dir, [
+    export_subpanels(fig, sub_dir, [
         (ax_A, "panelA_batch_bars"),
         (ax_B, "panelB_bio_batch_scatter"),
         (ax_B2, "panelB2_overall_score"),

@@ -38,6 +38,10 @@ warnings.filterwarnings("ignore", category=FutureWarning)
 warnings.filterwarnings("ignore", category=UserWarning, module="matplotlib")
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent.parent.parent))
 from benchmarks.scripts.pipeline.visual_conflict_detector import detect_all_conflicts
+from benchmarks.scripts.plotting.shared import (
+    setup_fonts, unify_metric_keys, load_benchmark_npz, load_config_metrics,
+    export_subpanels, panel_label,
+)
 
 # ── Import centralized style ────────────────────────────────────────────────
 from mocoo.visualization.style import (
@@ -50,77 +54,17 @@ from mocoo.visualization.style import (
 apply_style()
 
 # ── Fonts ──────────────────────────────────────────────────────────────────
-_FONT_DIR = Path(__file__).resolve().parent.parent.parent / "fonts"
-for _fp in (_FONT_DIR / "Arial.ttf", _FONT_DIR / "Arial Bold.ttf"):
-    if _fp.exists():
-        fm.fontManager.addfont(str(_fp))
-if (_FONT_DIR / "Arial.ttf").exists():
-    matplotlib.rcParams["font.family"] = "sans-serif"
-    matplotlib.rcParams["font.sans-serif"] = ["Arial"] + list(
-        matplotlib.rcParams.get("font.sans-serif", []))
+setup_fonts()
 
 _CONFIGS = get_config_order()
 _CONFIG_COLOR = get_config_colors()
 _SHORT = {c: get_short_name(c) for c in _CONFIGS}
 
 
-def _export_subpanels(fig, sub_dir: Path, panels: list) -> None:
-    """Save each panel (axes) as a standalone PNG cropped tightly."""
-    renderer = fig.canvas.get_renderer()
-    for ax, name in panels:
-        if ax is None:
-            continue
-        try:
-            bbox = ax.get_tightbbox(renderer)
-            if bbox is None:
-                continue
-            extent = bbox.transformed(fig.dpi_scale_trans.inverted())
-            sp = sub_dir / f"{name}.png"
-            fig.savefig(sp, dpi=DPI, bbox_inches=extent)
-        except Exception as exc:
-            print(f"  sub-panel {name}: skipped ({exc})")
-
-
-def _panel_label(fig, ax, letter):
-    pos = ax.get_position()
-    fig.text(pos.x0 - 0.042, pos.y1 + 0.006,
-             f"({letter})", fontsize=FS_LABEL, fontweight="bold",
-             va="bottom", ha="right", clip_on=False)
-
-
-def _unify_metric_keys(m: dict) -> dict:
-    """Normalise JSON metric keys so downstream code uses short names.
-
-    Handles output from both run_benchmark.py and run_cross_and_validate.py,
-    which produce different key formats for the same metrics.
-    """
-    _MAP = {
-        "full_ARI": "ARI", "full_NMI": "NMI", "full_ASW": "ASW",
-        "full_CH": "CAL", "full_DB": "DAV", "corr": "COR",
-        "CH": "CAL", "DB": "DAV",
-        # run_cross_and_validate.py keys -> plot-expected keys
-        "LSE_overall": "LSE_overall_quality",
-        "DRE_UMAP_overall": "DRE_umap_overall_quality",
-        "DRE_tSNE_overall": "DRE_tsne_overall_quality",
-    }
-    for src, dst in _MAP.items():
-        if src in m and dst not in m:
-            m[dst] = m[src]
-    return m
-
-
 def _load_data(rdir: Path):
-    npz = np.load(rdir / "benchmark_data.npz", allow_pickle=True)
-    configs = [str(c) for c in npz["configs"]]
-    latents = [np.asarray(z, dtype=np.float32) for z in npz["latents"]]
-    labels  = [np.asarray(lb) for lb in npz["labels"]]
-    metrics = {}
-    for cfg in configs:
-        key = cfg.replace("+", "_")
-        jf  = rdir / f"{key}.json"
-        if jf.exists():
-            with open(jf) as f:
-                metrics[cfg] = _unify_metric_keys(json.load(f))
+    data = load_benchmark_npz(rdir)
+    configs, latents, labels = data["configs"], data["latents"], data["labels"]
+    metrics = load_config_metrics(rdir, configs)
     return configs, latents, labels, metrics
 
 
@@ -181,7 +125,7 @@ def _load_beta_metrics(rdir: Path) -> dict:
             if cfg_key == "Full":
                 cfg_key = "Full"
             with open(jf) as f:
-                out[label][cfg_key] = _unify_metric_keys(json.load(f))
+                out[label][cfg_key] = unify_metric_keys(json.load(f))
     return out
 
 
@@ -480,10 +424,10 @@ def build_figure(rdir: Path, outdir: Path):
 
     fig.subplots_adjust(left=0.13, right=0.94, top=0.96, bottom=0.10)
 
-    _panel_label(fig, ax_A, "A")
-    _panel_label(fig, ax_B, "B")
-    _panel_label(fig, ax_C, "C")
-    _panel_label(fig, ax_D, "D")
+    panel_label(fig, ax_A, "A")
+    panel_label(fig, ax_B, "B")
+    panel_label(fig, ax_C, "C")
+    panel_label(fig, ax_D, "D")
 
     # Force full layout computation so legend handles are positioned before detection
     fig.canvas.draw()
@@ -497,7 +441,7 @@ def build_figure(rdir: Path, outdir: Path):
     # Export individual panel sub-figures
     sub_dir = outdir / "fig3_ablation_summary"
     sub_dir.mkdir(parents=True, exist_ok=True)
-    _export_subpanels(fig, sub_dir, [(ax_A, "panelA_synergy"),
+    export_subpanels(fig, sub_dir, [(ax_A, "panelA_synergy"),
                                      (ax_B, "panelB_delta_ari"),
                                      (ax_C, "panelC_heatmap"),
                                      (ax_D, "panelD_permutation")])
