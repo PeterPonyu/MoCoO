@@ -3,6 +3,12 @@
 # Orchestrates the full pipeline: install → test → benchmark → figures → paper
 # ═══════════════════════════════════════════════════════════════════════════
 #
+# Experiment Series:
+#   make series1          Beta ablation study (Tables I-V)
+#   make series2          Cross-dataset generalization (Tables VIII-XIII)
+#   make series3          Multi-seed robustness + significance tests
+#   make series4          External baselines (PCA+KMeans)
+#
 # Usage examples:
 #   make help                     # show all targets
 #   make all                      # full pipeline
@@ -20,20 +26,32 @@ SHELL := /bin/bash
 -include mocoo/configs/paths.env
 
 # ── Overridable variables ─────────────────────────────────────────────────
-PYTHON      ?= python
-EPOCHS      ?= 150
-PATIENCE    ?= 30
-MAX_CELLS   ?= 3000
-HVG         ?= 3000
-DATA_DIR    ?= $(MOCOO_DATA_DIR)
-BETA        ?= 1.0
-N_SEEDS     ?= 5
-DATASETS    ?= IRALL dentate endo paul spinoids
+PYTHON        ?= python
+EPOCHS        ?= 150
+PATIENCE      ?= 30
+MAX_CELLS     ?= 3000
+HVG           ?= 3000
+DATA_DIR      ?= $(MOCOO_DATA_DIR)
+BETA          ?= 1.0
+N_SEEDS       ?= 5
+DATASETS      ?= IRALL dentate endo paul spinoids
+
+# Beta ablation specific (Series 1)
+BETA_EPOCHS   ?= 200
+BETA_PATIENCE ?= 40
+BETA_VALUES   ?= 0.01 0.1 1.0
 
 # ── Derived paths (project-relative) ─────────────────────────────────────
-RESULTS_DIR ?= $(or $(MOCOO_RESULTS_DIR),benchmarks/results)
-FIGURES_DIR ?= $(or $(MOCOO_FIGURES_DIR),benchmarks/figures)
-PAPER_DIR   ?= $(or $(MOCOO_PAPER_DIR),paper)
+RESULTS_DIR   ?= $(or $(MOCOO_RESULTS_DIR),benchmarks/results)
+FIGURES_DIR   ?= $(or $(MOCOO_FIGURES_DIR),benchmarks/figures)
+PAPER_DIR     ?= $(or $(MOCOO_PAPER_DIR),paper)
+
+# ── Series-specific output directories ───────────────────────────────────
+SINGLE_DIR    := $(RESULTS_DIR)/single_dataset
+BETA_DIR      := $(RESULTS_DIR)/beta_ablation
+CROSS_DIR     := $(RESULTS_DIR)/cross_dataset
+MULTI_DIR     := $(RESULTS_DIR)/multiseed
+BASE_DIR      := $(RESULTS_DIR)/baselines
 
 # ── Script locations ──────────────────────────────────────────────────────
 PIPELINE     := benchmarks/scripts/pipeline
@@ -41,16 +59,17 @@ PLOTTING     := benchmarks/scripts/plotting
 EVALUATION   := benchmarks/scripts/evaluation
 
 # ── Key output files (used for dependency tracking) ───────────────────────
-BENCHMARK_NPZ   := $(RESULTS_DIR)/dataset_default/benchmark_data.npz
-METRICS_CSV     := $(RESULTS_DIR)/dataset_default/summary_expanded.csv
-CROSS_META_CSV  := $(RESULTS_DIR)/meta_analysis.csv
-MULTISEED_CSV   := $(RESULTS_DIR)/multiseed/multiseed_IRALL.csv
+BENCHMARK_NPZ   := $(SINGLE_DIR)/benchmark_data.npz
+METRICS_CSV     := $(SINGLE_DIR)/summary_expanded.csv
+CROSS_META_CSV  := $(CROSS_DIR)/meta_analysis.csv
+MULTISEED_CSV   := $(MULTI_DIR)/multiseed_IRALL.csv
 
 # ═══════════════════════════════════════════════════════════════════════════
 # PHONY declarations
 # ═══════════════════════════════════════════════════════════════════════════
 .PHONY: all help install test lint clean \
-        benchmark cross-dataset beta-sweep multiseed baseline \
+        benchmark cross-dataset beta-ablation beta-sweep multiseed baseline \
+        series1 series2 series3 series4 \
         metrics significance \
         figures fig-ablation fig-comparison fig-composed fig-dynamics \
         fig-batch fig-trajectory fig-biovalidation \
@@ -67,6 +86,14 @@ help: ## Show all available targets
 	@echo "  MoCoO Pipeline Makefile"
 	@echo "══════════════════════════════════════════════════════════════"
 	@echo ""
+	@echo "  EXPERIMENT SERIES"
+	@echo "  ─────────────────────────────────────────────────────────"
+	@echo "  make series1          Series 1: Beta ablation (Tables I-V)"
+	@echo "                        $(BETA_EPOCHS) epochs, beta=$(BETA_VALUES)"
+	@echo "  make series2          Series 2: Cross-dataset (Tables VIII-XIII)"
+	@echo "  make series3          Series 3: Multi-seed + significance tests"
+	@echo "  make series4          Series 4: External baselines (PCA+KMeans)"
+	@echo ""
 	@echo "  CORE PIPELINE"
 	@echo "  ─────────────────────────────────────────────────────────"
 	@echo "  make install          Install MoCoO in editable mode"
@@ -74,7 +101,7 @@ help: ## Show all available targets
 	@echo "  make lint             Run black + isort + flake8"
 	@echo "  make benchmark        Single-dataset ablation (IRALL, $(EPOCHS) epochs)"
 	@echo "  make cross-dataset    5-dataset cross-dataset benchmark"
-	@echo "  make beta-sweep       Beta sensitivity (50 epochs, beta=0.01,0.1,1.0)"
+	@echo "  make beta-ablation    Beta ablation study ($(BETA_EPOCHS) epochs)"
 	@echo "  make multiseed        Multi-seed evaluation ($(N_SEEDS) seeds)"
 	@echo "  make baseline         PCA+KMeans baseline comparison"
 	@echo "  make metrics          Recompute expanded metrics from saved latents"
@@ -99,24 +126,27 @@ help: ## Show all available targets
 	@echo "  UTILITY"
 	@echo "  ─────────────────────────────────────────────────────────"
 	@echo "  make clean            Clean all generated artifacts"
-	@echo "  make all              Full pipeline: test -> benchmark -> figures -> paper"
+	@echo "  make all              Full pipeline: test -> all series -> figures -> paper"
 	@echo ""
 	@echo "  OVERRIDABLE VARIABLES (current values)"
 	@echo "  ─────────────────────────────────────────────────────────"
-	@echo "  EPOCHS      = $(EPOCHS)"
-	@echo "  PATIENCE    = $(PATIENCE)"
-	@echo "  MAX_CELLS   = $(MAX_CELLS)"
-	@echo "  DATA_DIR    = $(DATA_DIR)"
-	@echo "  HVG         = $(HVG)"
-	@echo "  N_SEEDS     = $(N_SEEDS)"
-	@echo "  RESULTS_DIR = $(RESULTS_DIR)"
-	@echo "  FIGURES_DIR = $(FIGURES_DIR)"
+	@echo "  EPOCHS        = $(EPOCHS)"
+	@echo "  PATIENCE      = $(PATIENCE)"
+	@echo "  BETA_EPOCHS   = $(BETA_EPOCHS)"
+	@echo "  BETA_PATIENCE = $(BETA_PATIENCE)"
+	@echo "  BETA_VALUES   = $(BETA_VALUES)"
+	@echo "  MAX_CELLS     = $(MAX_CELLS)"
+	@echo "  DATA_DIR      = $(DATA_DIR)"
+	@echo "  HVG           = $(HVG)"
+	@echo "  N_SEEDS       = $(N_SEEDS)"
+	@echo "  RESULTS_DIR   = $(RESULTS_DIR)"
+	@echo "  FIGURES_DIR   = $(FIGURES_DIR)"
 	@echo ""
 
 # ═══════════════════════════════════════════════════════════════════════════
 # FULL PIPELINE
 # ═══════════════════════════════════════════════════════════════════════════
-all: test benchmark metrics figures paper ## Full pipeline: test -> benchmark -> figures -> paper
+all: test benchmark series1 series2 series3 series4 metrics figures paper ## Full pipeline
 	@echo ""
 	@echo "══════════════════════════════════════════════════════════════"
 	@echo "  Pipeline complete."
@@ -153,11 +183,11 @@ clean: paper-clean ## Clean all generated artifacts
 	@echo "══════════════════════════════════════════════════════════════"
 	@echo "  Cleaning generated artifacts"
 	@echo "══════════════════════════════════════════════════════════════"
-	rm -rf $(RESULTS_DIR)/dataset_default
-	rm -rf $(RESULTS_DIR)/multiseed
-	rm -rf $(RESULTS_DIR)/beta*
-	rm -f  $(RESULTS_DIR)/meta_analysis.csv
-	rm -f  $(RESULTS_DIR)/pca_kmeans_baseline.csv
+	rm -rf $(SINGLE_DIR)
+	rm -rf $(MULTI_DIR)
+	rm -rf $(BETA_DIR)
+	rm -rf $(CROSS_DIR)
+	rm -rf $(BASE_DIR)
 	rm -rf $(FIGURES_DIR)/*.png $(FIGURES_DIR)/*.pdf
 	rm -rf __pycache__ .pytest_cache
 	find . -type d -name __pycache__ -exec rm -rf {} + 2>/dev/null || true
@@ -165,31 +195,35 @@ clean: paper-clean ## Clean all generated artifacts
 	@echo "  Done."
 
 # ═══════════════════════════════════════════════════════════════════════════
-# CORE PIPELINE TARGETS
+# EXPERIMENT SERIES
 # ═══════════════════════════════════════════════════════════════════════════
 
-# ── benchmark: single-dataset ablation (IRALL) ───────────────────────────
-# Produces benchmark_data.npz + per-config JSON + summary CSV.
-benchmark: ## Run single-dataset ablation (IRALL, configurable epochs)
+# ── Series 1: Beta Ablation (Paper Tables I-V) ───────────────────────────
+series1: beta-ablation ## Series 1: Beta ablation study (Tables I-V)
+
+beta-ablation: ## Beta ablation: all 6 configs x 3 betas (200 epochs)
 	@echo ""
 	@echo "══════════════════════════════════════════════════════════════"
-	@echo "  Benchmark: IRALL ablation ($(EPOCHS) epochs, beta=$(BETA))"
+	@echo "  Series 1: Beta Ablation ($(BETA_EPOCHS) epochs)"
+	@echo "  Betas: $(BETA_VALUES)"
 	@echo "══════════════════════════════════════════════════════════════"
-	@mkdir -p $(RESULTS_DIR)/dataset_default
-	MOCOO_DATA_DIR=$(DATA_DIR) $(PYTHON) $(PIPELINE)/run_benchmark.py \
+	@mkdir -p $(BETA_DIR)
+	MOCOO_DATA_DIR=$(DATA_DIR) $(PYTHON) $(PIPELINE)/run_beta_ablation.py \
 		--data $(DATA_DIR)/LAB/scRL/IRALL.h5ad \
-		--epochs $(EPOCHS) \
-		--patience $(PATIENCE) \
+		--epochs $(BETA_EPOCHS) \
+		--patience $(BETA_PATIENCE) \
 		--max-cells $(MAX_CELLS) \
 		--hvg $(HVG) \
-		--beta $(BETA) \
-		--outdir $(RESULTS_DIR)/dataset_default
+		--betas $(BETA_VALUES) \
+		--outdir $(BETA_DIR)
 
-# ── cross-dataset: run across all 5 datasets ─────────────────────────────
+# ── Series 2: Cross-Dataset (Paper Tables VIII-XIII) ─────────────────────
+series2: cross-dataset ## Series 2: Cross-dataset generalization
+
 cross-dataset: ## Run 5-dataset cross-dataset benchmark
 	@echo ""
 	@echo "══════════════════════════════════════════════════════════════"
-	@echo "  Cross-dataset benchmark ($(DATASETS))"
+	@echo "  Series 2: Cross-dataset benchmark ($(DATASETS))"
 	@echo "  Epochs=$(EPOCHS), MaxCells=$(MAX_CELLS)"
 	@echo "══════════════════════════════════════════════════════════════"
 	MOCOO_DATA_DIR=$(DATA_DIR) $(PYTHON) $(PIPELINE)/run_cross_dataset.py \
@@ -198,35 +232,17 @@ cross-dataset: ## Run 5-dataset cross-dataset benchmark
 		--patience $(PATIENCE) \
 		--max-cells $(MAX_CELLS) \
 		--hvg $(HVG) \
-		--outdir $(RESULTS_DIR)
+		--outdir $(CROSS_DIR)
 
-# ── beta-sweep: sensitivity analysis across beta values ───────────────────
-beta-sweep: ## Run beta sensitivity (50 epochs, beta=0.01,0.1,1.0)
-	@echo ""
-	@echo "══════════════════════════════════════════════════════════════"
-	@echo "  Beta sweep: beta = 0.01, 0.1, 1.0 (50 epochs each)"
-	@echo "══════════════════════════════════════════════════════════════"
-	@for BETA_VAL in 0.01 0.1 1.0; do \
-		echo ""; \
-		echo "  ── beta = $$BETA_VAL ──"; \
-		mkdir -p $(RESULTS_DIR)/beta$$BETA_VAL; \
-		MOCOO_DATA_DIR=$(DATA_DIR) $(PYTHON) $(PIPELINE)/run_benchmark.py \
-			--data $(DATA_DIR)/LAB/scRL/IRALL.h5ad \
-			--epochs 50 \
-			--patience $(PATIENCE) \
-			--max-cells $(MAX_CELLS) \
-			--hvg $(HVG) \
-			--beta $$BETA_VAL \
-			--outdir $(RESULTS_DIR)/beta$$BETA_VAL; \
-	done
+# ── Series 3: Multi-Seed Robustness ──────────────────────────────────────
+series3: multiseed significance ## Series 3: Statistical robustness
 
-# ── multiseed: multi-seed evaluation for statistical robustness ──────────
 multiseed: ## Run multi-seed evaluation (N_SEEDS seeds)
 	@echo ""
 	@echo "══════════════════════════════════════════════════════════════"
-	@echo "  Multi-seed evaluation ($(N_SEEDS) seeds)"
+	@echo "  Series 3a: Multi-seed evaluation ($(N_SEEDS) seeds)"
 	@echo "══════════════════════════════════════════════════════════════"
-	@mkdir -p $(RESULTS_DIR)/multiseed
+	@mkdir -p $(MULTI_DIR)
 	MOCOO_DATA_DIR=$(DATA_DIR) $(PYTHON) $(PIPELINE)/run_multiseed.py \
 		--seeds $(N_SEEDS) \
 		--datasets IRALL \
@@ -234,40 +250,62 @@ multiseed: ## Run multi-seed evaluation (N_SEEDS seeds)
 		--max_cells $(MAX_CELLS) \
 		--hvg $(HVG) \
 		--patience $(PATIENCE) \
-		--output_dir $(RESULTS_DIR)/multiseed
+		--output_dir $(MULTI_DIR)
 
-# ── baseline: PCA + KMeans comparison ─────────────────────────────────────
+significance: multiseed ## Run significance tests on multi-seed results
+	@echo ""
+	@echo "══════════════════════════════════════════════════════════════"
+	@echo "  Series 3b: Significance tests"
+	@echo "══════════════════════════════════════════════════════════════"
+	$(PYTHON) $(EVALUATION)/significance_tests.py \
+		--input $(MULTI_DIR)/multiseed_IRALL.csv \
+		--baseline VAE \
+		--output_dir $(MULTI_DIR)/significance
+
+# ── Series 4: External Baselines ──────────────────────────────────────────
+series4: baseline ## Series 4: External baselines
+
 baseline: ## Run PCA+KMeans baseline comparison
 	@echo ""
 	@echo "══════════════════════════════════════════════════════════════"
-	@echo "  PCA + KMeans baseline"
+	@echo "  Series 4: PCA + KMeans baseline"
 	@echo "══════════════════════════════════════════════════════════════"
+	@mkdir -p $(BASE_DIR)
 	$(PYTHON) $(EVALUATION)/pca_kmeans_baseline.py \
 		--datasets IRALL dentate endo \
 		--n_seeds $(N_SEEDS) \
-		--output $(RESULTS_DIR)/pca_kmeans_baseline.csv
+		--output $(BASE_DIR)/pca_kmeans.csv
+
+# ═══════════════════════════════════════════════════════════════════════════
+# CORE PIPELINE TARGETS
+# ═══════════════════════════════════════════════════════════════════════════
+
+# ── benchmark: single-dataset ablation (IRALL) ───────────────────────────
+benchmark: ## Single-dataset ablation (IRALL, configurable epochs)
+	@echo ""
+	@echo "══════════════════════════════════════════════════════════════"
+	@echo "  Benchmark: IRALL ablation ($(EPOCHS) epochs)"
+	@echo "══════════════════════════════════════════════════════════════"
+	@mkdir -p $(SINGLE_DIR)
+	MOCOO_DATA_DIR=$(DATA_DIR) $(PYTHON) $(PIPELINE)/run_benchmark.py \
+		--data $(DATA_DIR)/LAB/scRL/IRALL.h5ad \
+		--epochs $(EPOCHS) \
+		--patience $(PATIENCE) \
+		--max-cells $(MAX_CELLS) \
+		--hvg $(HVG) \
+		--outdir $(SINGLE_DIR)
 
 # ── metrics: recompute expanded metrics from saved latents ────────────────
-# Depends on benchmark having produced benchmark_data.npz.
 metrics: benchmark ## Recompute expanded metrics from saved latents
 	@echo ""
 	@echo "══════════════════════════════════════════════════════════════"
 	@echo "  Recomputing expanded metrics"
 	@echo "══════════════════════════════════════════════════════════════"
 	$(PYTHON) $(EVALUATION)/recompute_metrics.py \
-		--resultsdir $(RESULTS_DIR)/dataset_default
+		--resultsdir $(SINGLE_DIR)
 
-# ── significance: statistical tests on multi-seed results ─────────────────
-# Depends on multiseed having produced the CSV.
-significance: multiseed ## Run significance tests on multi-seed results
-	@echo ""
-	@echo "══════════════════════════════════════════════════════════════"
-	@echo "  Significance tests"
-	@echo "══════════════════════════════════════════════════════════════"
-	$(PYTHON) $(EVALUATION)/significance_tests.py \
-		--input $(RESULTS_DIR)/multiseed/multiseed_IRALL.csv \
-		--baseline VAE \
-		--output_dir $(RESULTS_DIR)/multiseed
+# ── Legacy alias (backward compatibility) ─────────────────────────────────
+beta-sweep: beta-ablation ## DEPRECATED: use beta-ablation
 
 # ═══════════════════════════════════════════════════════════════════════════
 # FIGURE TARGETS
@@ -287,7 +325,7 @@ fig-ablation: ## Fig 3: ablation summary (synergy, waterfall, heatmap)
 	@echo "══════════════════════════════════════════════════════════════"
 	@mkdir -p $(FIGURES_DIR)
 	$(PYTHON) $(PLOTTING)/plot_ablation_summary.py \
-		--resultsdir $(RESULTS_DIR)/dataset_default \
+		--resultsdir $(SINGLE_DIR) \
 		--outdir $(FIGURES_DIR)
 
 fig-comparison: ## Fig 2: quantitative latent space comparison
@@ -297,7 +335,7 @@ fig-comparison: ## Fig 2: quantitative latent space comparison
 	@echo "══════════════════════════════════════════════════════════════"
 	@mkdir -p $(FIGURES_DIR)
 	$(PYTHON) $(PLOTTING)/plot_quant_comparison.py \
-		--resultsdir $(RESULTS_DIR)/dataset_default \
+		--resultsdir $(SINGLE_DIR) \
 		--outdir $(FIGURES_DIR)
 
 fig-composed: ## Fig 5: composed multi-panel benchmark figure
@@ -307,7 +345,7 @@ fig-composed: ## Fig 5: composed multi-panel benchmark figure
 	@echo "══════════════════════════════════════════════════════════════"
 	@mkdir -p $(FIGURES_DIR)
 	$(PYTHON) $(PLOTTING)/plot_composed.py \
-		--resultsdir $(RESULTS_DIR)/dataset_default \
+		--resultsdir $(SINGLE_DIR) \
 		--outdir $(FIGURES_DIR)
 
 fig-dynamics: ## Fig 4: training dynamics and convergence
@@ -317,7 +355,7 @@ fig-dynamics: ## Fig 4: training dynamics and convergence
 	@echo "══════════════════════════════════════════════════════════════"
 	@mkdir -p $(FIGURES_DIR)
 	$(PYTHON) $(PLOTTING)/plot_training_dynamics.py \
-		--resultsdir $(RESULTS_DIR)/dataset_default \
+		--resultsdir $(SINGLE_DIR) \
 		--outdir $(FIGURES_DIR)
 
 fig-batch: ## Supplemental: batch integration and cross-dataset generalization
@@ -337,7 +375,7 @@ fig-trajectory: ## Supplemental: ODE pseudotime trajectory analysis
 	@echo "══════════════════════════════════════════════════════════════"
 	@mkdir -p $(FIGURES_DIR)
 	MOCOO_DATA_DIR=$(DATA_DIR) $(PYTHON) $(PLOTTING)/plot_ode_trajectory.py \
-		--resultsdir $(RESULTS_DIR)/dataset_default \
+		--resultsdir $(SINGLE_DIR) \
 		--outdir $(FIGURES_DIR) \
 		--data $(DATA_DIR)/LAB/scRL/IRALL.h5ad
 
@@ -348,7 +386,7 @@ fig-biovalidation: ## Supplemental: biological validation (perturbation, gene ex
 	@echo "══════════════════════════════════════════════════════════════"
 	@mkdir -p $(FIGURES_DIR)
 	MOCOO_DATA_DIR=$(DATA_DIR) $(PYTHON) $(PLOTTING)/plot_biological_validation.py \
-		--resultsdir $(RESULTS_DIR)/dataset_default \
+		--resultsdir $(SINGLE_DIR) \
 		--outdir $(FIGURES_DIR) \
 		--data $(DATA_DIR)/LAB/scRL/IRALL.h5ad
 

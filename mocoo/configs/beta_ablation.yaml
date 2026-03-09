@@ -1,19 +1,22 @@
 # =============================================================================
-# MoCoO Beta Sweep Configuration  [DEPRECATED]
+# MoCoO Beta Ablation Configuration
 # =============================================================================
 #
-# DEPRECATED: Use beta_ablation.yaml instead, which uses proper training
-# settings (200 epochs, patience 40) and all 6 model configurations.
-# This file is retained only for backward compatibility.
+# Proper experimental settings for the beta ablation study (Paper Tables I-V).
+# Runs ALL 6 model configurations across beta={0.01, 0.1, 1.0} with
+# sufficient training for complex models (Full MoCoO) to converge.
 #
-# Original purpose: Hyperparameter sweep over the KL divergence weight (beta)
-# to study the effect of posterior regularization strength on latent space
-# quality.  Uses shorter training (50 epochs, patience 15) for efficiency.
+# Key differences from the deprecated beta_sweep.yaml:
+#   - 200 epochs (was 50) with patience 40 (was 15)
+#   - All 6 configurations (was only VAE + Full)
+#   - 3000 cells (matches full-scale protocol)
+#
+# This replaces beta_sweep.yaml for production experiments.
 # =============================================================================
 
 
 # -----------------------------------------------------------------------------
-# Shared model hyperparameters (same as default.yaml)
+# Shared model hyperparameters (same as default.yaml, beta excluded)
 # -----------------------------------------------------------------------------
 shared: &shared
   latent_dim: 32
@@ -27,14 +30,15 @@ shared: &shared
   train_size: 0.7
   val_size: 0.15
   test_size: 0.15
+  # NOTE: beta is NOT set here -- it is swept via the sweep section below.
 
 
 # -----------------------------------------------------------------------------
-# Training schedule (shorter for sweep efficiency)
+# Training schedule (sufficient for Full model convergence)
 # -----------------------------------------------------------------------------
 training:
-  epochs: 50
-  patience: 15
+  epochs: 200
+  patience: 40
   val_every: 5
 
 
@@ -57,16 +61,33 @@ sweep:
 
 
 # -----------------------------------------------------------------------------
-# Configurations to sweep
+# Loss weights
 # -----------------------------------------------------------------------------
-# The beta sweep is applied to the Full model and the VAE baseline,
-# using the canonical loss weights from default.yaml.
+loss_weights:
+  vae_reg: 0.6
+  ode_reg: 0.4
+  moco_weight_with_ode: 0.3
+  moco_weight_without_ode: 0.5
+  proto_weight: 0.1
+
+
+# -----------------------------------------------------------------------------
+# All 6 ablation configurations
+# -----------------------------------------------------------------------------
+# Unlike beta_sweep.yaml which only ran VAE + Full, this config runs
+# all 6 configurations to enable full component-effect and synergy analysis.
 # -----------------------------------------------------------------------------
 
 _ode_params: &ode_params
   use_ode: true
   vae_reg: 0.6
   ode_reg: 0.4
+
+_moco_params_no_ode: &moco_params_no_ode
+  use_moco: true
+  moco_weight: 0.5
+  moco_T: 0.2
+  moco_K: 4096
 
 _moco_params_with_ode: &moco_params_with_ode
   use_moco: true
@@ -79,10 +100,29 @@ _proto_params: &proto_params
   n_prototypes: 12
   proto_weight: 0.1
 
+
 configs:
   VAE:
     use_ode: false
     use_moco: false
+    use_prototype: false
+
+  VAE+ODE:
+    <<: *ode_params
+    use_moco: false
+    use_prototype: false
+
+  VAE+MoCo:
+    <<: *moco_params_no_ode
+    use_ode: false
+    use_prototype: false
+
+  VAE+MoCo+Proto:
+    <<: [*moco_params_no_ode, *proto_params]
+    use_ode: false
+
+  VAE+ODE+MoCo:
+    <<: [*ode_params, *moco_params_with_ode]
     use_prototype: false
 
   Full:

@@ -21,8 +21,7 @@ import numpy as np
 
 warnings.filterwarnings("ignore")
 
-sys.path.insert(0, str(Path(__file__).resolve().parent))
-from metrics_expanded import compute_all_metrics
+from mocoo.evaluation import compute_all_metrics
 
 
 def main():

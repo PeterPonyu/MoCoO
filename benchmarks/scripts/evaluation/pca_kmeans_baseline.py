@@ -19,16 +19,10 @@ import numpy as np
 import pandas as pd
 import scanpy as sc
 from sklearn.decomposition import PCA
-from sklearn.cluster import KMeans
-from sklearn.metrics import (
-    adjusted_rand_score,
-    normalized_mutual_info_score,
-    silhouette_score,
-    calinski_harabasz_score,
-    davies_bouldin_score,
-)
 from sklearn.model_selection import train_test_split
 from pathlib import Path
+
+from mocoo.evaluation.clustering import compute_clustering_metrics
 
 warnings.filterwarnings("ignore")
 
@@ -82,7 +76,6 @@ def load_and_preprocess(dataset_name: str, max_cells: int = 3000, n_hvg: int = 3
 
 def run_pca_kmeans(X, labels, n_components: int = 50, seed: int = 42):
     """PCA -> k-means and evaluate."""
-    n_clusters = len(np.unique(labels))
 
     # Train/test split (same ratio as MoCoO: 70/15/15)
     X_train, X_test, y_train, y_test = train_test_split(
@@ -99,19 +92,10 @@ def run_pca_kmeans(X, labels, n_components: int = 50, seed: int = 42):
     Z_test = pca.transform(X_test)
     Z_all = pca.transform(X)
 
-    # k-means on full PCA embedding
-    km = KMeans(n_clusters=n_clusters, random_state=seed, n_init=10)
-    pred_test = km.fit_predict(Z_test)
-
-    metrics = {
-        "ARI": adjusted_rand_score(y_test, pred_test),
-        "NMI": normalized_mutual_info_score(y_test, pred_test),
-        "ASW": silhouette_score(Z_test, y_test),
-        "CH": calinski_harabasz_score(Z_test, y_test),
-        "DB": davies_bouldin_score(Z_test, y_test),
-        "n_components": nc,
-        "var_explained": float(pca.explained_variance_ratio_.sum()),
-    }
+    # Compute clustering metrics via the canonical package API
+    metrics = compute_clustering_metrics(Z_test, y_test, random_state=seed)
+    metrics["n_components"] = nc
+    metrics["var_explained"] = float(pca.explained_variance_ratio_.sum())
     return metrics
 
 
@@ -139,7 +123,7 @@ def main():
             print(f"  Seed {seed}: ARI={m['ARI']:.3f}  NMI={m['NMI']:.3f}  ASW={m['ASW']:.3f}")
 
         # Aggregate
-        for key in ["ARI", "NMI", "ASW", "CH", "DB"]:
+        for key in ["ARI", "NMI", "ASW", "CAL", "DAV", "COR"]:
             vals = [r[key] for r in seed_results]
             mean, std = np.mean(vals), np.std(vals)
             print(f"  {key}: {mean:.4f} ± {std:.4f}")
@@ -161,7 +145,7 @@ def main():
     print("\n" + "=" * 70)
     print("SUMMARY (mean ± std across seeds)")
     print("=" * 70)
-    summary = df.groupby("dataset")[["ARI", "NMI", "ASW", "CH", "DB"]].agg(["mean", "std"])
+    summary = df.groupby("dataset")[["ARI", "NMI", "ASW", "CAL", "DAV", "COR"]].agg(["mean", "std"])
     print(summary.to_string())
 
 

@@ -110,3 +110,41 @@ class TestConfigLoading:
         assert len(configs) == 2
         assert "VAE" in configs
         assert "Full" in configs
+
+    def test_load_beta_ablation(self):
+        cfg = load_config("beta_ablation")
+        assert isinstance(cfg, dict)
+        assert "shared" in cfg
+        assert "training" in cfg
+
+    def test_beta_ablation_training_params(self):
+        from mocoo.configs import get_training_params
+        cfg = load_config("beta_ablation")
+        training = get_training_params(cfg)
+        assert training["epochs"] == 200
+        assert training["patience"] == 40
+        assert training["val_every"] == 5
+
+    def test_beta_ablation_has_all_configs(self):
+        cfg = load_config("beta_ablation")
+        configs = get_model_configs(cfg)
+        assert isinstance(configs, dict)
+        assert len(configs) == 6
+        expected = {"VAE", "VAE+ODE", "VAE+MoCo", "VAE+MoCo+Proto", "VAE+ODE+MoCo", "Full"}
+        assert set(configs.keys()) == expected
+
+    def test_beta_ablation_sweep_params(self):
+        from mocoo.configs import get_sweep_params
+        cfg = load_config("beta_ablation")
+        sweep = get_sweep_params(cfg)
+        assert sweep is not None
+        assert sweep["parameter"] == "beta"
+        assert sweep["values"] == [0.01, 0.1, 1.0]
+
+    def test_beta_ablation_full_config_has_all_components(self):
+        cfg = load_config("beta_ablation")
+        configs = get_model_configs(cfg)
+        full = configs["Full"]
+        assert full["use_ode"] is True
+        assert full["use_moco"] is True
+        assert full["use_prototype"] is True

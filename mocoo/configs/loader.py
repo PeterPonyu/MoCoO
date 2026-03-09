@@ -197,7 +197,12 @@ def _builtin_default() -> dict:
 
 
 def _builtin_beta_sweep() -> dict:
-    """Return the built-in beta sweep config as a plain dict."""
+    """Return the built-in beta sweep config as a plain dict.
+
+    .. deprecated::
+        Use ``load_config("beta_ablation")`` instead for proper training
+        settings (200 epochs, patience 40) and all 6 model configurations.
+    """
     return {
         "shared": {k: v for k, v in _BUILTIN_SHARED.items() if k != "beta"},
         "training": dict(epochs=50, patience=15, val_every=5),
@@ -216,9 +221,27 @@ def _builtin_beta_sweep() -> dict:
     }
 
 
+def _builtin_beta_ablation() -> dict:
+    """Return the built-in beta ablation config as a plain dict.
+
+    Proper experimental settings for the beta ablation study (Tables I-V):
+    - 200 epochs (sufficient for Full model convergence)
+    - patience 40
+    - All 6 model configurations
+    """
+    return {
+        "shared": {k: v for k, v in _BUILTIN_SHARED.items() if k != "beta"},
+        "training": dict(epochs=200, patience=40, val_every=5),
+        "sweep": dict(parameter="beta", values=[0.01, 0.1, 1.0]),
+        "loss_weights": copy.deepcopy(_BUILTIN_LOSS_WEIGHTS),
+        "configs": copy.deepcopy(_BUILTIN_CONFIGS),
+    }
+
+
 _BUILTIN_REGISTRY: Dict[str, Any] = {
     "default": _builtin_default,
     "beta_sweep": _builtin_beta_sweep,
+    "beta_ablation": _builtin_beta_ablation,
 }
 
 

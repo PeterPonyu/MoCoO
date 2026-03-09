@@ -27,55 +27,13 @@ warnings.filterwarnings("ignore", category=UserWarning)
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent.parent.parent))
 from mocoo import MoCoO
+from mocoo.configs import load_config, get_shared_params, get_model_configs, get_training_params
+from mocoo.evaluation import compute_clustering_metrics
 
-
-# ── Shared hyperparameters (fixed across all variants) ──────────────────────
-SHARED = dict(
-    latent_dim=32,
-    hidden_dim=128,
-    i_dim=4,
-    lr=1e-4,
-    batch_size=128,
-    beta=1.0,
-    recon=1.0,
-    loss_mode="nb",
-    random_seed=42,
-    train_size=0.7,
-    val_size=0.15,
-    test_size=0.15,
-)
-
-# ── Configurations to benchmark ────────────────────────────────────────────
-CONFIGS = {
-    "VAE": dict(
-        use_ode=False, use_moco=False, use_prototype=False,
-    ),
-    "VAE+ODE": dict(
-        use_ode=True, use_moco=False, use_prototype=False,
-        vae_reg=0.6, ode_reg=0.4,
-    ),
-    "VAE+MoCo": dict(
-        use_ode=False, use_moco=True, use_prototype=False,
-        moco_weight=0.5, moco_T=0.2, moco_K=4096,
-    ),
-    "VAE+MoCo+Proto": dict(
-        use_ode=False, use_moco=True, use_prototype=True,
-        n_prototypes=12, moco_weight=0.5, moco_T=0.2, moco_K=4096,
-        proto_weight=0.1,
-    ),
-    "VAE+ODE+MoCo": dict(
-        use_ode=True, use_moco=True, use_prototype=False,
-        vae_reg=0.6, ode_reg=0.4,
-        moco_weight=0.3, moco_T=0.2, moco_K=4096,
-    ),
-    "Full": dict(
-        use_ode=True, use_moco=True, use_prototype=True,
-        n_prototypes=12,
-        vae_reg=0.6, ode_reg=0.4,
-        moco_weight=0.3, moco_T=0.2, moco_K=4096,
-        proto_weight=0.1,
-    ),
-}
+# ── Load centralised configuration ─────────────────────────────────────────
+cfg = load_config("default")
+SHARED = get_shared_params(cfg)
+CONFIGS = get_model_configs(cfg)
 
 
 def load_dataset(path: str, max_cells: int, hvg: int, seed: int = 42):
@@ -122,48 +80,29 @@ def run_single(name: str, adata, config: dict, epochs: int,
     # ── Collect final metrics on full data ──
     latent = model.get_latent()
     test_latent = model.get_test_latent()
-
-    from sklearn.cluster import KMeans
-    from sklearn.metrics import (adjusted_rand_score, normalized_mutual_info_score,
-                                 silhouette_score, calinski_harabasz_score,
-                                 davies_bouldin_score)
-
     labels_all = model.labels
-    n_clusters = len(np.unique(labels_all))
 
-    # Full-data metrics
-    pred = KMeans(n_clusters=n_clusters, n_init=10, random_state=42).fit_predict(latent)
-    full_ari = adjusted_rand_score(labels_all, pred)
-    full_nmi = normalized_mutual_info_score(labels_all, pred)
-    full_asw = silhouette_score(latent, pred)
-    full_ch = calinski_harabasz_score(latent, pred)
-    full_db = davies_bouldin_score(latent, pred)
+    # Full-data metrics (via centralised evaluator)
+    full_metrics = compute_clustering_metrics(latent, labels_all)
 
     # Test-set metrics
     labels_test = labels_all[model.test_idx]
-    pred_test = KMeans(n_clusters=n_clusters, n_init=10, random_state=42).fit_predict(test_latent)
-    test_ari = adjusted_rand_score(labels_test, pred_test)
-    test_nmi = normalized_mutual_info_score(labels_test, pred_test)
-    test_asw = silhouette_score(test_latent, pred_test)
-
-    # Disentanglement (cross-correlation)
-    acorr = np.abs(np.corrcoef(latent.T))
-    corr_metric = float(acorr.sum(axis=1).mean()) - 1
+    test_metrics = compute_clustering_metrics(test_latent, labels_test)
 
     # Resource
     res = model.get_resource_metrics()
 
     result = {
         "config": name,
-        "full_ARI": round(float(full_ari), 4),
-        "full_NMI": round(float(full_nmi), 4),
-        "full_ASW": round(float(full_asw), 4),
-        "full_CH": round(float(full_ch), 2),
-        "full_DB": round(float(full_db), 4),
-        "test_ARI": round(float(test_ari), 4),
-        "test_NMI": round(float(test_nmi), 4),
-        "test_ASW": round(float(test_asw), 4),
-        "corr": round(float(corr_metric), 4),
+        "full_ARI": round(float(full_metrics["ARI"]), 4),
+        "full_NMI": round(float(full_metrics["NMI"]), 4),
+        "full_ASW": round(float(full_metrics["ASW"]), 4),
+        "full_CH": round(float(full_metrics["CAL"]), 2),
+        "full_DB": round(float(full_metrics["DAV"]), 4),
+        "test_ARI": round(float(test_metrics["ARI"]), 4),
+        "test_NMI": round(float(test_metrics["NMI"]), 4),
+        "test_ASW": round(float(test_metrics["ASW"]), 4),
+        "corr": round(float(full_metrics["COR"]), 4),
         "best_val_loss": round(float(model.best_val_loss), 2),
         "actual_epochs": int(res["actual_epochs"]),
         "train_time_s": round(float(res["train_time"]), 1),
@@ -224,14 +163,7 @@ def main():
                         help="Output directory (default: benchmarks/results)")
     parser.add_argument("--configs", nargs="*", default=None,
                         help="Subset of configs to run (default: all)")
-    parser.add_argument("--beta", type=float, default=None,
-                        help="Override KL beta weight (default: use SHARED value)")
     args = parser.parse_args()
-
-    # Override beta in SHARED if specified
-    if args.beta is not None:
-        SHARED["beta"] = args.beta
-        print(f"\n*** Beta overridden to {args.beta} ***\n")
 
     outdir = Path(args.outdir) if args.outdir else Path(__file__).parent / "results"
     outdir.mkdir(parents=True, exist_ok=True)

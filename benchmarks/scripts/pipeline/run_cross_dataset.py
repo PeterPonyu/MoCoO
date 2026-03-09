@@ -31,66 +31,22 @@ warnings.filterwarnings("ignore", category=UserWarning, module="matplotlib")
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent.parent.parent))
 
 from mocoo import MoCoO
+from mocoo.configs import load_config, get_shared_params, get_model_configs
+from mocoo.evaluation import compute_clustering_metrics
 from benchmarks.scripts.pipeline.dataset_registry import get_registry
 from benchmarks.scripts.evaluation.compute_batch_metrics import (
     compute_batch_integration,
 )
 
-# Reuse config definitions from main benchmark
-SHARED = dict(
-    latent_dim=32,
-    hidden_dim=128,
-    i_dim=4,
-    lr=1e-4,
-    batch_size=128,
-    beta=1.0,
-    recon=1.0,
-    loss_mode="nb",
-    random_seed=42,
-    train_size=0.7,
-    val_size=0.15,
-    test_size=0.15,
-)
-
-CONFIGS = {
-    "VAE": dict(use_ode=False, use_moco=False, use_prototype=False),
-    "VAE+ODE": dict(
-        use_ode=True, use_moco=False, use_prototype=False,
-        vae_reg=0.6, ode_reg=0.4,
-    ),
-    "VAE+MoCo": dict(
-        use_ode=False, use_moco=True, use_prototype=False,
-        moco_weight=0.5, moco_T=0.2, moco_K=4096,
-    ),
-    "VAE+MoCo+Proto": dict(
-        use_ode=False, use_moco=True, use_prototype=True,
-        n_prototypes=12, moco_weight=0.5, moco_T=0.2, moco_K=4096,
-        proto_weight=0.1,
-    ),
-    "VAE+ODE+MoCo": dict(
-        use_ode=True, use_moco=True, use_prototype=False,
-        vae_reg=0.6, ode_reg=0.4,
-        moco_weight=0.3, moco_T=0.2, moco_K=4096,
-    ),
-    "Full": dict(
-        use_ode=True, use_moco=True, use_prototype=True,
-        n_prototypes=12,
-        vae_reg=0.6, ode_reg=0.4,
-        moco_weight=0.3, moco_T=0.2, moco_K=4096,
-        proto_weight=0.1,
-    ),
-}
+# Load config definitions from centralized YAML
+_cfg = load_config("default")
+SHARED = get_shared_params(_cfg)
+CONFIGS = get_model_configs(_cfg)
 
 
 def run_single(name: str, adata, config: dict, epochs: int,
                patience: int, val_every: int, track_metrics: bool = False):
     """Train one configuration, return metrics dict + latent."""
-    from sklearn.cluster import KMeans
-    from sklearn.metrics import (
-        adjusted_rand_score, normalized_mutual_info_score,
-        silhouette_score, calinski_harabasz_score, davies_bouldin_score,
-    )
-
     params = {**SHARED, **config}
     model = MoCoO(adata, **params)
     model.fit(epochs=epochs, patience=patience, val_every=val_every,
@@ -98,16 +54,15 @@ def run_single(name: str, adata, config: dict, epochs: int,
 
     latent = model.get_latent()
     labels_all = model.labels
-    n_clusters = len(np.unique(labels_all))
 
-    pred = KMeans(n_clusters=n_clusters, n_init=10, random_state=42).fit_predict(latent)
+    clustering = compute_clustering_metrics(latent, labels_all)
     result = {
         "config": name,
-        "ARI": round(adjusted_rand_score(labels_all, pred), 4),
-        "NMI": round(normalized_mutual_info_score(labels_all, pred), 4),
-        "ASW": round(silhouette_score(latent, pred), 4),
-        "CH": round(float(calinski_harabasz_score(latent, pred)), 2),
-        "DB": round(davies_bouldin_score(latent, pred), 4),
+        "ARI": round(clustering["ARI"], 4),
+        "NMI": round(clustering["NMI"], 4),
+        "ASW": round(clustering["ASW"], 4),
+        "CH": round(float(clustering["CAL"]), 2),
+        "DB": round(clustering["DAV"], 4),
         "actual_epochs": model.actual_epochs,
         "train_time_s": round(model.train_time, 1),
     }

@@ -23,40 +23,18 @@ warnings.filterwarnings("ignore", category=UserWarning)
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent.parent.parent))
 from mocoo import MoCoO
+from mocoo.configs import load_config, get_shared_params, get_model_configs
 
-# Same shared params as run_benchmark.py
-SHARED = dict(
-    latent_dim=32,
-    hidden_dim=128,
-    i_dim=4,
-    lr=1e-4,
-    batch_size=128,
-    beta=1.0,
-    recon=1.0,
-    loss_mode="nb",
-    random_seed=42,
-    train_size=0.7,
-    val_size=0.15,
-    test_size=0.15,
-)
+# Load shared params and model configs from the canonical YAML config
+_cfg = load_config("default")
+SHARED = get_shared_params(_cfg)
+_all_configs = get_model_configs(_cfg)
 
-# Only ODE-enabled configs
+# Only ODE-enabled configs (filter to those with use_ode=True)
 ODE_CONFIGS = {
-    "VAE+ODE": dict(
-        use_ode=True, use_moco=False, use_prototype=False,
-        vae_reg=0.6, ode_reg=0.4,
-    ),
-    "VAE+ODE+MoCo": dict(
-        use_ode=True, use_moco=True, use_prototype=False,
-        vae_reg=0.6, ode_reg=0.4,
-        moco_weight=0.3, moco_T=0.2, moco_K=4096,
-    ),
-    "Full": dict(
-        use_ode=True, use_moco=True, use_prototype=True,
-        vae_reg=0.6, ode_reg=0.4,
-        moco_weight=0.3, moco_T=0.2, moco_K=4096,
-        n_prototypes=12,
-    ),
+    name: params
+    for name, params in _all_configs.items()
+    if params.get("use_ode", False)
 }
 
 
