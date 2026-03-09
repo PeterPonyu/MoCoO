@@ -36,27 +36,19 @@ warnings.filterwarnings("ignore", category=UserWarning, module="matplotlib")
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent.parent.parent))
 from benchmarks.scripts.pipeline.visual_conflict_detector import detect_all_conflicts
 from benchmarks.scripts.plotting.shared import setup_fonts, load_benchmark_npz, load_config_metrics, export_subpanels, panel_label
+from mocoo.visualization.style import (
+    FIG_WIDTH_IN, FIG_HEIGHT_IN, DPI, SAVEFIG_KW,
+    FS_LABEL, FS_TITLE, FS_AXIS, FS_TICK, FS_LEGEND, FS_SMALL,
+    apply_style, get_config_order, get_config_colors, get_short_name,
+)
 
 setup_fonts()
+apply_style()
+FS_LEG = FS_LEGEND
 
-# ── Style constants (17 cm × 21 cm) ────────────────────────────────────────
-FIG_W = 17 / 2.54
-FIG_H = 21 / 2.54
-DPI   = 300
-FS_LABEL = 9
-FS_TITLE = 7
-FS_AXIS  = 6
-FS_TICK  = 5
-FS_LEG   = 4.5
-FS_SMALL = 4.5
-
-_CONFIGS  = ["VAE", "VAE+ODE", "VAE+MoCo", "VAE+MoCo+Proto", "VAE+ODE+MoCo", "Full"]
-_PALETTE  = ["#4C72B0", "#DD8452", "#55A868", "#C44E52", "#8172B3", "#937860"]
-_CONFIG_COLOR = dict(zip(_CONFIGS, _PALETTE))
-_SHORT = {
-    "VAE": "VAE", "VAE+ODE": "V+O", "VAE+MoCo": "V+M",
-    "VAE+MoCo+Proto": "V+MP", "VAE+ODE+MoCo": "V+OM", "Full": "Full",
-}
+_CONFIGS = get_config_order()
+_CONFIG_COLOR = get_config_colors()
+_SHORT = {c: get_short_name(c) for c in _CONFIGS}
 
 _DATASETS = ["IRALL", "dentate", "endo"]
 _DS_SHORT = {"IRALL": "IRALL", "dataset_default": "IRALL",
@@ -332,7 +324,7 @@ def build_figure(results_base: Path, outdir: Path):
     cross_data = _load_cross_dataset_metrics(results_base)
 
     # ── Create figure ──
-    fig = plt.figure(figsize=(FIG_W, FIG_H))
+    fig = plt.figure(figsize=(FIG_WIDTH_IN, FIG_HEIGHT_IN))
     gs = gridspec.GridSpec(4, 2, figure=fig, hspace=0.50, wspace=0.35,
                            height_ratios=[1, 0.9, 1.1, 1.1])
 
@@ -383,7 +375,7 @@ def build_figure(results_base: Path, outdir: Path):
     issues = detect_all_conflicts(fig, label="batch_integration", verbose=True)
 
     outpath = outdir / "supp_batch_integration.png"
-    fig.savefig(outpath, dpi=DPI, bbox_inches="tight", pad_inches=0.08)
+    fig.savefig(outpath, **SAVEFIG_KW)
 
     # Export individual panels
     sub_dir = outdir / "fig7_batch_integration"

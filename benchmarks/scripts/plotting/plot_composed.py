@@ -33,34 +33,30 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent.parent.parent))
 
 from benchmarks.scripts.pipeline.visual_conflict_detector import detect_all_conflicts, summarize_issues
 from benchmarks.scripts.plotting.shared import setup_fonts, unify_metric_keys, load_benchmark_npz, load_config_metrics
+from mocoo.visualization.style import (
+    FIG_WIDTH_IN, FIG_HEIGHT_IN, DPI, SAVEFIG_KW,
+    FS_LABEL, FS_TITLE, FS_AXIS, FS_TICK, FS_LEGEND, FS_SMALL,
+    apply_style, get_config_colors, get_short_name,
+)
 
 setup_fonts()
+apply_style()
 
 # ═══════════════════════════════════════════════════════════════════════════════
-# Style constants  (tuned for ~17 × 21 inch composed figure)
+# Style constants — from centralized style module (17 cm × 21 cm)
 # ═══════════════════════════════════════════════════════════════════════════════
-FIG_W, FIG_H = 17, 21        # inches  →  17:21 aspect
-DPI = 300
-FONT_PANEL_LABEL = 16         # (A) (B) …
-FONT_PANEL_TITLE = 12         # panel title
-FONT_AXIS_LABEL  = 10         # axis labels
-FONT_TICK         = 7.5       # tick labels
-FONT_LEGEND       = 7         # legend entries
-FONT_ANNOT        = 6.5       # heatmap cell annotations
+FIG_W, FIG_H = FIG_WIDTH_IN, FIG_HEIGHT_IN  # ~6.693 × 8.268 inches
+FONT_PANEL_LABEL = FS_LABEL    # (A) (B) …
+FONT_PANEL_TITLE = FS_TITLE    # panel title
+FONT_AXIS_LABEL  = FS_AXIS     # axis labels
+FONT_TICK         = FS_TICK    # tick labels
+FONT_LEGEND       = FS_LEGEND  # legend entries
+FONT_ANNOT        = FS_SMALL   # heatmap cell annotations
 
-PALETTE = ["#4C72B0", "#DD8452", "#55A868", "#C44E52", "#8172B3", "#937860"]
-
-CONFIG_SHORT = {
-    "VAE": "VAE",
-    "VAE+ODE": "V+O",
-    "VAE+MoCo": "V+M",
-    "VAE+MoCo+Proto": "V+MP",
-    "VAE+ODE+MoCo": "V+OM",
-    "Full": "Full",
-}
+PALETTE = list(get_config_colors().values())
 
 def _s(cfg):
-    return CONFIG_SHORT.get(str(cfg), str(cfg))
+    return get_short_name(str(cfg))
 
 
 # ═══════════════════════════════════════════════════════════════════════════════

@@ -41,22 +41,20 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent.parent.parent))
 
 from benchmarks.scripts.pipeline.visual_conflict_detector import detect_all_conflicts
 from benchmarks.scripts.plotting.shared import setup_fonts, load_benchmark_npz, export_subpanels, panel_label
+from mocoo.visualization.style import (
+    FIG_WIDTH_IN, FIG_HEIGHT_IN, DPI, SAVEFIG_KW,
+    FS_LABEL, FS_TITLE, FS_AXIS, FS_TICK, FS_LEGEND, FS_SMALL,
+    apply_style,
+)
 
 warnings.filterwarnings("ignore", category=FutureWarning)
 warnings.filterwarnings("ignore", category=UserWarning, module="matplotlib")
 
 setup_fonts()
+apply_style()
 
-# ── Style constants (17 cm x 21 cm figure; max text) ─────────────────────────
-FIG_W = 17 / 2.54   # inches (~ 6.693)
-FIG_H = 21 / 2.54   # inches (~ 8.268)
-DPI = 300
-FS_LABEL = 9      # (A)(B)(C)(D) panel letters
-FS_TITLE = 7      # axes title
-FS_AXIS  = 6      # axis label
-FS_TICK  = 5      # tick label
-FS_LEG   = 4.5    # legend text
-FS_SMALL = 4.5      # gene-name & colorbar annotations
+# ── Style constants (imported from mocoo.visualization.style) ─────────────────
+FS_LEG = FS_LEGEND
 
 # ── Scientific constants ──────────────────────────────────────────────────────
 TOP_COMPS      = 6    # latent dims shown in heatmaps (per config)
@@ -462,7 +460,7 @@ def build_figure(data, adata, outpath: Path):
         X_raw, Z_full[:n_cells], umap_comp_indices, gene_names, top_k=1)
 
     # ── 6. Figure skeleton ────────────────────────────────────────────────
-    fig = plt.figure(figsize=(FIG_W, FIG_H), dpi=DPI)
+    fig = plt.figure(figsize=(FIG_WIDTH_IN, FIG_HEIGHT_IN), dpi=DPI)
 
     outer = gridspec.GridSpec(
         4, 1,
@@ -512,7 +510,7 @@ def build_figure(data, adata, outpath: Path):
     print("\n── Conflict Detection ──")
     issues = detect_all_conflicts(fig, label="bio_validation_abcd", verbose=True)
 
-    fig.savefig(outpath, dpi=DPI, bbox_inches="tight", pad_inches=0.08)
+    fig.savefig(outpath, **SAVEFIG_KW)
 
     # Export individual panel sub-figures
     sub_dir = outpath.parent / "fig3_biological_validation"

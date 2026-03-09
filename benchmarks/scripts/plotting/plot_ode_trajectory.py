@@ -48,22 +48,19 @@ warnings.filterwarnings("ignore", category=UserWarning, module="matplotlib")
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent.parent.parent))
 from benchmarks.scripts.pipeline.visual_conflict_detector import detect_all_conflicts
 from benchmarks.scripts.plotting.shared import setup_fonts, load_benchmark_npz, export_subpanels, panel_label
+from mocoo.visualization.style import (
+    FIG_WIDTH_IN, FIG_HEIGHT_IN, DPI, SAVEFIG_KW,
+    FS_LABEL, FS_TITLE, FS_AXIS, FS_TICK, FS_LEGEND, FS_SMALL,
+    apply_style, get_config_order, get_config_colors, get_short_name,
+)
+
+FS_LEG = FS_LEGEND
 
 setup_fonts()
+apply_style()
 
-FIG_W = 17 / 2.54
-FIG_H = 21 / 2.54
-DPI   = 300
-FS_LABEL = 9
-FS_TITLE = 7
-FS_AXIS  = 6
-FS_TICK  = 5
-FS_LEG   = 4.5
-FS_SMALL = 4.5
-
-_CONFIGS  = ["VAE", "VAE+ODE", "VAE+MoCo", "VAE+MoCo+Proto", "VAE+ODE+MoCo", "Full"]
-_PALETTE  = ["#4C72B0", "#DD8452", "#55A868", "#C44E52", "#8172B3", "#937860"]
-_CONFIG_COLOR = dict(zip(_CONFIGS, _PALETTE))
+_CONFIGS = get_config_order()
+_CONFIG_COLOR = get_config_colors()
 _SCATTER = dict(s=0.8, alpha=0.50, linewidths=0, rasterized=True)
 
 
@@ -333,7 +330,7 @@ def _draw_trajectory_smoothness(gs, fig, configs, latents, labels):
             bars[k].set_edgecolor("#DD8452")
             bars[k].set_linewidth(1.3)
     ax_ent.set_xticks(x)
-    ax_ent.set_xticklabels([c.replace("VAE+ODE+MoCo","V+OM").replace("VAE+MoCo+Proto","V+MP").replace("VAE+MoCo","V+M").replace("VAE+ODE","V+O").replace("VAE","VAE") for c in configs],
+    ax_ent.set_xticklabels([get_short_name(c) for c in configs],
                             fontsize=FS_TICK, rotation=30, ha="right")
     ax_ent.set_ylabel("kNN entropy", fontsize=FS_AXIS)
     ax_ent.set_title("kNN Entropy", fontsize=FS_TITLE, pad=3)
@@ -365,7 +362,7 @@ def _draw_trajectory_smoothness(gs, fig, configs, latents, labels):
 def build_figure(rdir: Path, outdir: Path, adata_path: str):
     configs, latents, labels = _load_data(rdir)
 
-    fig = plt.figure(figsize=(FIG_W, FIG_H), dpi=DPI)
+    fig = plt.figure(figsize=(FIG_WIDTH_IN, FIG_HEIGHT_IN), dpi=DPI)
     outer = gridspec.GridSpec(
         4, 1,
         height_ratios=[4.0, 2.5, 2.8, 2.5],
@@ -413,7 +410,7 @@ def build_figure(rdir: Path, outdir: Path, adata_path: str):
     issues = detect_all_conflicts(fig, label="ode_trajectory", verbose=True)
 
     outpath = outdir / "supp_ode_trajectory.png"
-    fig.savefig(outpath, dpi=DPI, bbox_inches="tight", pad_inches=0.08)
+    fig.savefig(outpath, **SAVEFIG_KW)
 
     # Export individual panel sub-figures
     sub_dir = outdir / "fig6_ode_trajectory"

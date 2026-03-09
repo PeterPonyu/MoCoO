@@ -21,8 +21,13 @@ import numpy as np
 import sys
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent.parent.parent))
 from benchmarks.scripts.plotting.shared import setup_fonts, panel_label
+from mocoo.visualization.style import (
+    FIG_WIDTH_IN, FIG_HEIGHT_IN, DPI, SAVEFIG_KW,
+    FS_LABEL, FS_TITLE, FS_AXIS, FS_TICK, FS_LEGEND, FS_SMALL,
+    apply_style, get_config_order, get_config_colors, get_short_name,
+)
 
-CONFIGS = ["VAE", "VAE+ODE", "VAE+MoCo", "VAE+MoCo+Proto", "VAE+ODE+MoCo", "Full"]
+CONFIGS = get_config_order()
 
 # Metric families with (key, label, higher_is_better)
 PANELS = {
@@ -70,14 +75,7 @@ PANELS = {
     ],
 }
 
-SHORT_NAMES = {
-    "VAE": "VAE",
-    "VAE+ODE": "V+ODE",
-    "VAE+MoCo": "V+MoCo",
-    "VAE+MoCo+Proto": "V+M+P",
-    "VAE+ODE+MoCo": "V+O+M",
-    "Full": "Full",
-}
+SHORT_NAMES = {c: get_short_name(c) for c in CONFIGS}
 
 
 def load_metrics(rdir: Path) -> dict:
@@ -92,6 +90,7 @@ def load_metrics(rdir: Path) -> dict:
 
 
 def make_heatmap(ax, data, panel_name, metrics_spec, configs):
+    """Draw a column-normalised heatmap and return per-config win counts."""
     n_cfg = len(configs)
     n_met = len(metrics_spec)
 
@@ -114,16 +113,31 @@ def make_heatmap(ax, data, panel_name, metrics_spec, configs):
         if not higher_better:
             norm_mat[:, j] = 1.0 - norm_mat[:, j]
 
-    im = ax.imshow(norm_mat, aspect="auto", cmap="RdYlGn", vmin=0, vmax=1)
+    im = ax.imshow(norm_mat, aspect="auto", cmap="YlOrRd", vmin=0, vmax=1)
 
-    # Annotate with raw values and bold the best
+    # Track wins per config
+    wins = np.zeros(n_cfg, dtype=int)
+
+    # Annotate with raw values, bold the best, add rank superscript
     for j, (_, _, higher_better) in enumerate(metrics_spec):
         col = mat[:, j]
         valid = ~np.isnan(col)
         if valid.any():
             best_idx = np.nanargmax(col) if higher_better else np.nanargmin(col)
+            wins[best_idx] += 1
+            # Compute ranks for this column
+            valid_vals = col[valid]
+            if higher_better:
+                order = np.argsort(-valid_vals)
+            else:
+                order = np.argsort(valid_vals)
+            ranks = np.zeros(len(valid_vals), dtype=int)
+            ranks[order] = np.arange(1, len(valid_vals) + 1)
+            valid_indices = np.where(valid)[0]
         else:
             best_idx = -1
+            valid_indices = np.array([], dtype=int)
+            ranks = np.array([], dtype=int)
 
         for i in range(n_cfg):
             val = mat[i, j]
@@ -133,15 +147,22 @@ def make_heatmap(ax, data, panel_name, metrics_spec, configs):
             txt = f"{val:.0f}" if abs(val) > 10 else f"{val:.3f}"
             weight = "bold" if i == best_idx else "normal"
             color = "white" if norm_mat[i, j] < 0.3 or norm_mat[i, j] > 0.85 else "black"
+            # Add rank as superscript
+            rank_idx = np.where(valid_indices == i)[0]
+            if len(rank_idx) > 0:
+                rank = ranks[rank_idx[0]]
+                txt = f"{txt} ⁽{rank}⁾"
             ax.text(j, i, txt, ha="center", va="center",
-                    fontsize=6.5, fontweight=weight, color=color)
+                    fontsize=FS_SMALL, fontweight=weight, color=color)
 
     ax.set_xticks(range(n_met))
-    ax.set_xticklabels([m[1] for m in metrics_spec], fontsize=7, rotation=45, ha="right")
+    ax.set_xticklabels([m[1] for m in metrics_spec], fontsize=FS_TICK, rotation=45, ha="right")
     ax.set_yticks(range(n_cfg))
-    ax.set_yticklabels([SHORT_NAMES.get(c, c) for c in configs], fontsize=7)
-    ax.set_title(panel_name, fontsize=9, fontweight="bold", pad=4)
-    return im
+    # Append win count to y-labels
+    ylabels = [f"{SHORT_NAMES.get(c, c)} [{wins[i]}W]" for i, c in enumerate(configs)]
+    ax.set_yticklabels(ylabels, fontsize=FS_TICK)
+    ax.set_title(panel_name, fontsize=FS_TITLE, fontweight="bold", pad=4)
+    return im, wins
 
 
 def main():
@@ -157,6 +178,7 @@ def main():
     outdir.mkdir(parents=True, exist_ok=True)
 
     setup_fonts()
+    apply_style()
 
     data = load_metrics(rdir)
     if not data:
@@ -166,20 +188,27 @@ def main():
     panel_names = list(PANELS.keys())
     n_panels = len(panel_names)
 
-    fig, axes = plt.subplots(n_panels, 1, figsize=(10, 3.0 * n_panels),
+    fig, axes = plt.subplots(n_panels, 1, figsize=(FIG_WIDTH_IN, 3.0 * n_panels),
                               gridspec_kw={"hspace": 0.45})
 
     letters = "ABCDE"
+    total_wins = np.zeros(len(CONFIGS), dtype=int)
     for idx, (pname, metrics_spec) in enumerate(PANELS.items()):
         ax = axes[idx]
-        make_heatmap(ax, data, pname, metrics_spec, CONFIGS)
+        _, wins = make_heatmap(ax, data, pname, metrics_spec, CONFIGS)
+        total_wins += wins
         panel_label(fig, ax, letters[idx], x_off=-0.02, y_off=0.008)
 
-    fig.suptitle("Subcategory Metric Breakdown ($\\beta = 0.1$, IRALL, 3000 cells)",
-                 fontsize=11, fontweight="bold", y=0.995)
+    # Print win summary
+    print("Win counts per config (across all panels):")
+    for i, cfg in enumerate(CONFIGS):
+        print(f"  {cfg}: {total_wins[i]} wins")
 
-    out_path = outdir / "supp_subcategory_heatmap.png"
-    fig.savefig(out_path, dpi=300, bbox_inches="tight", facecolor="white")
+    fig.suptitle("Subcategory Metric Breakdown ($\\beta = 0.1$, IRALL, 3000 cells)",
+                 fontsize=FS_LABEL, fontweight="bold", y=0.995)
+
+    out_path = outdir / "fig5_subcategory_heatmap.png"
+    fig.savefig(out_path, **SAVEFIG_KW, facecolor="white")
     plt.close(fig)
     print(f"Saved: {out_path}")
 
