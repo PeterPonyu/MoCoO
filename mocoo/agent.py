@@ -268,7 +268,11 @@ class MoCoO(Env, VectorFieldMixin):
     def get_latent(self) -> np.ndarray:
         """Extract latent representations."""
         return self.take_latent(self.X)
-    
+
+    def get_latent_qm(self) -> np.ndarray:
+        """Extract latent representations using deterministic posterior mean."""
+        return self.take_latent(self.X, use_qm=True)
+
     def get_bottleneck(self) -> np.ndarray:
         """Extract bottleneck representations."""
         return self.take_bottleneck(self.X)

@@ -46,7 +46,7 @@
 \maketitle
 
 \begin{abstract}
-Learning biologically faithful low-dimensional representations from single-cell RNA sequencing (scRNA-seq) data requires models that simultaneously preserve discrete cell-type identity and continuous developmental dynamics. We present \MoCoO, a modular framework that integrates a Variational Autoencoder (VAE), Neural Ordinary Differential Equations (Neural ODE), and Momentum Contrast (MoCo) with learnable prototypes for robust trajectory inference and representation learning. Through a systematic six-configuration ablation on the IRALL hematopoiesis dataset with a KL weight sweep ($\beta \in \{1.0, 0.1, 0.01\}$), we investigate the standalone power and synergistic interactions of each component. Key findings: (1)~\textbf{MoCo has beta-dependent standalone power}---contrastive learning improves ARI (Adjusted Rand Index) by $+0.054$ and ASW (Average Silhouette Width) by $+0.018$ at $\beta = 0.1$ but is ineffective at extreme $\beta$; (2)~\textbf{ODE and MoCo exhibit super-additive synergy}---the interaction term for ARI is consistently positive ($+0.103$, $+0.012$, $+0.131$ across betas) and DB (Davies--Bouldin index; lower is better) decreases (improves) by up to $0.398$ super-additively; (3)~\textbf{prototypes improve cluster compactness} (DB reduced by $0.120$--$0.223$ at $\beta \leq 0.1$) and embedding fidelity (DRE, Density-Reweighted co-Embedding, $+0.138$ at $\beta = 0.01$). The Full model achieves the best DRE ($0.468$) at $\beta = 0.01$ and competitive clustering across settings. Pseudotime--marker correlations are biologically significant across five systems: \textit{Hbb-bs} ($\rho = 0.28$) in IRALL, \textit{Slc1a3} ($\rho = 0.54$) in dentate, \textit{Ins2} ($\rho = 0.46$) in endo, \textit{Epor} ($\rho = 0.35$) in paul, and \textit{MKI67} ($\rho = 0.49$) in spinoids. We publicly release the MoCoO Python package and benchmark suite.
+Learning biologically faithful low-dimensional representations from single-cell RNA sequencing (scRNA-seq) data requires models that simultaneously preserve discrete cell-type identity and continuous developmental dynamics. We present \MoCoO, a modular framework that integrates a Variational Autoencoder (VAE), Neural Ordinary Differential Equations (Neural ODE), and Momentum Contrast (MoCo) with learnable prototypes for robust trajectory inference and representation learning. Through a systematic six-configuration ablation on the IRALL hematopoiesis dataset (3{,}000 cells, 200 epochs) with a KL weight sweep ($\beta \in \{1.0, 0.1, 0.01\}$), we investigate the standalone power and synergistic interactions of each component. Key findings: (1)~\textbf{ODE is the dominant component}---it consistently reduces Davies--Bouldin index (DB; lower is better) by $0.28$--$0.62$ across all $\beta$, winning 13 of 27 metric--$\beta$ combinations; (2)~\textbf{MoCo has beta-dependent standalone power}---contrastive learning improves ARI by $+0.039$ at $\beta = 0.01$ and DREX by $+0.006$ at $\beta \leq 0.1$, but is ineffective at strong KL; (3)~\textbf{ODE and MoCo exhibit regime-dependent synergy}---the interaction term for DB reaches $-0.129$ at $\beta = 0.01$ (super-additive compactness), with DRE ($+0.031$) and DREX ($+0.030$) synergies confirming improved embedding fidelity at low $\beta$; (4)~\textbf{the Full model achieves the best distance preservation} across configurations, with the highest DRE at $\beta = 0.01$ ($0.518$) and strongest pairwise distance correlations (DREX Spearman up to $0.72$). Subcategory analysis reveals that while VAE+ODE dominates aggregate clustering metrics, the Full model uniquely excels at geometric fidelity of the learned representation. Pseudotime--marker correlations are biologically significant across five systems: \textit{Hbb-bs} ($\rho = 0.28$) in IRALL, \textit{Slc1a3} ($\rho = 0.54$) in dentate, \textit{Ins2} ($\rho = 0.46$) in endo, \textit{Epor} ($\rho = 0.35$) in paul, and \textit{MKI67} ($\rho = 0.49$) in spinoids. We publicly release the MoCoO Python package and benchmark suite.
 \end{abstract}
 
 \begin{IEEEkeywords}
@@ -613,19 +613,19 @@ In all five systems, pseudotime--marker correlations are highly significant ($p 
 \subsection{Training Dynamics}
 \label{sec:results:training}
 
-All configurations converge within 50 epochs at 1{,}000 cells (Fig.~\ref{fig:training_dynamics}). At this compact scale, the VAE trains in ${\sim}2$\,s, MoCo-augmented models in ${\sim}3$\,s, and ODE-containing models in ${\sim}23$\,s (the ODE solver dominates wall-clock time). The computational overhead remains the primary cost of ODE integration (approximately 10$\times$ over the VAE baseline). All configurations train stably without divergence at all three beta settings.
+All configurations converge within 200 epochs (patience 40) at 3{,}000 cells (Fig.~\ref{fig:training_dynamics}). The VAE trains in ${\sim}27$\,s, MoCo-augmented models in ${\sim}35$\,s, and ODE-containing models in ${\sim}400$\,s (the ODE solver dominates wall-clock time). The computational overhead remains the primary cost of ODE integration (approximately 10--15$\times$ over the VAE baseline). All configurations train stably without divergence at all three beta settings.
 
 \begin{figure*}[!t]
     \centering
     \includegraphics[width=\textwidth,height=0.42\textheight,keepaspectratio]{fig4_training_dynamics}
-    \caption{Training dynamics and computational efficiency across all six configurations ($\beta = 0.1$, IRALL, 1{,}000 cells). \textbf{(A)}~Training and validation ELBO loss curves showing convergence within 50 epochs; all configurations converge stably with ODE models reaching comparable loss despite higher initial values. \textbf{(B)}~Efficiency scatter: validation ARI vs.\ training time, with bubble size proportional to peak GPU memory. VAE achieves the highest ARI at the lowest cost; ODE-containing models require ${\sim}10\!\times$ more time for comparable clustering quality. The Pareto frontier highlights the accuracy--efficiency trade-off.}
+    \caption{Training dynamics and computational efficiency across all six configurations ($\beta = 0.1$, IRALL, 3{,}000 cells). \textbf{(A)}~Training and validation ELBO loss curves showing convergence within 200 epochs (patience 40); all configurations converge stably with ODE models reaching comparable loss despite higher initial values. \textbf{(B)}~Efficiency scatter: validation ARI vs.\ training time, with bubble size proportional to peak GPU memory. VAE achieves the highest ARI at the lowest cost; ODE-containing models require ${\sim}10\!\times$ more time for comparable clustering quality. The Pareto frontier highlights the accuracy--efficiency trade-off.}
     \label{fig:training_dynamics}
 \end{figure*}
 
 \subsection{Batch Integration}
 \label{sec:results:batch}
 
-On IRALL (8 batches, d0--d30) at larger scale (3{,}000 cells, 200 epochs), ODE-containing configurations achieve better batch mixing (iLISI up to 0.175) while non-ODE configurations achieve stronger biological conservation. Batch integration analysis is deferred to the full-scale evaluation; the 1{,}000-cell beta sweep focuses on component interaction analysis.
+On IRALL (8 batches, d0--d30) at 3{,}000 cells and 200 epochs, ODE-containing configurations achieve better batch mixing (iLISI up to 0.175) while non-ODE configurations achieve stronger biological conservation. Full batch integration analysis is provided in the supplementary materials; the beta sweep focuses on component interaction analysis.
 
 %% ============================================================
 \section{Discussion}
@@ -638,49 +638,59 @@ On IRALL (8 batches, d0--d30) at larger scale (3{,}000 cells, 200 epochs), ODE-c
 A critical question is whether MoCo provides independent representational value beyond the VAE backbone. The beta sweep reveals that \textbf{MoCo's standalone effect is beta-dependent}:
 
 \begin{itemize}
-    \item At $\beta = 0.1$ (moderate KL), MoCo provides clear improvement: $\Delta$ARI $= +0.054$, $\Delta$ASW $= +0.018$, $\Delta$NMI $= +0.008$. This is the \textit{sweet spot} where contrastive learning has room to organise the latent space without being overridden by strong KL regularisation.
-    \item At $\beta = 1.0$ (strong KL), MoCo \textit{hurts}: $\Delta$ARI $= -0.083$, $\Delta$ASW $= -0.008$. The KL term dominates, pushing all representations toward the prior, and the contrastive gradient conflicts with this collapse.
-    \item At $\beta = 0.01$ (weak KL), MoCo again hurts: $\Delta$ARI $= -0.134$, $\Delta$ASW $= -0.009$. With near-zero KL, the encoder has too much freedom, and the contrastive forces fragment the representation without the stabilising influence of the KL prior.
+    \item At $\beta = 0.01$ (weak KL), MoCo provides its \textit{strongest} improvement: $\Delta$ARI $= +0.039$, $\Delta$DREX $= +0.006$. With near-zero KL, the contrastive gradient has room to organise the latent space, and instance discrimination compensates for the absent prior structure.
+    \item At $\beta = 0.1$ (moderate KL), MoCo has a marginal effect on core clustering: $\Delta$ARI $= -0.019$, $\Delta$ASW $= -0.001$, but contributes positive DREX ($+0.006$), indicating improved embedding fidelity that is not captured by cluster-level metrics.
+    \item At $\beta = 1.0$ (strong KL), MoCo hurts: $\Delta$ARI $= -0.021$, $\Delta$ASW $= +0.008$. The KL term dominates, pushing all representations toward the prior, and the contrastive gradient conflicts with this regularisation.
 \end{itemize}
 
-This reveals an important design principle: contrastive learning in VAE hybrids requires an intermediate $\beta$ to be effective. The latent space must be structured enough (by KL) to provide meaningful distances for contrastive comparison, but flexible enough to benefit from the additional instance-level discrimination.
+This reveals an important design principle: contrastive learning in VAE hybrids requires a sufficiently \textit{weak} KL constraint ($\beta \leq 0.1$) for its instance-level discrimination to manifest. At low $\beta$, MoCo fills the role that KL regularisation cannot---providing structure through pairwise similarity rather than prior matching.
 
-\subsection{Prototype Effect: Cluster Compactness via DB}
+\subsection{Prototype Effect: Cluster Compactness and ARI}
 \label{sec:discussion:proto}
 
-The prototype contrastive loss (VAE+MoCo $\to$ VAE+MoCo+Proto) shows a weak effect on ARI ($\Delta$ARI ranges from $-0.057$ to $+0.002$ across beta values) but a \textbf{consistently strong effect on Davies--Bouldin} cluster compactness:
+The prototype contrastive loss (VAE+MoCo $\to$ VAE+MoCo+Proto) shows a \textbf{beta-dependent effect on ARI}: $\Delta$ARI $= +0.048$ at $\beta = 1.0$, but $-0.039$ at $\beta = 0.1$ and $-0.060$ at $\beta = 0.01$. Its effect on Davies--Bouldin is mixed:
 
 \begin{itemize}
-    \item $\beta = 0.1$: $\Delta$DB $= -0.120$ (better compactness)
-    \item $\beta = 0.01$: $\Delta$DB $= -0.223$ (strong improvement)
+    \item $\beta = 1.0$: $\Delta$DB $= -0.029$ (marginal improvement)
+    \item $\beta = 0.1$: $\Delta$DB $= +0.113$ (worsens compactness)
+    \item $\beta = 0.01$: $\Delta$DB $= +0.118$ (worsens compactness)
 \end{itemize}
 
-At $\beta = 0.01$, prototypes also provide a large DRE boost ($\Delta$DRE $= +0.138$), suggesting that prototype alignment produces embeddings that project well into 2D. The prototype effect is strongest when the KL constraint is weak, consistent with the interpretation that learnable prototypes serve as \textit{soft cluster centres} that compensate for the absent KL regularisation.
+Prototypes provide a small DRE boost at $\beta \leq 0.1$ ($\Delta$DRE $= +0.015$ at $\beta = 0.1$, $+0.006$ at $\beta = 0.01$), and their ARI contribution is strongest at $\beta = 1.0$ ($+0.048$), where the strong KL prior benefits from explicit cluster anchoring. At low $\beta$, the prototype loss competes with the greater latent freedom, explaining the negative ARI and DB deltas.
 
 \subsection{ODE \texorpdfstring{$\times$}{x} MoCo Synergy: Super-Additive Interaction}
 \label{sec:discussion:synergy}
 
-The interaction term analysis (Table~\ref{tab:synergy}) reveals \textbf{genuine super-additive synergy} between ODE and MoCo:
+The interaction term analysis (Table~\ref{tab:synergy}) reveals \textbf{regime-dependent synergy} between ODE and MoCo:
 
 \begin{itemize}
-    \item \textbf{ARI synergy}: consistently positive across all betas ($+0.103$, $+0.012$, $+0.131$). When ODE and MoCo are combined, they recover cluster structure that neither achieves alone.
-    \item \textbf{DB synergy}: $-0.257$ ($\beta = 0.1$), $-0.398$ ($\beta = 0.01$). The combination produces dramatically more compact clusters than the sum of individual effects.
-    \item \textbf{DRE synergy}: $+0.016$, $+0.031$, $+0.133$. Embedding fidelity improves super-additively, especially at low $\beta$.
+    \item \textbf{ARI synergy}: weakly positive at $\beta \geq 0.1$ ($+0.016$, $+0.017$) but negative at $\beta = 0.01$ ($-0.027$). The components cooperate at moderate KL but compete at low KL, where each claims different structural axes.
+    \item \textbf{DB synergy}: the strongest signal is at $\beta = 0.01$ ($-0.129$, a large improvement), indicating the combination produces more compact clusters than the sum of individual effects when the latent space is unconstrained.
+    \item \textbf{DRE/DREX synergy}: $+0.031$ / $+0.030$ at $\beta = 0.01$. Embedding fidelity improves super-additively at low $\beta$.
 \end{itemize}
 
 The mechanism for this synergy is that \textbf{ODE provides trajectory-aligned geometry while MoCo provides instance-level discrimination}. The ODE smooths the latent space along developmental trajectories, creating a low-dimensional manifold structure. MoCo then sharpens boundaries between cell types along this manifold, achieving cluster separation that would be impossible with either component alone.
 
-This synergy is strongest at extreme $\beta$ values, where individual components struggle but their combination compensates: at $\beta = 1.0$, ODE and MoCo individually hurt ARI but together achieve $+0.103$ super-additive gain. At $\beta = 0.01$, the synergy is even stronger ($+0.131$ ARI, $-0.398$ DB, $+0.133$ DRE).
+The DB synergy pattern is notable: harmful at $\beta = 1.0$ ($+0.210$), neutral at $\beta = 0.1$ ($-0.003$), and strongly positive at $\beta = 0.01$ ($-0.129$). This indicates the ODE$\times$MoCo interaction for cluster compactness requires sufficient latent freedom ($\beta \leq 0.01$) to manifest.
 
 \subsection{Beta Sensitivity and Practical Implications}
 \label{sec:discussion:beta}
 
 The Full model's performance improves monotonically on most geometric metrics as $\beta$ decreases (Table~\ref{tab:beta_full}): ARI, ASW, CH, DRE, and DREX all improve from $\beta = 1.0$ to $\beta = 0.01$. Only spectral metrics (LSE, LSEX) favor strong KL. This suggests that the standard $\beta = 1.0$ over-regularises the latent space for multi-component models, and practitioners should use $\beta \leq 0.1$ when deploying the Full MoCoO.
 
-\subsection{VAE Dominance at Low Data/Epoch Regimes}
+\subsection{Component Dominance and Full Model Strengths}
 \label{sec:discussion:vae}
 
-The VAE achieves the most metric wins overall (12/27), reflecting its efficiency: with 1{,}000 cells and 50 epochs, the simpler model converges faster and avoids over-fitting. More complex models (ODE, MoCo, Proto) require more data and training to realise their potential. At 3{,}000 cells and 200 epochs (Figs.~\ref{fig:quant_comparison} and~\ref{fig:composed_benchmark}), the Full model wins on ASW, DB, NMI, and LSEX, while VAE+ODE+MoCo wins on CH, DRE, DREX. The advantage of multi-component architectures is expected to increase with dataset size and training budget.
+At 3{,}000 cells and 200 epochs, VAE+ODE achieves the most metric wins overall (13/27 metric--$\beta$ combinations in Table~\ref{tab:win_matrix}), reflecting the strong regularising effect of Neural ODE on the latent space. The VAE alone wins only 1/27 at full training scale, indicating that additional components are necessary.
+
+While VAE+ODE dominates aggregate metrics, \textbf{the Full model achieves the best distance preservation}---a critical property for downstream visualisation and trajectory analysis. Specifically, the Full model produces the highest DRE distance correlations (UMAP: $0.660$ vs.\ $0.596$ for VAE+ODE; tSNE: $0.725$ vs.\ $0.635$), the highest DREX distance Spearman ($0.716$ vs.\ $0.639$), and the highest Calinski--Harabasz index ($433$ vs.\ $373$). These subcategory advantages, hidden in overall aggregates, indicate that the combination of all components produces latent spaces with the strongest \textit{geometric fidelity}---pairwise distances in the latent space are most faithfully reflected in 2D projections. A detailed subcategory breakdown is provided in Fig.~\ref{fig:subcategory_heatmap}.
+
+\begin{figure*}[!t]
+    \centering
+    \includegraphics[width=\textwidth,height=0.82\textheight,keepaspectratio]{supp_subcategory_heatmap}
+    \caption{Subcategory metric breakdown across all six configurations ($\beta = 0.1$, IRALL, 3{,}000 cells). Each panel shows one metric family, with values column-normalised (green = best, red = worst). Bold values indicate the best configuration per metric. \textbf{(A)}~Clustering: core label-matching metrics. \textbf{(B)}~DRE: dimensionality reduction quality (latent$\to$2D). \textbf{(C)}~DREX: extended DR metrics including distance correlations and rank preservation. \textbf{(D)}~LSE: latent space spectral properties. \textbf{(E)}~LSEX: extended latent metrics including cluster compactness, neighbor purity, sampling stability, and inter-cluster gap. The Full model achieves best scores on distance correlations (B, C) and competitive latent structure (E), while VAE+ODE dominates core clustering (A).}
+    \label{fig:subcategory_heatmap}
+\end{figure*}
 
 \subsection{Component Contributions --- Summary}
 \label{sec:discussion:summary}
@@ -697,10 +707,11 @@ The primary effect, best operating regime, and key metrics improved by each comp
         \toprule
         Component & Primary Effect & Best $\beta$ & Key Metrics Improved \\
         \midrule
-        \textbf{ODE}          & Trajectory geometry       & All              & CH, LSEX \\
-        \textbf{MoCo}         & Instance discrimination   & $\mathbf{\beta{=}0.1}$ & ARI, ASW, NMI \\
-        \textbf{Proto}        & Cluster compactness       & $\beta{\leq}0.1$ & DB, DRE \\
-        \textbf{ODE$\times$MoCo} & Super-additive synergy & $\beta{=}0.01$   & ARI, DB, DRE, DREX \\
+        \textbf{ODE}          & Trajectory geometry       & All              & DB, CH, ARI \\
+        \textbf{MoCo}         & Instance discrimination   & $\mathbf{\beta{=}0.01}$ & ARI, DREX \\
+        \textbf{Proto}        & Cluster anchoring         & $\beta{=}1.0$    & ARI, DRE \\
+        \textbf{ODE$\times$MoCo} & Regime-dependent synergy & $\beta{=}0.01$   & DB, DRE, DREX \\
+        \textbf{Full}         & Distance preservation     & $\beta{\leq}0.1$ & DRE dist.\ corr., DREX Spearman, CAL \\
         \bottomrule
     \end{tabular}%
     }
@@ -710,12 +721,10 @@ The primary effect, best operating regime, and key metrics improved by each comp
 \label{sec:discussion:limitations}
 
 \begin{enumerate}
-    \item \textbf{Low-data regime:} 1{,}000 cells / 50 epochs may underestimate multi-component model performance. Larger-scale evaluation is needed.
     \item \textbf{Single dataset for beta sweep:} Only IRALL was tested. Beta sensitivity may differ across datasets.
     \item \textbf{Single-seed evaluation:} Results are from single training runs; multi-seed evaluation with standard deviations is needed.
     \item \textbf{No external baselines:} Comparison with scVI, scVelo, Harmony is needed to contextualise absolute performance.
-    \item \textbf{Stochastic variation:} At 1{,}000 cells, subsampling variance may dominate component effects. The observed differences should be interpreted as trends rather than definitive magnitudes.
-    \item \textbf{Clustering metric limitations:} ARI depends on KMeans, which is suboptimal for trajectory-shaped manifolds.
+    \item \textbf{Clustering metric limitations:} ARI depends on KMeans, which is suboptimal for trajectory-shaped manifolds. Aggregate ``overall quality'' scores may mask subcategory-level advantages.
 \end{enumerate}
 
 \begin{figure*}[!t]
@@ -730,15 +739,15 @@ The primary effect, best operating regime, and key metrics improved by each comp
 \label{sec:conclusion}
 %% ============================================================
 
-MoCoO provides a modular framework for single-cell representation learning that combines reconstruction fidelity (VAE), continuous dynamics (Neural ODE), and contrastive structure (MoCo + prototypes). A systematic beta-sweep ablation on IRALL (1{,}000 cells, 50 epochs, $\beta \in \{1.0, 0.1, 0.01\}$) answers three key questions about component interactions:
+MoCoO provides a modular framework for single-cell representation learning that combines reconstruction fidelity (VAE), continuous dynamics (Neural ODE), and contrastive structure (MoCo + prototypes). A systematic beta-sweep ablation on IRALL (3{,}000 cells, 200 epochs, $\beta \in \{1.0, 0.1, 0.01\}$) answers three key questions about component interactions:
 
-\textbf{1. MoCo has beta-dependent standalone power.} At $\beta = 0.1$, MoCo improves ARI by $+0.054$ and ASW by $+0.018$ over the VAE baseline---contrastive learning is most effective at moderate KL regularisation where the latent space offers both structure and flexibility.
+\textbf{1. ODE is the dominant component.} Neural ODE consistently reduces DB by $0.28$--$0.62$ across all $\beta$ settings and wins 13/27 metric--$\beta$ combinations (Table~\ref{tab:win_matrix}). Its trajectory regularisation produces the most reliably improved latent spaces.
 
-\textbf{2. ODE and MoCo exhibit super-additive synergy.} The interaction term is consistently positive for ARI ($+0.103$, $+0.012$, $+0.131$ across betas), and strongly negative for DB ($-0.257$, $-0.398$ at low $\beta$), indicating that ODE trajectory geometry and MoCo instance discrimination jointly produce cluster structures unattainable by either alone.
+\textbf{2. MoCo has beta-dependent standalone power.} At $\beta = 0.01$, MoCo improves ARI by $+0.039$ and DREX by $+0.006$ over the VAE baseline---contrastive learning is most effective when the KL constraint is weak, allowing instance discrimination to organise the latent space.
 
-\textbf{3. Prototypes improve cluster compactness.} Proto reduces DB by $0.120$--$0.223$ at $\beta \leq 0.1$ and boosts DRE by $+0.138$ at $\beta = 0.01$, acting as soft cluster centres that compensate for weak KL.
+\textbf{3. ODE and MoCo exhibit regime-dependent synergy.} The interaction term for DB reaches $-0.129$ at $\beta = 0.01$ (super-additive compactness), with DRE ($+0.031$) and DREX ($+0.030$) synergies confirming improved embedding fidelity. ARI synergy is weakly positive at $\beta \geq 0.1$ ($+0.016$--$0.017$) but turns negative at $\beta = 0.01$.
 
-The Full MoCoO achieves the best DRE (embedding fidelity) at $\beta = 0.01$ (DRE $= 0.468$, highest of any configuration at any beta) and competitive DB (cluster compactness: 3.116 at $\beta = 1.0$). Lower $\beta$ improves nearly all geometric metrics for the Full model. Across all settings, pseudotime--marker gene correlations remain biologically significant: \textit{Hbb-bs} ($\rho = 0.28$) in hematopoiesis, \textit{Slc1a3} ($\rho = 0.54$) in neurogenesis, \textit{Ins2} ($\rho = 0.46$) in endocrine pancreas, \textit{Epor} ($\rho = 0.35$) in myeloid/erythroid progenitors, and \textit{MKI67} ($\rho = 0.49$) in spinal cord organoids. The modular design enables practitioners to select configuration and $\beta$ based on their analysis goal, and the public release of MoCoO enables reproducible evaluation and community extension.
+The Full MoCoO achieves the best \textbf{distance preservation} across all configurations: highest DRE at $\beta = 0.01$ ($0.518$), strongest pairwise distance correlations (DREX Spearman up to $0.72$), and highest Calinski--Harabasz index. While VAE+ODE dominates aggregate clustering metrics, subcategory analysis reveals the Full model uniquely excels at geometric fidelity---the property most critical for faithful 2D visualisation and trajectory inference. Across all settings, pseudotime--marker gene correlations remain biologically significant: \textit{Hbb-bs} ($\rho = 0.28$) in hematopoiesis, \textit{Slc1a3} ($\rho = 0.54$) in neurogenesis, \textit{Ins2} ($\rho = 0.46$) in endocrine pancreas, \textit{Epor} ($\rho = 0.35$) in myeloid/erythroid progenitors, and \textit{MKI67} ($\rho = 0.49$) in spinal cord organoids. The modular design enables practitioners to select configuration and $\beta$ based on their analysis goal, and the public release of MoCoO enables reproducible evaluation and community extension.
 
 %% ============================================================
 %% Required Sections (IEEE)

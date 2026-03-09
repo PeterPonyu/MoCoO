@@ -261,6 +261,7 @@ class TestDREX:
             "DREX_distance_pearson",
             "DREX_local_scale_quality",
             "DREX_neighborhood_symmetry",
+            "DREX_knn_rank_correlation",
             "DREX_overall_quality",
         ):
             assert key in result, f"Missing key: {key}"
@@ -276,9 +277,14 @@ class TestLSEX:
     def setup_method(self):
         np.random.seed(42)
         self.latent = np.random.randn(200, 32).astype(np.float32)
+        self.labels = np.repeat(np.arange(5), 40)
 
     def test_returns_dict(self):
         result = compute_lsex_metrics(self.latent)
+        assert isinstance(result, dict)
+
+    def test_returns_dict_with_labels(self):
+        result = compute_lsex_metrics(self.latent, labels=self.labels)
         assert isinstance(result, dict)
 
     def test_expected_keys(self):
@@ -287,10 +293,17 @@ class TestLSEX:
             "LSEX_two_hop_connectivity",
             "LSEX_radial_concentration",
             "LSEX_local_curvature",
-            "LSEX_entropy_stability",
+            "LSEX_cluster_compactness",
+            "LSEX_neighbor_purity",
+            "LSEX_sampling_stability",
+            "LSEX_inter_cluster_gap",
             "LSEX_overall_quality",
         ):
             assert key in result, f"Missing key: {key}"
+
+    def test_no_entropy_stability(self):
+        result = compute_lsex_metrics(self.latent)
+        assert "LSEX_entropy_stability" not in result
 
 
 class TestDiagnostics:

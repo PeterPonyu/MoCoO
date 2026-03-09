@@ -86,16 +86,17 @@ class MoCoOModel(scviMixin, dipMixin, betatcMixin, infoMixin):
         return (1.0 - cosine_sim).mean()
     
     @torch.no_grad()
-    def take_latent(self, state):
+    def take_latent(self, state, use_qm=None):
         state = torch.tensor(state, dtype=torch.float).to(self.device)
-        
+        effective_qm = use_qm if use_qm is not None else self.use_qm
+
         if self.use_ode:
             q_z, q_m, q_s, t = self.nn.encoder(state)
-            
+
             # Sort by time and add jitter for uniqueness (match training)
             sort_idx = torch.argsort(t)
             t_sorted = t[sort_idx]
-            z_base = (q_m if self.use_qm else q_z)[sort_idx]
+            z_base = (q_m if effective_qm else q_z)[sort_idx]
             
             # Ensure strictly increasing times
             eps = 1e-6
@@ -113,7 +114,7 @@ class MoCoOModel(scviMixin, dipMixin, betatcMixin, infoMixin):
             return blended[unsort_idx].cpu().numpy()
         else:
             q_z, q_m, q_s = self.nn.encoder(state)
-            return (q_m if self.use_qm else q_z).cpu().numpy()
+            return (q_m if effective_qm else q_z).cpu().numpy()
     
     @torch.no_grad()
     def take_bottleneck(self, state):

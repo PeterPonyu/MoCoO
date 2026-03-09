@@ -136,7 +136,7 @@ def compute_all_metrics(
             metrics[f"DREX_{k}"] = np.nan
 
     # 7. LSEX
-    metrics.update(compute_lsex_metrics(latent, dre_k))
+    metrics.update(compute_lsex_metrics(latent, labels, dre_k))
 
     # 8. Latent diagnostics
     metrics.update(compute_latent_diagnostics(latent))

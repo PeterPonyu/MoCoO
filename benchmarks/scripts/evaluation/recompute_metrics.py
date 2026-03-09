@@ -60,6 +60,22 @@ def main():
         save_metrics = {k: v for k, v in metrics.items()
                         if not k.startswith("_")}
 
+        # --- Test-set extended metrics ---
+        n = latent.shape[0]
+        rng = np.random.RandomState(42)
+        perm = rng.permutation(n)
+        n_train = int(0.7 * n)
+        n_val = int(0.15 * n)
+        test_idx = perm[n_train + n_val:]
+        test_latent = latent[test_idx]
+        test_labels = labels[test_idx]
+        if len(test_latent) > 20:
+            test_metrics = compute_all_metrics(test_latent, test_labels, dre_k=15)
+            for tk, tv in test_metrics.items():
+                if not tk.startswith("_"):
+                    save_metrics[f"test_ext_{tk}"] = tv
+            print(f"  Test-set metrics computed ({len(test_latent)} cells)")
+
         # Load existing JSON to preserve resource data
         json_path = resultsdir / f"{cfg.replace('+', '_')}.json"
         if json_path.exists():
