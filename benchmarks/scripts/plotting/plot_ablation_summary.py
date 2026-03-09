@@ -148,20 +148,32 @@ def _permutation_importance(latent, labels, seed=42):
 # ── Panel A: ODE × MoCo Synergy Heatmap ──────────────────────────────────
 
 def _load_beta_metrics(rdir: Path) -> dict:
-    """Load metrics from beta0.01, beta0.1, beta1.0 subdirectories.
+    """Load metrics from beta ablation subdirectories.
 
     Returns {beta_label: {config_name: metrics_dict}}.
-    Falls back to the single rdir if beta subdirectories are not found.
+    Searches in order:
+      1. results/beta_ablation/beta_{value}/  (new layout)
+      2. results/beta{value}/                 (old layout)
+      3. results/_legacy_50ep/beta{value}/    (archived legacy)
+    Falls back to the single rdir if no beta subdirectories are found.
     """
     results_root = rdir.parent  # e.g. benchmarks/results/
-    beta_dirs = {
-        r"$\beta$=1.0": results_root / "beta1.0",
-        r"$\beta$=0.1": results_root / "beta0.1",
-        r"$\beta$=0.01": results_root / "beta0.01",
-    }
+    beta_values = ["1.0", "0.1", "0.01"]
     out = {}
-    for label, bdir in beta_dirs.items():
-        if not bdir.exists():
+    for bval in beta_values:
+        label = rf"$\beta$={bval}"
+        # Try each candidate path in priority order
+        candidates = [
+            results_root / "beta_ablation" / f"beta_{bval}",
+            results_root / f"beta{bval}",
+            results_root / "_legacy_50ep" / f"beta{bval}",
+        ]
+        bdir = None
+        for c in candidates:
+            if c.exists():
+                bdir = c
+                break
+        if bdir is None:
             continue
         out[label] = {}
         for jf in bdir.glob("*.json"):
@@ -479,7 +491,7 @@ def build_figure(rdir: Path, outdir: Path):
     print("\n── Conflict Detection ──")
     issues = detect_all_conflicts(fig, label="ablation_summary", verbose=True)
 
-    outpath = outdir / "ablation_summary.png"
+    outpath = outdir / "fig3_ablation_summary.png"
     fig.savefig(outpath, **SAVEFIG_KW)
 
     # Export individual panel sub-figures
@@ -537,7 +549,7 @@ def main():
     _benchmarks = Path(__file__).resolve().parent.parent.parent  # benchmarks/
     p = argparse.ArgumentParser()
     p.add_argument("--resultsdir",
-                   default=str(_benchmarks / "results" / "IRALL"))
+                   default=str(_benchmarks / "results" / "single_dataset"))
     p.add_argument("--outdir",
                    default=str(_benchmarks / "figures"))
     args = p.parse_args()

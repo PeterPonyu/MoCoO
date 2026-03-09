@@ -446,7 +446,7 @@ def build_figure(rdir: Path, outdir: Path, adata_path: str):
     print("\n── Conflict Detection ──")
     issues = detect_all_conflicts(fig, label="ode_trajectory", verbose=True)
 
-    outpath = outdir / "ode_trajectory.png"
+    outpath = outdir / "supp_ode_trajectory.png"
     fig.savefig(outpath, dpi=DPI, bbox_inches="tight", pad_inches=0.08)
 
     # Export individual panel sub-figures
@@ -470,7 +470,7 @@ def main():
     _data_base = os.environ.get("MOCOO_DATA_DIR", "data")
     p = argparse.ArgumentParser()
     p.add_argument("--resultsdir",
-                   default=str(_benchmarks / "results" / "IRALL"))
+                   default=str(_benchmarks / "results" / "single_dataset"))
     p.add_argument("--outdir",
                    default=str(_benchmarks / "figures"))
     p.add_argument("--data",

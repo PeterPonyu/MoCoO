@@ -70,6 +70,36 @@ _DS_SHORT = {"IRALL": "IRALL", "dataset_default": "IRALL",
              "dentate": "Dentate", "endo": "Endo"}
 
 
+def _resolve_dataset_dir(results_base: Path, ds_name: str) -> Path | None:
+    """Find the actual directory for a dataset, checking multiple layouts.
+
+    Priority:
+      1. results/cross_dataset/{ds_name}/   (new layout)
+      2. results/single_dataset/            (for IRALL single-dataset runs)
+      3. results/{ds_name}/                 (flat old layout)
+      4. results/_legacy_50ep/{ds_name}/    (archived legacy, old naming)
+      5. results/dataset_default/           (old IRALL alias)
+    """
+    candidates = [
+        results_base / "cross_dataset" / ds_name,
+    ]
+    if ds_name == "IRALL":
+        candidates.append(results_base / "single_dataset")
+    candidates.extend([
+        results_base / ds_name,
+        results_base / "_legacy_50ep" / ds_name,
+    ])
+    if ds_name == "IRALL":
+        candidates.extend([
+            results_base / "dataset_default",
+            results_base / "_legacy_50ep" / "dataset_default",
+        ])
+    for c in candidates:
+        if c.exists():
+            return c
+    return None
+
+
 def _export_subpanels(fig, sub_dir: Path, panels: list) -> None:
     renderer = fig.canvas.get_renderer()
     for ax, name in panels:
@@ -130,10 +160,11 @@ def _load_batch_metrics(rdir: Path) -> dict:
 def _load_cross_dataset_metrics(results_base: Path) -> dict:
     """Load metrics across all datasets."""
     cross = {}
-    for ds_dir in ["dataset_default", "dentate", "endo"]:
-        ds_path = results_base / ds_dir
-        if not ds_path.exists():
+    for ds_name in _DATASETS:
+        ds_path = _resolve_dataset_dir(results_base, ds_name)
+        if ds_path is None:
             continue
+        ds_key = ds_name  # Always use canonical name as key
         ds_metrics = {}
         for cfg in _CONFIGS:
             key = cfg.replace("+", "_")
@@ -142,7 +173,7 @@ def _load_cross_dataset_metrics(results_base: Path) -> dict:
                 with open(jf) as f:
                     ds_metrics[cfg] = _unify_metric_keys(json.load(f))
         if ds_metrics:
-            cross[ds_dir] = ds_metrics
+            cross[ds_key] = ds_metrics
     return cross
 
 
@@ -239,7 +270,7 @@ def _draw_cross_dataset_heatmap(ax, cross_data):
     # Fallback keys for dataset_default which uses full_ARI etc.
     fallback = {"ARI": "full_ARI", "NMI": "full_NMI", "ASW": "full_ASW"}
 
-    datasets = [d for d in ["dataset_default", "dentate", "endo"] if d in cross_data]
+    datasets = [d for d in _DATASETS if d in cross_data]
     configs_present = [c for c in _CONFIGS
                        if any(c in cross_data[d] for d in datasets)]
 
@@ -305,7 +336,7 @@ def _draw_cross_radar(ax, cross_data):
     """Radar chart averaging ARI/NMI/ASW across datasets for each config."""
     metric_keys = ["ARI", "NMI", "ASW"]
     fallback = {"ARI": "full_ARI", "NMI": "full_NMI", "ASW": "full_ASW"}
-    datasets = [d for d in ["dataset_default", "dentate", "endo"] if d in cross_data]
+    datasets = [d for d in _DATASETS if d in cross_data]
     configs_present = [c for c in _CONFIGS
                        if any(c in cross_data[d] for d in datasets)]
 
@@ -347,8 +378,8 @@ def _draw_cross_radar(ax, cross_data):
 def build_figure(results_base: Path, outdir: Path):
     """Build the complete Figure 7."""
     # Load batch metrics (IRALL)
-    irall_dir = results_base / "dataset_default"
-    batch_metrics = _load_batch_metrics(irall_dir)
+    irall_dir = _resolve_dataset_dir(results_base, "IRALL")
+    batch_metrics = _load_batch_metrics(irall_dir) if irall_dir else {}
 
     # Load cross-dataset metrics
     cross_data = _load_cross_dataset_metrics(results_base)
@@ -404,7 +435,7 @@ def build_figure(results_base: Path, outdir: Path):
     print("\n── Conflict Detection ──")
     issues = detect_all_conflicts(fig, label="batch_integration", verbose=True)
 
-    outpath = outdir / "batch_integration.png"
+    outpath = outdir / "supp_batch_integration.png"
     fig.savefig(outpath, dpi=DPI, bbox_inches="tight", pad_inches=0.08)
 
     # Export individual panels

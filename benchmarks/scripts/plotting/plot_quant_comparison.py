@@ -351,7 +351,7 @@ def build_figure(rdir: Path, outdir: Path):
     print("\n── Conflict Detection ──")
     issues = detect_all_conflicts(fig, label="quant_comparison", verbose=True)
 
-    outpath = outdir / "quant_comparison.png"
+    outpath = outdir / "fig2_quant_comparison.png"
     fig.savefig(outpath, **SAVEFIG_KW)
 
     # Export individual panel sub-figures
@@ -374,7 +374,7 @@ def main():
     _benchmarks = Path(__file__).resolve().parent.parent.parent  # benchmarks/
     p = argparse.ArgumentParser()
     p.add_argument("--resultsdir",
-                   default=str(_benchmarks / "results" / "IRALL"))
+                   default=str(_benchmarks / "results" / "single_dataset"))
     p.add_argument("--outdir",
                    default=str(_benchmarks / "figures"))
     args = p.parse_args()

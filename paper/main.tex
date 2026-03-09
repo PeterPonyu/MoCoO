@@ -347,7 +347,7 @@ At weak KL ($\beta = 0.01$), the VAE again leads ARI (0.428). However, the Full 
 
 \begin{figure*}[!t]
     \centering
-    \includegraphics[width=\textwidth,height=0.42\textheight,keepaspectratio]{quant_comparison}
+    \includegraphics[width=\textwidth,height=0.42\textheight,keepaspectratio]{fig2_quant_comparison}
     \caption{Quantitative latent space comparison across six model configurations (IRALL, 3{,}000 cells, 200 epochs, $\beta = 0.1$). \textbf{(A)}~UMAP embeddings coloured by cell type illustrate how latent geometry changes with configuration. \textbf{(B)}~Clustering quality (ARI, NMI, ASW) with Val/Test splits. \textbf{(C)}~Neighbourhood quality (trustworthiness, symmetry, Spearman, DRE). \textbf{(D)}~Latent structure (participation ratio, intrinsic dimensionality, anisotropy, LSE). The Full model achieves the best ASW and DRE, while VAE leads on ARI.}
     \label{fig:quant_comparison}
 \end{figure*}
@@ -387,7 +387,7 @@ We isolate each component's marginal effect by computing deltas between adjacent
 
 \begin{figure*}[!t]
     \centering
-    \includegraphics[width=\textwidth,height=0.42\textheight,keepaspectratio]{ablation_summary}
+    \includegraphics[width=\textwidth,height=0.42\textheight,keepaspectratio]{fig3_ablation_summary}
     \caption{Ablation study and component contribution analysis ($\beta = 0.1$, IRALL). \textbf{(A)}~ODE$\times$MoCo synergy heatmap: interaction terms across metrics and $\beta$ values, with warm colours indicating super-additive effects; alongside a summary table of key metrics per configuration. \textbf{(B)}~Incremental gain waterfall charts for ARI, NMI, and ASW, showing component marginal effects ($\Delta$ from VAE baseline) with green/red indicating positive/negative deltas. \textbf{(C)}~Comprehensive performance heatmap (column-normalised) across eight evaluation metrics, revealing that no single configuration dominates all axes. \textbf{(D)}~Latent dimension importance via permutation-based kNN accuracy drop, quantifying how ``focused'' vs.\ ``diffuse'' each model's representations are across the 32-dimensional latent space.}
     \label{fig:ablation_summary}
 \end{figure*}
@@ -617,7 +617,7 @@ All configurations converge within 50 epochs at 1{,}000 cells (Fig.~\ref{fig:tra
 
 \begin{figure*}[!t]
     \centering
-    \includegraphics[width=\textwidth,height=0.42\textheight,keepaspectratio]{training_dynamics}
+    \includegraphics[width=\textwidth,height=0.42\textheight,keepaspectratio]{fig4_training_dynamics}
     \caption{Training dynamics and computational efficiency across all six configurations ($\beta = 0.1$, IRALL, 1{,}000 cells). \textbf{(A)}~Training and validation ELBO loss curves showing convergence within 50 epochs; all configurations converge stably with ODE models reaching comparable loss despite higher initial values. \textbf{(B)}~Efficiency scatter: validation ARI vs.\ training time, with bubble size proportional to peak GPU memory. VAE achieves the highest ARI at the lowest cost; ODE-containing models require ${\sim}10\!\times$ more time for comparable clustering quality. The Pareto frontier highlights the accuracy--efficiency trade-off.}
     \label{fig:training_dynamics}
 \end{figure*}
@@ -720,7 +720,7 @@ The primary effect, best operating regime, and key metrics improved by each comp
 
 \begin{figure*}[!t]
     \centering
-    \includegraphics[width=\textwidth,height=0.70\textheight,keepaspectratio]{composed_benchmark}
+    \includegraphics[width=\textwidth,height=0.70\textheight,keepaspectratio]{fig5_composed_benchmark}
     \caption{Comprehensive benchmark overview of \MoCoO. \textbf{(A)}~UMAP embeddings of all six configurations, coloured by cell type, showing qualitative clustering improvement from VAE to the Full model. \textbf{(B)}~Radar summary of normalised metrics (ARI, NMI, ASW, DRE, DREX, LSEX) revealing that no single configuration dominates all axes. \textbf{(C)}~Training loss convergence curves. \textbf{(D)}~Latent space diagnostics ($\mu$-norm, $\sigma$-mean, zero-dimension count, pairwise distance). \textbf{(E)}~Learned ODE vector field projected onto UMAP coordinates for the Full model, visualising the continuous dynamics captured by the trajectory module. \textbf{(F)}~Column-normalised heatmap across all evaluation metrics, providing a quantitative bird's-eye comparison.}
     \label{fig:composed_benchmark}
 \end{figure*}

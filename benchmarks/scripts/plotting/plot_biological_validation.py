@@ -576,7 +576,7 @@ def main():
     _data_base = os.environ.get("MOCOO_DATA_DIR", "data")
     parser = argparse.ArgumentParser()
     parser.add_argument("--resultsdir",
-                        default=str(_benchmarks / "results" / "IRALL"))
+                        default=str(_benchmarks / "results" / "single_dataset"))
     parser.add_argument("--data",
                         default=os.path.join(_data_base, "Desktop/datasets/IRALL.h5ad"))
     parser.add_argument("--outdir",
@@ -592,7 +592,7 @@ def main():
     print("Loading / preprocessing expression data ...")
     adata = _load_expression(args.data, max_cells=3000, hvg=3000)
     print("Building figure ...")
-    build_figure(data, adata, outdir / "biological_validation_composed.png")
+    build_figure(data, adata, outdir / "supp_biological_validation.png")
 
 
 if __name__ == "__main__":

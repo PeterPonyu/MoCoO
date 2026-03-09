@@ -776,7 +776,7 @@ def main():
     args = ap.parse_args()
 
     _benchmarks = Path(__file__).resolve().parent.parent.parent  # benchmarks/
-    rdir = Path(args.resultsdir) if args.resultsdir else (_benchmarks / "results" / "IRALL")
+    rdir = Path(args.resultsdir) if args.resultsdir else (_benchmarks / "results" / "single_dataset")
     odir = Path(args.outdir) if args.outdir else (_benchmarks / "figures")
     odir.mkdir(parents=True, exist_ok=True)
 
@@ -787,7 +787,7 @@ def main():
     data = load_results(rdir)
     print(f"Loaded {len(data['configs'])} configs: {data['configs']}")
 
-    build_composed(data, odir / "composed_benchmark.png", cache_dir=odir)
+    build_composed(data, odir / "fig5_composed_benchmark.png", cache_dir=rdir)
 
 
 if __name__ == "__main__":
