@@ -31,7 +31,8 @@ import matplotlib.gridspec as gridspec
 import matplotlib.font_manager as fm
 import numpy as np
 
-warnings.filterwarnings("ignore")
+warnings.filterwarnings("ignore", category=FutureWarning)
+warnings.filterwarnings("ignore", category=UserWarning, module="matplotlib")
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent.parent.parent))
 from benchmarks.scripts.pipeline.visual_conflict_detector import detect_all_conflicts
 
@@ -54,7 +55,7 @@ FS_TITLE = 7
 FS_AXIS  = 6
 FS_TICK  = 5
 FS_LEG   = 4.5
-FS_SMALL = 3.8
+FS_SMALL = 4.5
 
 _CONFIGS  = ["VAE", "VAE+ODE", "VAE+MoCo", "VAE+MoCo+Proto", "VAE+ODE+MoCo", "Full"]
 _PALETTE  = ["#4C72B0", "#DD8452", "#55A868", "#C44E52", "#8172B3", "#937860"]
@@ -178,7 +179,7 @@ def _draw_batch_bars(ax, metrics):
                 ax.text(bar_obj.get_x() + bar_obj.get_width() / 2,
                         bar_obj.get_height() + 0.005,
                         f"{bv:.2f}", ha="center", va="bottom",
-                        fontsize=FS_SMALL - 0.3, rotation=90)
+                        fontsize=FS_SMALL, rotation=90)
 
     ax.set_xticks(x)
     ax.set_xticklabels(batch_labels, fontsize=FS_TICK, rotation=0)
@@ -286,7 +287,7 @@ def _draw_cross_dataset_heatmap(ax, cross_data):
             if not np.isnan(v):
                 color = "white" if data_norm[i, j] > 0.6 else "black"
                 ax.text(j, i, f"{v:.3f}", ha="center", va="center",
-                        fontsize=FS_SMALL - 0.3, color=color)
+                        fontsize=FS_SMALL, color=color)
 
     ax.set_title("Cross-Dataset Performance (normalised)",
                  fontsize=FS_TITLE, pad=4)
@@ -331,9 +332,9 @@ def _draw_cross_radar(ax, cross_data):
         ax.fill(angles, vals, alpha=0.06, color=_CONFIG_COLOR[cfg])
 
     ax.set_xticks(angles[:-1])
-    ax.set_xticklabels(labels, fontsize=FS_SMALL - 0.5)
+    ax.set_xticklabels(labels, fontsize=FS_SMALL)
     ax.set_ylim(0, 0.7)
-    ax.tick_params(axis="y", labelsize=FS_SMALL - 0.5)
+    ax.tick_params(axis="y", labelsize=FS_SMALL)
     ax.set_title("Cross-Dataset Profile", fontsize=FS_TITLE, pad=12)
     ax.legend(fontsize=FS_LEG, loc="upper right",
               bbox_to_anchor=(1.3, 1.1), frameon=False)
@@ -404,7 +405,7 @@ def build_figure(results_base: Path, outdir: Path):
     issues = detect_all_conflicts(fig, label="batch_integration", verbose=True)
 
     outpath = outdir / "batch_integration.png"
-    fig.savefig(outpath, dpi=DPI)
+    fig.savefig(outpath, dpi=DPI, bbox_inches="tight", pad_inches=0.08)
 
     # Export individual panels
     sub_dir = outdir / "fig7_batch_integration"

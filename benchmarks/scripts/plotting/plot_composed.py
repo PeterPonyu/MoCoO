@@ -27,7 +27,8 @@ import matplotlib.gridspec as gridspec
 import matplotlib.font_manager as fm
 import numpy as np
 
-warnings.filterwarnings("ignore")
+warnings.filterwarnings("ignore", category=FutureWarning)
+warnings.filterwarnings("ignore", category=UserWarning, module="matplotlib")
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent.parent.parent))
 
 from benchmarks.scripts.pipeline.visual_conflict_detector import detect_all_conflicts, summarize_issues
@@ -59,16 +60,16 @@ FONT_PANEL_TITLE = 12         # panel title
 FONT_AXIS_LABEL  = 10         # axis labels
 FONT_TICK         = 7.5       # tick labels
 FONT_LEGEND       = 7         # legend entries
-FONT_ANNOT        = 6         # heatmap cell annotations
+FONT_ANNOT        = 6.5       # heatmap cell annotations
 
 PALETTE = ["#4C72B0", "#DD8452", "#55A868", "#C44E52", "#8172B3", "#937860"]
 
 CONFIG_SHORT = {
     "VAE": "VAE",
-    "VAE+ODE": "V+ODE",
-    "VAE+MoCo": "V+MoCo",
-    "VAE+MoCo+Proto": "V+M+P",
-    "VAE+ODE+MoCo": "V+O+M",
+    "VAE+ODE": "V+O",
+    "VAE+MoCo": "V+M",
+    "VAE+MoCo+Proto": "V+MP",
+    "VAE+ODE+MoCo": "V+OM",
     "Full": "Full",
 }
 
@@ -116,7 +117,11 @@ def load_results(rdir: Path):
     metrics = []
     for c in configs:
         p = rdir / f"{c.replace('+','_')}.json"
-        raw = json.load(open(p)) if p.exists() else None
+        if p.exists():
+            with open(p) as f:
+                raw = json.load(f)
+        else:
+            raw = None
         metrics.append(_unify_metric_keys(raw) if raw else None)
 
     return dict(configs=configs, latents=latents, labels=labels,
@@ -166,8 +171,8 @@ def _bar(ax, configs, mets, specs, title, *, rotation=40):
                        fontsize=FONT_TICK)
     ax.tick_params(axis="y", labelsize=FONT_TICK)
     ax.set_title(title, fontsize=FONT_PANEL_TITLE)
-    ax.legend(fontsize=FONT_LEGEND, frameon=True, fancybox=True,
-              facecolor="white", edgecolor="#cccccc", framealpha=0.95,
+    ax.set_ylabel("Score", fontsize=FONT_AXIS_LABEL)
+    ax.legend(fontsize=FONT_LEGEND, frameon=False,
               loc="upper right",
               handlelength=1, handletextpad=0.3, labelspacing=0.2,
               ncol=len(avail), borderaxespad=0.3)
@@ -220,7 +225,7 @@ def _draw_umap_panel(fig, gs_parent, configs, latents, labels_arr,
     if umap_embeddings is None:
         return
 
-    inner = gs_parent.subgridspec(2, 3, wspace=0.08, hspace=0.25)
+    inner = gs_parent.subgridspec(2, 3, wspace=0.04, hspace=0.18)
     n = len(configs)
     for i in range(n):
         ax = fig.add_subplot(inner[i // 3, i % 3])
@@ -237,14 +242,13 @@ def _draw_umap_panel(fig, gs_parent, configs, latents, labels_arr,
         for sp in ax.spines.values():
             sp.set_visible(False)
 
-    # shared legend below the UMAP block — place in the gap between
-    # Row 0 (UMAP) and Row 1, low enough to avoid scatter data overlap
+    # shared legend below the UMAP block — centred in the whitespace
+    # between Row 0 (UMAP) and Row 1
     handles, lbls = fig.axes[0].get_legend_handles_labels()
-    fig.legend(handles, lbls, loc="upper center",
-               bbox_to_anchor=(0.5, 0.745),
+    fig.legend(handles, lbls, loc="lower center",
+               bbox_to_anchor=(0.5, 0.685),
                ncol=min(6, len(lbls)), markerscale=3,
-               fontsize=FONT_LEGEND, frameon=True, fancybox=True,
-               edgecolor="#cccccc", facecolor="white", framealpha=0.95)
+               fontsize=FONT_LEGEND, frameon=False)
 
 
 def _draw_radar(ax, configs, mets):
@@ -288,36 +292,51 @@ def _draw_radar(ax, configs, mets):
     pax.set_yticks([])  # hide radial gridlines entirely to prevent tick overlap
     pax.set_rlabel_position(0)
     pax.set_title("Radar Summary", fontsize=FONT_PANEL_TITLE, pad=12)
-    pax.legend(fontsize=FONT_LEGEND - 0.5, frameon=True, fancybox=True,
-               facecolor="white", edgecolor="#cccccc", framealpha=0.95,
+    pax.legend(fontsize=FONT_LEGEND - 0.5, frameon=False,
                loc="upper left", bbox_to_anchor=(1.55, 0.95),
                handlelength=1, labelspacing=0.2, ncol=1)
     return pax  # caller may need ref
 
 
 def _draw_training_curves(fig, gs_parent, configs, val_losses, val_scores):
-    """Val loss + all 6 validation metrics over training.
+    """Val loss + validation metrics over training.
 
     val_scores columns (from MoCoO agent.py):
         0=ARI, 1=NMI, 2=ASW, 3=CAL, 4=DAV, 5=COR
-    """
-    # 2×4 subgrid: top row = Loss/ARI/NMI/ASW, bottom row = CAL/DAV/COR/(empty)
-    inner = gs_parent.subgridspec(2, 4, wspace=0.40, hspace=0.65)
 
-    # (label, source): source is either "loss" or an int column index
-    panels = [
-        ("Val Loss",  "loss"),
-        ("Val ARI",   0),
-        ("Val NMI",   1),
-        ("Val ASW",   2),
-        ("Val CAL",   3),
-        ("Val DAV",   4),
-        ("Val COR",   5),
-    ]
+    Gracefully handles empty val_scores by showing only the loss panel
+    with a note about missing data in remaining cells.
+    """
+    # Check if val_scores has actual data
+    has_scores = any(
+        np.asarray(vs).ndim == 2 and np.asarray(vs).shape[0] > 0
+        for vs in val_scores
+    )
+
+    if has_scores:
+        # Full layout: 2x4 subgrid
+        inner = gs_parent.subgridspec(2, 4, wspace=0.40, hspace=0.65)
+        panels = [
+            ("Val Loss",  "loss"),
+            ("Val ARI",   0),
+            ("Val NMI",   1),
+            ("Val ASW",   2),
+            ("Val CAL",   3),
+            ("Val DAV",   4),
+            ("Val COR",   5),
+        ]
+    else:
+        # Compact layout: just loss curve + legend
+        inner = gs_parent.subgridspec(1, 2, wspace=0.35)
+        panels = [("Val Loss", "loss")]
 
     for pidx, (title, src) in enumerate(panels):
-        row, col = divmod(pidx, 4)
-        ax = fig.add_subplot(inner[row, col])
+        if has_scores:
+            row, col = divmod(pidx, 4)
+            ax = fig.add_subplot(inner[row, col])
+        else:
+            ax = fig.add_subplot(inner[0, 0])
+
         for i, (cfg, vl, vs) in enumerate(zip(configs, val_losses, val_scores)):
             c = PALETTE[i % len(PALETTE)]
             if src == "loss":
@@ -328,9 +347,10 @@ def _draw_training_curves(fig, gs_parent, configs, val_losses, val_scores):
                     ax.plot(range(vs_a.shape[0]), vs_a[:, src], color=c,
                             lw=1, label=_s(cfg))
         ax.set_title(title, fontsize=FONT_PANEL_TITLE)
-        # Only show xlabel on bottom row to avoid overlapping bottom-row titles
-        if row == 1:
-            ax.set_xlabel("Val step", fontsize=FONT_AXIS_LABEL - 1)
+        if has_scores and pidx // 4 == 1:
+            ax.set_xlabel("Epoch", fontsize=FONT_AXIS_LABEL - 1)
+        elif not has_scores:
+            ax.set_xlabel("Epoch", fontsize=FONT_AXIS_LABEL - 1)
         ax.tick_params(labelsize=FONT_TICK)
         ax.xaxis.set_major_locator(plt.MaxNLocator(nbins=4, integer=True,
                                                      prune='both'))
@@ -340,8 +360,11 @@ def _draw_training_curves(fig, gs_parent, configs, val_losses, val_scores):
         for sp in ("top", "right"):
             ax.spines[sp].set_visible(False)
 
-    # Place legend in the empty bottom-right cell (idx 7)
-    ax_leg = fig.add_subplot(inner[1, 3])
+    # Place legend
+    if has_scores:
+        ax_leg = fig.add_subplot(inner[1, 3])
+    else:
+        ax_leg = fig.add_subplot(inner[0, 1])
     ax_leg.set_axis_off()
     handles, lbls = [], []
     for ax_check in fig.axes:
@@ -349,70 +372,43 @@ def _draw_training_curves(fig, gs_parent, configs, val_losses, val_scores):
             handles, lbls = ax_check.get_legend_handles_labels()
             break
     if handles:
-        leg = ax_leg.legend(handles, lbls, loc="center",
-                      fontsize=FONT_LEGEND, frameon=True, fancybox=True,
-                      edgecolor="#cccccc", facecolor="white",
+        ax_leg.legend(handles, lbls, loc="center",
+                      fontsize=FONT_LEGEND, frameon=False,
                       handlelength=1.5, labelspacing=0.3, ncol=2)
-        # Mark as legend-only axes so conflict detector can skip it
         ax_leg._is_legend_cell = True
 
 
 def _draw_heatmap(ax, configs, mets):
-    """All-metrics heatmap with column-normalised colours."""
-    SHORT = {
-        "NMI": "NMI", "ARI": "ARI", "ASW": "ASW", "DAV": "DAV",
-        "CAL": "CAL", "COR": "COR",
-        "DRE_umap_distance_correlation": "DRE_U_dc",
-        "DRE_umap_Q_local": "DRE_U_ql",
-        "DRE_umap_Q_global": "DRE_U_qg",
-        "DRE_umap_overall_quality": "DRE_U_ov",
-        "DRE_tsne_distance_correlation": "DRE_T_dc",
-        "DRE_tsne_Q_local": "DRE_T_ql",
-        "DRE_tsne_Q_global": "DRE_T_qg",
-        "DRE_tsne_overall_quality": "DRE_T_ov",
-        "LSE_manifold_dimensionality": "LSE_md",
-        "LSE_spectral_decay_rate": "LSE_sd",
-        "LSE_participation_ratio": "LSE_pr",
-        "LSE_anisotropy_score": "LSE_an",
-        "LSE_noise_resilience": "LSE_nr",
-        "LSE_core_quality": "LSE_cq",
-        "LSE_overall_quality": "LSE_ov",
-        "DREX_trustworthiness": "DX_tw",
-        "DREX_continuity": "DX_co",
-        "DREX_distance_spearman": "DX_sp",
-        "DREX_distance_pearson": "DX_pe",
-        "DREX_local_scale_quality": "DX_ls",
-        "DREX_neighborhood_symmetry": "DX_ns",
-        "DREX_overall_quality": "DX_ov",
-        "LSEX_two_hop_connectivity": "LX_2h",
-        "LSEX_radial_concentration": "LX_rc",
-        "LSEX_local_curvature": "LX_lc",
-        "LSEX_entropy_stability": "LX_es",
-        "LSEX_overall_quality": "LX_ov",
-        "diag_mean_norm": "d_mn", "diag_std_mean": "d_sm",
-        "diag_near_zero_dims": "d_nz",
-        "diag_pairwise_dist_mean": "d_pd",
-        "diag_pairwise_dist_std": "d_ps",
-        "diag_std_min": "d_sn", "diag_std_max": "d_sx",
-        "diag_var_mean": "d_vm", "diag_var_min": "d_vn",
-        "diag_var_max": "d_vx", "diag_kurtosis_mean": "d_km",
-        "diag_skew_mean": "d_sk",
-        "test_ARI": "tARI", "test_NMI": "tNMI", "test_ASW": "tASW",
-        "best_val_loss": "bVL", "train_time_s": "t(s)",
-        "peak_mem_gb": "mem",
-    }
-    # collect numeric keys present in all configs
-    all_keys = []
-    for m in mets:
-        if m is None:
-            continue
-        for k, v in m.items():
-            if k not in all_keys and not k.startswith("_") and \
-               k not in ("config", "actual_epochs", "metrics_compute_time_s") and \
-               isinstance(v, (int, float)) and np.isfinite(v):
-                all_keys.append(k)
-    keys = [k for k in all_keys
-            if all(m is not None and np.isfinite(m.get(k, np.nan)) for m in mets)]
+    """Curated metrics heatmap with column-normalised colours.
+
+    Shows a focused set of ~18 representative metrics spanning all evaluation
+    categories (clustering, DRE, LSE, DREX, LSEX, diagnostics, resource) for
+    readability at publication scale.
+    """
+    # Curated metric list: (key, display_label)
+    CURATED = [
+        ("ARI",  "ARI"),  ("NMI",  "NMI"),  ("ASW",  "ASW"),
+        ("DAV",  "DAV"),  ("CAL",  "CAL"),
+        ("DRE_umap_overall_quality",  "DRE_U"),
+        ("DRE_tsne_overall_quality",  "DRE_T"),
+        ("LSE_overall_quality",       "LSE"),
+        ("LSE_participation_ratio",   "PR"),
+        ("LSE_anisotropy_score",      "Aniso"),
+        ("DREX_trustworthiness",      "Trust"),
+        ("DREX_distance_spearman",    "Spear"),
+        ("DREX_overall_quality",      "DREX"),
+        ("LSEX_overall_quality",      "LSEX"),
+        ("COR",                       "Corr"),
+        ("train_time_s",              "t(s)"),
+        ("peak_mem_gb",               "mem"),
+        ("test_ARI",                  "tARI"),
+    ]
+    # Filter to keys present in all configs
+    keys, labels = [], []
+    for k, lbl in CURATED:
+        if all(m is not None and np.isfinite(m.get(k, np.nan)) for m in mets):
+            keys.append(k)
+            labels.append(lbl)
     if len(keys) < 3:
         ax.text(0.5, 0.5, "N/A", transform=ax.transAxes,
                 ha="center", va="center")
@@ -425,23 +421,21 @@ def _draw_heatmap(ax, configs, mets):
     norm = (matrix - cmin) / crng
 
     im = ax.imshow(norm, aspect="auto", cmap="YlOrRd")
-    short_k = [SHORT.get(k, k)[:6] for k in keys]  # truncate to 6 chars max
     short_c = [_s(c) for c in configs if mets[configs.index(c)] is not None]
     ax.set_xticks(range(len(keys)))
-    ax.set_xticklabels(short_k, rotation=85, ha="right",
-                       fontsize=FONT_ANNOT + 0.5)
+    ax.set_xticklabels(labels, rotation=55, ha="right",
+                       fontsize=FONT_TICK)
     ax.set_yticks(range(len(short_c)))
     ax.set_yticklabels(short_c, fontsize=FONT_TICK)
-    # annotate
-    if len(keys) <= 40:
-        for r in range(matrix.shape[0]):
-            for c in range(matrix.shape[1]):
-                v = matrix[r, c]
-                fmt = f"{v:.2f}" if abs(v) < 100 else f"{v:.0f}"
-                clr = "white" if norm[r, c] > 0.65 else "black"
-                ax.text(c, r, fmt, ha="center", va="center",
-                        fontsize=FONT_ANNOT, color=clr)
-    ax.set_title("All Metrics Heatmap (col-normalized)",
+    # Annotate cell values
+    for r in range(matrix.shape[0]):
+        for c in range(matrix.shape[1]):
+            v = matrix[r, c]
+            fmt = f"{v:.2f}" if abs(v) < 100 else f"{v:.0f}"
+            clr = "white" if norm[r, c] > 0.45 else "black"
+            ax.text(c, r, fmt, ha="center", va="center",
+                    fontsize=FONT_ANNOT + 0.5, color=clr)
+    ax.set_title("Key Metrics Heatmap (col-normalized)",
                  fontsize=FONT_PANEL_TITLE)
     cb = ax.figure.colorbar(im, ax=ax, shrink=0.55, pad=0.02)
     cb.ax.tick_params(labelsize=FONT_TICK)
@@ -653,7 +647,18 @@ def _label(fig, ax, letter, *, x_off=-0.06, y_off=1.06):
 # ═══════════════════════════════════════════════════════════════════════════════
 
 def build_composed(data, outpath: Path, cache_dir: Path | None = None):
-    """Build the single composed figure and save with conflict detection."""
+    """Build the single composed figure and save with conflict detection.
+
+    Compact layout (5 rows) showing only non-redundant panels:
+      Row 0 (A): UMAP grid
+      Row 1 (B, C): Radar summary | Training curves (val loss)
+      Row 2 (D, E): Latent diagnostics | ODE Vector Field
+      Row 3 (F): All-metrics heatmap
+
+    Panels from Figs 2-4 (clustering bars, neighbourhood quality, resource
+    efficiency, incremental deltas) are intentionally excluded to avoid
+    redundancy with the standalone figures.
+    """
     configs    = data["configs"]
     mets       = data["metrics"]
     latents    = data["latents"]
@@ -673,61 +678,20 @@ def build_composed(data, outpath: Path, cache_dir: Path | None = None):
         cache_path = cache_dir / "umap_cache.npz"
     umap_embeddings = _compute_umaps(configs, latents, cache_path)
 
-    # Metric specs (key, short_label, higher_is_better)
-    core_specs = [
-        ("NMI", "NMI↑", True), ("ARI", "ARI↑", True),
-        ("ASW", "ASW↑", True), ("DAV", "DAV↓", False),
-    ]
-    ext_specs = [
-        ("COR", "Corr↑", True), ("CAL", "Cal-H↑", True),
-        ("test_ARI", "tARI↑", True), ("test_NMI", "tNMI↑", True),
-    ]
-    dre_specs = [
-        ("DRE_umap_distance_correlation", "U-Dist↑", True),
-        ("DRE_umap_Q_local",             "U-Qloc↑", True),
-        ("DRE_umap_overall_quality",     "U-Ovr↑",  True),
-        ("DRE_tsne_distance_correlation", "T-Dist↑", True),
-        ("DRE_tsne_Q_local",             "T-Qloc↑", True),
-        ("DRE_tsne_overall_quality",      "T-Ovr↑",  True),
-    ]
-    lse_specs = [
-        ("LSE_manifold_dimensionality", "ManDm↑", True),
-        ("LSE_spectral_decay_rate",     "Decay↑", True),
-        ("LSE_noise_resilience",        "NoisR↑", True),
-        ("LSE_core_quality",            "Core↑",  True),
-        ("LSE_overall_quality",         "Ovrl↑",  True),
-    ]
-    drex_specs = [
-        ("DREX_trustworthiness",      "Trust↑",  True),
-        ("DREX_continuity",           "Cont↑",   True),
-        ("DREX_distance_spearman",    "Spear↑",  True),
-        ("DREX_neighborhood_symmetry","NbrSy↑",  True),
-        ("DREX_overall_quality",      "Ovrl↑",   True),
-    ]
-    lsex_specs = [
-        ("LSEX_two_hop_connectivity",  "2Hop↑",   True),
-        ("LSEX_radial_concentration",  "RadC↑",   True),
-        ("LSEX_local_curvature",       "LCrv↑",   True),
-        ("LSEX_entropy_stability",     "Entr↑",   True),
-        ("LSEX_overall_quality",       "Ovrl↑",   True),
-    ]
+    # Metric specs
     diag_specs = [
         ("diag_mean_norm",          "μ-Norm", True),
         ("diag_std_mean",           "σ-Mean", True),
         ("diag_near_zero_dims",     "0-Dim↓", False),
         ("diag_pairwise_dist_mean", "P-Dst",  True),
     ]
-    resource_specs = [
-        ("train_time_s", "Time(s)↓", False),
-        ("peak_mem_gb",  "Mem(GB)↓", False),
-    ]
 
-    # ── Figure and GridSpec (7 rows) ─────────────────────────────────────
-    fig = plt.figure(figsize=(FIG_W, FIG_H), dpi=DPI)
+    # ── Figure and GridSpec (4 rows) ─────────────────────────────────────
+    fig = plt.figure(figsize=(FIG_W, FIG_H * 0.62), dpi=DPI)
     outer = gridspec.GridSpec(
-        7, 1, figure=fig,
-        height_ratios=[5.0, 2.0, 2.0, 2.0, 3.5, 2.0, 2.5],
-        hspace=0.65,
+        4, 1, figure=fig,
+        height_ratios=[4.2, 2.8, 2.2, 2.8],
+        hspace=0.42,
     )
 
     # Row 0 — UMAP grid (A)
@@ -735,71 +699,43 @@ def build_composed(data, outpath: Path, cache_dir: Path | None = None):
     _draw_umap_panel(fig, gs_umap[0], configs, latents, labels,
                      umap_embeddings=umap_embeddings)
 
-    # Row 1 — Core (B) | ExtClust (C) | Radar (D)
-    gs_r1 = outer[1].subgridspec(1, 3, wspace=0.40)
-    ax_core = fig.add_subplot(gs_r1[0, 0])
-    _bar(ax_core, configs, mets, core_specs, "Core Clustering")
-    ax_ext = fig.add_subplot(gs_r1[0, 1])
-    _bar(ax_ext, configs, mets, ext_specs, "Extended / Test")
-    ax_radar = fig.add_subplot(gs_r1[0, 2])
+    # Row 1 — Radar (B) | Training curves (C)
+    gs_r1 = outer[1].subgridspec(1, 2, wspace=0.35,
+                                  width_ratios=[1.0, 1.4])
+    ax_radar = fig.add_subplot(gs_r1[0, 0])
     _draw_radar(ax_radar, configs, mets)
+    _draw_training_curves(fig, gs_r1[0, 1], configs, val_losses, val_scores)
 
-    # Row 2 — DRE (E) | LSE (F)
-    gs_r2 = outer[2].subgridspec(1, 2, wspace=0.35)
-    ax_dre = fig.add_subplot(gs_r2[0, 0])
-    _bar(ax_dre, configs, mets, dre_specs, "DRE (UMAP + tSNE)")
-    ax_lse = fig.add_subplot(gs_r2[0, 1])
-    _bar(ax_lse, configs, mets, lse_specs, "LSE (Latent Struct.)")
-
-    # Row 3 — DREX (G) | LSEX (H)
-    gs_r3 = outer[3].subgridspec(1, 2, wspace=0.35)
-    ax_drex = fig.add_subplot(gs_r3[0, 0])
-    _bar(ax_drex, configs, mets, drex_specs, "DREX (Ext. DR)")
-    ax_lsex = fig.add_subplot(gs_r3[0, 1])
-    _bar(ax_lsex, configs, mets, lsex_specs, "LSEX (Ext. Latent)")
-
-    # Row 4 — Training curves 2×4 (I): all 7 validation metrics
-    _draw_training_curves(fig, outer[4], configs, val_losses, val_scores)
-
-    # Row 5 — Diagnostics (J) | Resource (K) | Vector Field (L)
-    gs_r5 = outer[5].subgridspec(1, 3, wspace=0.45)
-    ax_diag = fig.add_subplot(gs_r5[0, 0])
+    # Row 2 — Diagnostics (D) | Vector Field (E)
+    gs_r2 = outer[2].subgridspec(1, 2, wspace=0.40)
+    ax_diag = fig.add_subplot(gs_r2[0, 0])
     _bar(ax_diag, configs, mets, diag_specs, "Latent Diag.")
-    ax_res = fig.add_subplot(gs_r5[0, 1])
-    _bar(ax_res, configs, mets, resource_specs, "Resource")
-    ax_vf = fig.add_subplot(gs_r5[0, 2])
+    ax_vf = fig.add_subplot(gs_r2[0, 1])
     _draw_vector_field(ax_vf, configs, latents, labels, gradients,
                        umap_embeddings, mets)
 
-    # Row 6 — Heatmap (M)
-    ax_hm = fig.add_subplot(outer[6])
+    # Row 3 — Heatmap (F)
+    ax_hm = fig.add_subplot(outer[3])
     _draw_heatmap(ax_hm, configs, mets)
 
-    # ── Panel labels (A–M) ──────────────────────────────────────────────
+    # ── Panel labels (A–F) ──────────────────────────────────────────────
     panel_axes = []
     # (A): first UMAP axis
     umap_axes = [a for a in fig.axes
                  if a.get_title() and a.get_title() in configs]
     if umap_axes:
         panel_axes.append(("A", umap_axes[0]))
-    panel_axes += [
-        ("B", ax_core), ("C", ax_ext),
-    ]
-    # (D) radar — find polar axes
+    # (B) radar — find polar axes
     polar_axes = [a for a in fig.axes if hasattr(a, "set_theta_offset")]
     if polar_axes:
-        panel_axes.append(("D", polar_axes[0]))
-    panel_axes += [
-        ("E", ax_dre), ("F", ax_lse),
-        ("G", ax_drex), ("H", ax_lsex),
-    ]
-    # (I) training curves first axis
+        panel_axes.append(("B", polar_axes[0]))
+    # (C) training curves first axis
     tc_axes = [a for a in fig.axes
                if a.get_title() in ("Val Loss", "Val ARI", "Val NMI")]
     if tc_axes:
-        panel_axes.append(("I", tc_axes[0]))
+        panel_axes.append(("C", tc_axes[0]))
     panel_axes += [
-        ("J", ax_diag), ("K", ax_res), ("L", ax_vf), ("M", ax_hm),
+        ("D", ax_diag), ("E", ax_vf), ("F", ax_hm),
     ]
 
     for letter, ax in panel_axes:
@@ -840,7 +776,7 @@ def main():
     args = ap.parse_args()
 
     _benchmarks = Path(__file__).resolve().parent.parent.parent  # benchmarks/
-    rdir = Path(args.resultsdir) if args.resultsdir else (_benchmarks / "results" / "dataset_default")
+    rdir = Path(args.resultsdir) if args.resultsdir else (_benchmarks / "results" / "IRALL")
     odir = Path(args.outdir) if args.outdir else (_benchmarks / "figures")
     odir.mkdir(parents=True, exist_ok=True)
 
@@ -851,7 +787,7 @@ def main():
     data = load_results(rdir)
     print(f"Loaded {len(data['configs'])} configs: {data['configs']}")
 
-    build_composed(data, odir / "fig1_composed_benchmark.png", cache_dir=odir)
+    build_composed(data, odir / "composed_benchmark.png", cache_dir=odir)
 
 
 if __name__ == "__main__":

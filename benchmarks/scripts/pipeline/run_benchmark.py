@@ -52,27 +52,27 @@ CONFIGS = {
     ),
     "VAE+ODE": dict(
         use_ode=True, use_moco=False, use_prototype=False,
-        vae_reg=0.8, ode_reg=0.2,
+        vae_reg=0.6, ode_reg=0.4,
     ),
     "VAE+MoCo": dict(
         use_ode=False, use_moco=True, use_prototype=False,
-        moco_weight=0.6, moco_T=0.2, moco_K=4096,
+        moco_weight=0.5, moco_T=0.2, moco_K=4096,
     ),
     "VAE+MoCo+Proto": dict(
         use_ode=False, use_moco=True, use_prototype=True,
-        n_prototypes=12, moco_weight=0.6, moco_T=0.2, moco_K=4096,
+        n_prototypes=12, moco_weight=0.5, moco_T=0.2, moco_K=4096,
         proto_weight=0.1,
     ),
     "VAE+ODE+MoCo": dict(
         use_ode=True, use_moco=True, use_prototype=False,
-        vae_reg=0.8, ode_reg=0.2,
-        moco_weight=0.6, moco_T=0.2, moco_K=4096,
+        vae_reg=0.6, ode_reg=0.4,
+        moco_weight=0.3, moco_T=0.2, moco_K=4096,
     ),
     "Full": dict(
         use_ode=True, use_moco=True, use_prototype=True,
         n_prototypes=12,
-        vae_reg=0.8, ode_reg=0.2,
-        moco_weight=0.6, moco_T=0.2, moco_K=4096,
+        vae_reg=0.6, ode_reg=0.4,
+        moco_weight=0.3, moco_T=0.2, moco_K=4096,
         proto_weight=0.1,
     ),
 }

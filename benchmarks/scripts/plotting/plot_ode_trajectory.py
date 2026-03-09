@@ -43,7 +43,8 @@ from sklearn.decomposition import PCA
 from sklearn.neighbors import NearestNeighbors
 from scipy.ndimage import uniform_filter1d
 
-warnings.filterwarnings("ignore")
+warnings.filterwarnings("ignore", category=FutureWarning)
+warnings.filterwarnings("ignore", category=UserWarning, module="matplotlib")
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent.parent.parent))
 from benchmarks.scripts.pipeline.visual_conflict_detector import detect_all_conflicts
 
@@ -65,7 +66,7 @@ FS_TITLE = 7
 FS_AXIS  = 6
 FS_TICK  = 5
 FS_LEG   = 4.5
-FS_SMALL = 3.8
+FS_SMALL = 4.5
 
 _CONFIGS  = ["VAE", "VAE+ODE", "VAE+MoCo", "VAE+MoCo+Proto", "VAE+ODE+MoCo", "Full"]
 _PALETTE  = ["#4C72B0", "#DD8452", "#55A868", "#C44E52", "#8172B3", "#937860"]
@@ -219,7 +220,7 @@ def _draw_pseudotime_violins(gs, fig, configs, latents, labels):
 
         ax.set_xticks(range(len(uniq)))
         ax.set_xticklabels([str(lb) for lb in uniq],
-                            fontsize=FS_TICK - 0.5, rotation=40, ha="right")
+                            fontsize=FS_TICK, rotation=40, ha="right")
         ax.set_title(f"Pseudotime per Cell Type\n({cfg})",
                      fontsize=FS_TITLE, pad=3)
         if j == 0:
@@ -367,7 +368,7 @@ def _draw_trajectory_smoothness(gs, fig, configs, latents, labels):
             bars[k].set_linewidth(1.3)
     ax_ent.set_xticks(x)
     ax_ent.set_xticklabels([c.replace("VAE+ODE+MoCo","V+OM").replace("VAE+MoCo+Proto","V+MP").replace("VAE+MoCo","V+M").replace("VAE+ODE","V+O").replace("VAE","VAE") for c in configs],
-                            fontsize=FS_TICK - 0.5, rotation=30, ha="right")
+                            fontsize=FS_TICK, rotation=30, ha="right")
     ax_ent.set_ylabel("kNN entropy", fontsize=FS_AXIS)
     ax_ent.set_title("kNN Entropy", fontsize=FS_TITLE, pad=3)
     ax_ent.tick_params(labelsize=FS_TICK)
@@ -446,7 +447,7 @@ def build_figure(rdir: Path, outdir: Path, adata_path: str):
     issues = detect_all_conflicts(fig, label="ode_trajectory", verbose=True)
 
     outpath = outdir / "ode_trajectory.png"
-    fig.savefig(outpath, dpi=DPI)
+    fig.savefig(outpath, dpi=DPI, bbox_inches="tight", pad_inches=0.08)
 
     # Export individual panel sub-figures
     sub_dir = outdir / "fig6_ode_trajectory"
@@ -469,7 +470,7 @@ def main():
     _data_base = os.environ.get("MOCOO_DATA_DIR", "data")
     p = argparse.ArgumentParser()
     p.add_argument("--resultsdir",
-                   default=str(_benchmarks / "results" / "dataset_default"))
+                   default=str(_benchmarks / "results" / "IRALL"))
     p.add_argument("--outdir",
                    default=str(_benchmarks / "figures"))
     p.add_argument("--data",

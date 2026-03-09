@@ -9,8 +9,8 @@ and the current ablation study results for the MoCoO framework.
 
 ```text
 repo root:
-├── LSE.py                             ← Latent Structure Evaluator
-├── DRE.py                             ← Dimensionality Reduction Evaluator
+├── mocoo/evaluation/lse.py            ← Latent Structure Evaluator
+├── mocoo/evaluation/dre.py            ← Dimensionality Reduction Evaluator
 └── benchmarks/
     ├── FIGURES.md                     ← this document
     ├── scripts/

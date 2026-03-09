@@ -44,17 +44,17 @@ SHARED = dict(
 ODE_CONFIGS = {
     "VAE+ODE": dict(
         use_ode=True, use_moco=False, use_prototype=False,
-        vae_reg=0.5, ode_reg=0.5,
+        vae_reg=0.6, ode_reg=0.4,
     ),
     "VAE+ODE+MoCo": dict(
         use_ode=True, use_moco=True, use_prototype=False,
-        vae_reg=0.5, ode_reg=0.5,
-        moco_weight=1.0, moco_T=0.2, moco_K=4096,
+        vae_reg=0.6, ode_reg=0.4,
+        moco_weight=0.3, moco_T=0.2, moco_K=4096,
     ),
     "Full": dict(
         use_ode=True, use_moco=True, use_prototype=True,
-        vae_reg=0.5, ode_reg=0.5,
-        moco_weight=1.0, moco_T=0.2, moco_K=4096,
+        vae_reg=0.6, ode_reg=0.4,
+        moco_weight=0.3, moco_T=0.2, moco_K=4096,
         n_prototypes=12,
     ),
 }

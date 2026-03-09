@@ -26,14 +26,15 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 
-warnings.filterwarnings("ignore")
+warnings.filterwarnings("ignore", category=FutureWarning)
+warnings.filterwarnings("ignore", category=UserWarning, module="matplotlib")
 
 # Ensure MoCoO is importable
-BASE_DIR = Path(os.environ.get("MOCOO_DATA_DIR", "data"))
-sys.path.insert(0, str(BASE_DIR / "MoCoO"))
+_REPO_ROOT = Path(__file__).resolve().parent.parent.parent.parent
+sys.path.insert(0, str(_REPO_ROOT))
 
-# Import configs from run_benchmark
-sys.path.insert(0, str(BASE_DIR / "MoCoO" / "benchmarks" / "scripts" / "pipeline"))
+# Also ensure pipeline scripts are importable
+sys.path.insert(0, str(_REPO_ROOT / "benchmarks" / "scripts" / "pipeline"))
 
 
 # ── Shared hyperparameters ──────────────────────────────────────────────────
@@ -55,29 +56,31 @@ CONFIGS = {
     "VAE": dict(use_ode=False, use_moco=False, use_prototype=False),
     "VAE+ODE": dict(
         use_ode=True, use_moco=False, use_prototype=False,
-        vae_reg=0.5, ode_reg=0.5,
+        vae_reg=0.6, ode_reg=0.4,
     ),
     "VAE+MoCo": dict(
         use_ode=False, use_moco=True, use_prototype=False,
-        moco_weight=1.0, moco_T=0.2, moco_K=4096,
+        moco_weight=0.5, moco_T=0.2, moco_K=4096,
     ),
     "VAE+MoCo+Proto": dict(
         use_ode=False, use_moco=True, use_prototype=True,
-        n_prototypes=12, moco_weight=1.0, moco_T=0.2, moco_K=4096,
+        n_prototypes=12, moco_weight=0.5, moco_T=0.2, moco_K=4096,
         proto_weight=0.1,
     ),
     "VAE+ODE+MoCo": dict(
         use_ode=True, use_moco=True, use_prototype=False,
-        vae_reg=0.5, ode_reg=0.5,
-        moco_weight=1.0, moco_T=0.2, moco_K=4096,
+        vae_reg=0.6, ode_reg=0.4,
+        moco_weight=0.3, moco_T=0.2, moco_K=4096,
     ),
     "Full": dict(
         use_ode=True, use_moco=True, use_prototype=True,
-        n_prototypes=12, vae_reg=0.5, ode_reg=0.5,
-        moco_weight=1.0, moco_T=0.2, moco_K=4096,
+        n_prototypes=12, vae_reg=0.6, ode_reg=0.4,
+        moco_weight=0.3, moco_T=0.2, moco_K=4096,
         proto_weight=0.1,
     ),
 }
+
+BASE_DIR = Path(os.environ.get("MOCOO_DATA_DIR", str(Path.home())))
 
 DATASET_SPECS = {
     "IRALL": {
@@ -190,7 +193,7 @@ def main():
                         help="Subset of configs to run (default: all)")
     parser.add_argument("--epochs", type=int, default=None,
                         help="Override default epochs for all datasets")
-    parser.add_argument("--max_cells", type=int, default=3000)
+    parser.add_argument("--max-cells", type=int, default=3000)
     parser.add_argument("--hvg", type=int, default=3000)
     parser.add_argument("--patience", type=int, default=50)
     parser.add_argument("--val_every", type=int, default=5)

@@ -23,6 +23,12 @@ FIG_WIDTH_IN = FIG_WIDTH_CM / 2.54   # ~6.693 in
 FIG_HEIGHT_IN = FIG_HEIGHT_CM / 2.54  # ~8.268 in
 DPI = 300
 
+# Standard savefig keyword arguments for all scripts
+SAVEFIG_KW = dict(dpi=DPI, bbox_inches="tight", pad_inches=0.08)
+
+# Threshold for heatmap text colour: above this normalised value, use white text
+HEATMAP_DARK_THRESHOLD = 0.45
+
 # ---------------------------------------------------------------------------
 # Font sizes (calibrated for the 17 x 21 cm canvas)
 # ---------------------------------------------------------------------------
@@ -31,7 +37,7 @@ FS_TITLE = 7     # Subplot titles
 FS_AXIS = 6      # Axis labels
 FS_TICK = 5      # Tick labels
 FS_LEGEND = 4.5  # Legend text
-FS_SMALL = 3.8   # Annotations / fine print
+FS_SMALL = 4.5   # Annotations / fine print (journal min ~5pt)
 
 # ---------------------------------------------------------------------------
 # Model configurations: canonical order and display names
@@ -89,7 +95,7 @@ _LINE_STYLES: Dict[str, object] = {
     "VAE+MoCo": "-.",
     "VAE+MoCo+Proto": ":",
     "VAE+ODE+MoCo": (0, (3, 1, 1, 1)),
-    "Full": "-",
+    "Full": (0, (5, 1)),       # long-dash (distinct from VAE solid)
 }
 
 # Per-config line widths (Full model gets emphasis)
@@ -115,7 +121,7 @@ def apply_style() -> None:
         "figure.dpi": DPI,
         "savefig.dpi": DPI,
         "savefig.bbox": "tight",
-        "savefig.pad_inches": 0.02,
+        "savefig.pad_inches": 0.08,
 
         # Font
         "font.family": "sans-serif",

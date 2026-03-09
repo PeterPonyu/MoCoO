@@ -83,13 +83,13 @@ help: ## Show all available targets
 	@echo "  FIGURES"
 	@echo "  ─────────────────────────────────────────────────────────"
 	@echo "  make figures          Generate all figures"
-	@echo "  make fig-ablation     Fig 1: ablation summary"
+	@echo "  make fig-ablation     Fig 3: ablation summary"
 	@echo "  make fig-comparison   Fig 2: quantitative comparison"
-	@echo "  make fig-composed     Fig 3: composed multi-panel"
+	@echo "  make fig-composed     Fig 5: composed multi-panel"
 	@echo "  make fig-dynamics     Fig 4: training dynamics"
-	@echo "  make fig-batch        Fig 5: batch integration"
-	@echo "  make fig-trajectory   Fig 6: ODE trajectory"
-	@echo "  make fig-biovalidation Fig 7: biological validation"
+	@echo "  make fig-batch        Supplemental: batch integration"
+	@echo "  make fig-trajectory   Supplemental: ODE trajectory"
+	@echo "  make fig-biovalidation Supplemental: biological validation"
 	@echo ""
 	@echo "  PAPER"
 	@echo "  ─────────────────────────────────────────────────────────"
@@ -280,7 +280,7 @@ figures: fig-ablation fig-comparison fig-composed fig-dynamics fig-batch fig-tra
 	@echo "  All figures generated in $(FIGURES_DIR)/"
 	@echo "══════════════════════════════════════════════════════════════"
 
-fig-ablation: ## Fig 1: ablation summary (radar, waterfall, heatmap)
+fig-ablation: ## Fig 3: ablation summary (synergy, waterfall, heatmap)
 	@echo ""
 	@echo "══════════════════════════════════════════════════════════════"
 	@echo "  Figure: Ablation summary"
@@ -300,7 +300,7 @@ fig-comparison: ## Fig 2: quantitative latent space comparison
 		--resultsdir $(RESULTS_DIR)/dataset_default \
 		--outdir $(FIGURES_DIR)
 
-fig-composed: ## Fig 3: composed multi-panel benchmark figure
+fig-composed: ## Fig 5: composed multi-panel benchmark figure
 	@echo ""
 	@echo "══════════════════════════════════════════════════════════════"
 	@echo "  Figure: Composed benchmark"
@@ -320,7 +320,7 @@ fig-dynamics: ## Fig 4: training dynamics and convergence
 		--resultsdir $(RESULTS_DIR)/dataset_default \
 		--outdir $(FIGURES_DIR)
 
-fig-batch: ## Fig 5: batch integration and cross-dataset generalization
+fig-batch: ## Supplemental: batch integration and cross-dataset generalization
 	@echo ""
 	@echo "══════════════════════════════════════════════════════════════"
 	@echo "  Figure: Batch integration"
@@ -330,7 +330,7 @@ fig-batch: ## Fig 5: batch integration and cross-dataset generalization
 		--resultsdir $(RESULTS_DIR) \
 		--outdir $(FIGURES_DIR)
 
-fig-trajectory: ## Fig 6: ODE pseudotime trajectory analysis
+fig-trajectory: ## Supplemental: ODE pseudotime trajectory analysis
 	@echo ""
 	@echo "══════════════════════════════════════════════════════════════"
 	@echo "  Figure: ODE trajectory"
@@ -341,7 +341,7 @@ fig-trajectory: ## Fig 6: ODE pseudotime trajectory analysis
 		--outdir $(FIGURES_DIR) \
 		--data $(DATA_DIR)/LAB/scRL/IRALL.h5ad
 
-fig-biovalidation: ## Fig 7: biological validation (perturbation, gene expression)
+fig-biovalidation: ## Supplemental: biological validation (perturbation, gene expression)
 	@echo ""
 	@echo "══════════════════════════════════════════════════════════════"
 	@echo "  Figure: Biological validation"

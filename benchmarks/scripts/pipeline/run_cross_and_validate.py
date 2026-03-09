@@ -21,7 +21,8 @@ from pathlib import Path
 import numpy as np
 import torch
 
-warnings.filterwarnings("ignore")
+warnings.filterwarnings("ignore", category=FutureWarning)
+warnings.filterwarnings("ignore", category=UserWarning, module="matplotlib")
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent.parent.parent))
 
 from mocoo import MoCoO
@@ -57,7 +58,7 @@ CONFIGS = {
     "VAE+MoCo+Proto": dict(
         use_ode=False, use_moco=True, use_prototype=True,
         n_prototypes=12, moco_weight=0.5, moco_T=0.2, moco_K=4096,
-        proto_weight=0.05,
+        proto_weight=0.1,
     ),
     "VAE+ODE+MoCo": dict(
         use_ode=True, use_moco=True, use_prototype=False,
@@ -69,7 +70,7 @@ CONFIGS = {
         n_prototypes=12,
         vae_reg=0.6, ode_reg=0.4,
         moco_weight=0.3, moco_T=0.2, moco_K=4096,
-        proto_weight=0.05,
+        proto_weight=0.1,
     ),
 }
 

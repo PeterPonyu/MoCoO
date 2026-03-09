@@ -2,7 +2,7 @@ include README.md
 include LICENSE
 include pyproject.toml
 include setup.cfg
-recursive-include mocoo *.py
+recursive-include mocoo *.py *.yaml *.yml
 global-exclude *.pyc
 global-exclude __pycache__
 global-exclude *.pyo

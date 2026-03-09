@@ -3,7 +3,7 @@
 [![PyPI version](https://img.shields.io/pypi/v/mocoo.svg)](https://pypi.org/project/mocoo/)
 [![Python versions](https://img.shields.io/pypi/pyversions/mocoo.svg)](https://pypi.org/project/mocoo/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
-[![Tests](https://github.com/PeterPonyu/MoCoO/actions/workflows/ci.yml/badge.svg)](https://github.com/PeterPonyu/MoCoO/actions)
+[![Tests](https://github.com/PeterPonyu/MoCoO/actions/workflows/test.yml/badge.svg)](https://github.com/PeterPonyu/MoCoO/actions/workflows/test.yml)
 
 **Mo**mentum **Co**ntrast **O**DE-Regularized VAE for Single-Cell RNA Velocity
 

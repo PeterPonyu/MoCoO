@@ -34,9 +34,20 @@ import matplotlib.font_manager as fm
 import numpy as np
 from sklearn.neighbors import NearestNeighbors
 
-warnings.filterwarnings("ignore")
+warnings.filterwarnings("ignore", category=FutureWarning)
+warnings.filterwarnings("ignore", category=UserWarning, module="matplotlib")
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent.parent.parent))
 from benchmarks.scripts.pipeline.visual_conflict_detector import detect_all_conflicts
+
+# ── Import centralized style ────────────────────────────────────────────────
+from mocoo.visualization.style import (
+    FIG_WIDTH_IN as FIG_W, FIG_HEIGHT_IN as FIG_H, DPI, SAVEFIG_KW,
+    FS_LABEL, FS_TITLE, FS_AXIS, FS_TICK, FS_LEGEND as FS_LEG, FS_SMALL,
+    HEATMAP_DARK_THRESHOLD,
+    get_config_colors, get_config_order, get_short_name, apply_style,
+)
+
+apply_style()
 
 # ── Fonts ──────────────────────────────────────────────────────────────────
 _FONT_DIR = Path(__file__).resolve().parent.parent.parent / "fonts"
@@ -48,20 +59,9 @@ if (_FONT_DIR / "Arial.ttf").exists():
     matplotlib.rcParams["font.sans-serif"] = ["Arial"] + list(
         matplotlib.rcParams.get("font.sans-serif", []))
 
-FIG_W = 17 / 2.54
-FIG_H = 21 / 2.54
-DPI   = 300
-FS_LABEL = 9
-FS_TITLE = 7
-FS_AXIS  = 6
-FS_TICK  = 5
-FS_LEG   = 4.5
-FS_SMALL = 3.8
-
-_CONFIGS  = ["VAE", "VAE+ODE", "VAE+MoCo", "VAE+MoCo+Proto", "VAE+ODE+MoCo", "Full"]
-_PALETTE  = ["#4C72B0", "#DD8452", "#55A868", "#C44E52", "#8172B3", "#937860"]
-_CONFIG_COLOR = dict(zip(_CONFIGS, _PALETTE))
-_SHORT = {c: c.replace("VAE+ODE+MoCo","V+OM").replace("VAE+MoCo+Proto","V+MP").replace("VAE+MoCo","V+M").replace("VAE+ODE","V+O").replace("VAE","VAE") for c in _CONFIGS}
+_CONFIGS = get_config_order()
+_CONFIG_COLOR = get_config_colors()
+_SHORT = {c: get_short_name(c) for c in _CONFIGS}
 
 
 def _export_subpanels(fig, sub_dir: Path, panels: list) -> None:
@@ -145,158 +145,192 @@ def _permutation_importance(latent, labels, seed=42):
     return drops
 
 
-# ── Panel A: Multi-metric dot-strip chart (replaces polar radar) ──────────
+# ── Panel A: ODE × MoCo Synergy Heatmap ──────────────────────────────────
 
-def _draw_radar(gs, fig, configs, metrics):
-    """Dot-strip chart showing normalised performance across 6 key metrics.
-    This avoids polar Line2D objects that can bleed past figure borders.
+def _load_beta_metrics(rdir: Path) -> dict:
+    """Load metrics from beta0.01, beta0.1, beta1.0 subdirectories.
+
+    Returns {beta_label: {config_name: metrics_dict}}.
+    Falls back to the single rdir if beta subdirectories are not found.
     """
-    radar_metrics = [
-        ("ARI",                      "ARI"),
-        ("NMI",                      "NMI"),
-        ("ASW",                      "ASW"),
-        ("DREX_overall_quality",     "DREX"),
-        ("LSE_overall_quality",      "LSE"),
-        ("DRE_umap_overall_quality", "DRE"),
+    results_root = rdir.parent  # e.g. benchmarks/results/
+    beta_dirs = {
+        r"$\beta$=1.0": results_root / "beta1.0",
+        r"$\beta$=0.1": results_root / "beta0.1",
+        r"$\beta$=0.01": results_root / "beta0.01",
+    }
+    out = {}
+    for label, bdir in beta_dirs.items():
+        if not bdir.exists():
+            continue
+        out[label] = {}
+        for jf in bdir.glob("*.json"):
+            cfg_key = jf.stem.replace("_", "+")
+            if cfg_key == "Full":
+                cfg_key = "Full"
+            with open(jf) as f:
+                out[label][cfg_key] = _unify_metric_keys(json.load(f))
+    return out
+
+
+def _compute_synergy(beta_metrics: dict) -> tuple:
+    """Compute ODE×MoCo interaction term for each metric × beta.
+
+    synergy = (VAE+ODE+MoCo) - (VAE+ODE) - (VAE+MoCo) + VAE
+
+    Returns (matrix, metric_labels, beta_labels).
+    """
+    synergy_metrics = [
+        ("ARI",  "ARI",  True),
+        ("NMI",  "NMI",  True),
+        ("ASW",  "ASW",  True),
+        ("DAV",  "DB\u2193", False),
+        ("DRE_umap_overall_quality", "DRE", True),
+        ("DREX_overall_quality", "DREX", True),
     ]
+    beta_labels = list(beta_metrics.keys())
+    metric_labels = [lbl for _, lbl, _ in synergy_metrics]
+    mat = np.full((len(synergy_metrics), len(beta_labels)), np.nan)
+
+    for bi, blabel in enumerate(beta_labels):
+        bm = beta_metrics[blabel]
+        for mi, (key, _, higher) in enumerate(synergy_metrics):
+            vae      = bm.get("VAE",          {}).get(key, np.nan)
+            vae_ode  = bm.get("VAE+ODE",      {}).get(key, np.nan)
+            vae_moco = bm.get("VAE+MoCo",     {}).get(key, np.nan)
+            vae_om   = bm.get("VAE+ODE+MoCo", {}).get(key, np.nan)
+            if any(np.isnan(v) for v in [vae, vae_ode, vae_moco, vae_om]):
+                continue
+            syn = vae_om - vae_ode - vae_moco + vae
+            # For DB (lower-is-better), negate so positive = good synergy
+            if not higher:
+                syn = -syn
+            mat[mi, bi] = syn
+    return mat, metric_labels, beta_labels
+
+
+def _draw_synergy_heatmap(gs, fig, rdir):
+    """ODE × MoCo synergy heatmap across metrics and beta values."""
+    beta_metrics = _load_beta_metrics(rdir)
+    if not beta_metrics:
+        # Fallback: empty axes with note
+        ax = fig.add_subplot(gs)
+        ax.text(0.5, 0.5, "Beta sweep data\nnot available",
+                ha="center", va="center", fontsize=FS_AXIS,
+                transform=ax.transAxes, color="gray")
+        ax.set_axis_off()
+        return ax
+
+    mat, metric_labels, beta_labels = _compute_synergy(beta_metrics)
 
     ax = fig.add_subplot(gs)
-    ax.set_facecolor("#f9f9f9")
 
-    # Build normalised values per config
-    raw_vals = {}
-    for cfg in configs:
-        raw_vals[cfg] = np.array([metrics[cfg].get(k, 0) for k, _ in radar_metrics],
-                                  dtype=np.float32)
-    all_vals = np.array([raw_vals[c] for c in configs])
-    vmin  = all_vals.min(axis=0)
-    vmax  = all_vals.max(axis=0)
-    vrange = np.where(vmax - vmin < 1e-8, 1.0, vmax - vmin)
+    # Use diverging colormap: blue = negative, white = 0, red = positive
+    vabs = np.nanmax(np.abs(mat))
+    im = ax.imshow(mat, aspect="auto", cmap="RdBu_r", vmin=-vabs, vmax=vabs,
+                   interpolation="nearest")
 
-    metric_labels = [lbl for _, lbl in radar_metrics]
-    n_metrics = len(radar_metrics)
-    n_configs  = len(configs)
-    bar_w = 0.12
-    group_gap = 1.0
+    # Annotations
+    for mi in range(mat.shape[0]):
+        for bi in range(mat.shape[1]):
+            v = mat[mi, bi]
+            if np.isnan(v):
+                continue
+            sign = "+" if v >= 0 else ""
+            txt = f"{sign}{v:.3f}"
+            text_col = "white" if abs(v) > vabs * 0.65 else "black"
+            ax.text(bi, mi, txt, ha="center", va="center",
+                    fontsize=FS_SMALL + 0.5, color=text_col, fontweight="bold")
 
-    for j, cfg in enumerate(configs):
-        norm = (raw_vals[cfg] - vmin) / vrange
-        xs   = np.arange(n_metrics) * group_gap + (j - n_configs / 2) * bar_w
-        ax.bar(xs, norm, width=bar_w * 0.85,
-               color=_CONFIG_COLOR[cfg], alpha=0.80,
-               edgecolor="black", linewidth=0.3, label=_SHORT[cfg])
-
-    ax.set_xticks(np.arange(n_metrics) * group_gap)
-    ax.set_xticklabels(metric_labels, fontsize=FS_TICK)
-    ax.set_ylabel("Norm. score", fontsize=FS_AXIS)
-    ax.set_title("Multi-metric Comparison (normalised per metric)",
+    ax.set_xticks(np.arange(len(beta_labels)))
+    ax.set_xticklabels(beta_labels, fontsize=FS_TICK)
+    ax.set_yticks(np.arange(len(metric_labels)))
+    ax.set_yticklabels(metric_labels, fontsize=FS_TICK)
+    ax.set_title("ODE \u00d7 MoCo Synergy\n(positive = super-additive)",
                  fontsize=FS_TITLE, pad=3)
-    ax.set_ylim(0, 1.25)
-    ax.yaxis.set_major_locator(plt.MaxNLocator(4, prune="upper"))
-    ax.tick_params(labelsize=FS_TICK)
-    ax.grid(alpha=0.22, linestyle="--", linewidth=0.4, axis="y")
-    ax.legend(fontsize=FS_LEG, frameon=True, ncol=2,
-              loc="upper right", handlelength=0.8, labelspacing=0.15,
-              framealpha=0.9, edgecolor="#cccccc", borderpad=0.3)
+
+    cax = ax.inset_axes([1.03, 0.1, 0.03, 0.8])
+    cb = fig.colorbar(im, cax=cax)
+    cb.ax.tick_params(labelsize=FS_TICK, length=1.5)
+    cb.set_label("Interaction term", fontsize=FS_AXIS - 1, labelpad=2)
     return ax
 
 
 # ── Panel B: Incremental gain waterfall ───────────────────────────────────
 
 def _draw_incremental_gain(gs, fig, configs, metrics):
-    """For ARI, NMI, ASW: plot bar per config with delta from VAE baseline."""
+    """For ARI, NMI, ASW: plot bar per config with delta from VAE baseline.
+
+    Negative deltas are drawn below the baseline; annotations are placed
+    inside the delta bar to avoid overlap with x-axis labels.
+    """
     metric_triples = [
-        ("ARI", "ARI ↑", "tab:blue"),
-        ("NMI", "NMI ↑", "tab:orange"),
-        ("ASW", "ASW ↑", "tab:green"),
+        ("ARI", "ARI \u2191"),
+        ("NMI", "NMI \u2191"),
+        ("ASW", "ASW \u2191"),
     ]
     ax_first = None
-    for j, (key, title, color) in enumerate(metric_triples):
+    for j, (key, title) in enumerate(metric_triples):
         ax = fig.add_subplot(gs[j])
         if j == 0:
             ax_first = ax
         baseline = metrics["VAE"].get(key, 0)
+        all_vals = [metrics[c].get(key, 0) for c in configs]
+
         for k, cfg in enumerate(configs):
-            val   = metrics[cfg].get(key, 0)
+            val   = all_vals[k]
             delta = val - baseline
             bar_c = _CONFIG_COLOR[cfg]
-            # Main bar = baseline
+            # Baseline portion
             ax.bar(k, baseline, color=bar_c, alpha=0.35,
                    edgecolor="black", linewidth=0.4)
-            # Delta bar on top (green if positive, red if negative)
+            # Delta portion
             delta_c = "#2ca02c" if delta >= 0 else "#d62728"
             ax.bar(k, delta, bottom=baseline, color=delta_c, alpha=0.75,
                    edgecolor="black", linewidth=0.4)
-            # Annotate delta only (omit zero-delta VAE to avoid overlap)
-            dy = baseline + delta
+            # Annotate delta inside the delta bar (above for positive, below baseline for negative)
             if abs(delta) > 1e-6:
                 sign = "+" if delta >= 0 else ""
-                # Adjust text position for negative deltas to be below the bar
-                va = "bottom" if delta >= 0 else "top"
-                y_offset = 0.006 if delta >= 0 else -0.006
-                ax.text(k, dy + y_offset, f"{sign}{delta:.3f}",
-                        ha="center", va=va, fontsize=FS_SMALL - 0.5,
-                        color=delta_c, zorder=10)
-        ax.plot([-0.4, len(configs) - 0.6], [baseline, baseline],
-                color="gray", ls="--", lw=0.8, alpha=0.7, clip_on=True)
-        # Label baseline line on the y-axis side only (no text annotation that overlaps bars)
+                txt_y = baseline + delta * 0.5  # midpoint of delta bar
+                ax.text(k, txt_y, f"{sign}{delta:.3f}",
+                        ha="center", va="center", fontsize=FS_SMALL,
+                        color=delta_c, fontweight="bold", zorder=10)
+
+        ax.axhline(baseline, color="gray", ls="--", lw=0.8, alpha=0.7, zorder=1)
         ax.yaxis.set_major_locator(plt.MaxNLocator(4, prune="upper"))
         ax.set_xticks(range(len(configs)))
         ax.set_xticklabels([_SHORT[c] for c in configs],
-                            fontsize=FS_TICK - 0.5, rotation=35, ha="right")
+                            fontsize=FS_TICK, rotation=35, ha="right")
         ax.set_title(title, fontsize=FS_TITLE, pad=2)
         if j == 0:
             ax.set_ylabel("Score", fontsize=FS_AXIS)
         ax.tick_params(labelsize=FS_TICK)
         ax.grid(alpha=0.22, linestyle="--", linewidth=0.4, axis="y")
-        ymin = min([metrics[c].get(key,0) for c in configs]) * 0.85
-        ymax = max([metrics[c].get(key,0) for c in configs]) * 1.38
-        
-        # Adjust ymin to prevent negative bars from overlapping with x-axis labels
-        min_delta = min([metrics[c].get(key, 0) - baseline for c in configs])
-        if min_delta < 0:
-            ymin = min(ymin, baseline + min_delta * 1.2)
-            
-        # Ensure ymin is low enough to fit the text annotations
-        for k, cfg in enumerate(configs):
-            val = metrics[cfg].get(key, 0)
-            delta = val - baseline
-            if delta < 0:
-                dy = baseline + delta
-                ymin = min(ymin, dy - 0.05) # Add some padding below the text
-                
-        ax.set_ylim(ymin, ymax)
-        
-        # Move x-axis labels down to avoid overlap with negative bars
-        ax.tick_params(axis='x', pad=15)
-        
-        # Adjust zorder so text is above bars
-        for child in ax.get_children():
-            if isinstance(child, plt.Text):
-                child.set_zorder(10)
-                
-        # Disable conflict detection for this specific panel if it's just text overlap
-        ax.set_zorder(1)
+
+        # Set y-limits with padding for annotations
+        vmin, vmax = min(all_vals), max(all_vals)
+        margin = (vmax - vmin) * 0.25 if vmax > vmin else 0.05
+        ax.set_ylim(vmin - margin, vmax + margin)
     return ax_first
 
 
 # ── Panel C: Comprehensive metric heatmap ─────────────────────────────────
 
 def _draw_metric_heatmap(gs, fig, configs, metrics):
-    """Rows = configs, Cols = key metrics, colour = normalised score."""
+    """Rows = configs, Cols = key metrics, colour = normalised score.
+
+    Uses a focused set of 8 metrics for readability at journal column width.
+    """
     metric_groups = [
         # (key, display_label, higher_better)
-        ("ARI",                       "ARI",        True),
-        ("NMI",                       "NMI",        True),
-        ("ASW",                       "ASW",        True),
-        ("DREX_trustworthiness",      "Trust.",     True),
-        ("DREX_continuity",           "Cont.",      True),
-        ("DREX_overall_quality",      "DREX",       True),
-        ("LSE_participation_ratio",   "Part.R",     True),
-        ("LSE_overall_quality",       "LSE",        True),
-        ("DRE_umap_overall_quality",  "DRE",        True),
-        ("CAL",                       "Cal.H",      True),
-        ("DAV",                       "Dav.B",      False),
+        ("ARI",                       "ARI",     True),
+        ("NMI",                       "NMI",     True),
+        ("ASW",                       "ASW",     True),
+        ("DREX_trustworthiness",      "Trust.",   True),
+        ("DREX_overall_quality",      "DREX",    True),
+        ("LSE_overall_quality",       "LSE",     True),
+        ("DRE_umap_overall_quality",  "DRE",     True),
+        ("LSEX_overall_quality",      "LSEX",    True),
     ]
     n_rows = len(configs)
     n_cols = len(metric_groups)
@@ -321,14 +355,14 @@ def _draw_metric_heatmap(gs, fig, configs, metrics):
     for ci in range(n_rows):
         for mi in range(n_cols):
             raw = metrics[configs[ci]].get(metric_groups[mi][0], np.nan)
-            txt = f"{raw:.3f}" if not np.isnan(raw) else "—"
-            text_col = "black" if 0.3 < mat_norm[ci, mi] < 0.8 else "white"
+            txt = f"{raw:.3f}" if not np.isnan(raw) else "\u2014"
+            text_col = "white" if mat_norm[ci, mi] > HEATMAP_DARK_THRESHOLD else "black"
             ax.text(mi, ci, txt, ha="center", va="center",
-                    fontsize=FS_SMALL - 0.5, color=text_col)
+                    fontsize=FS_SMALL + 0.5, color=text_col)
 
     ax.set_xticks(np.arange(n_cols))
     ax.set_xticklabels([m[1] for m in metric_groups],
-                        fontsize=FS_TICK - 0.5, rotation=40, ha="right")
+                        fontsize=FS_TICK, rotation=40, ha="right")
     ax.set_yticks(np.arange(n_rows))
     ax.set_yticklabels([_SHORT[c] for c in configs], fontsize=FS_TICK)
     ax.set_title("Comprehensive Performance Heatmap\n(higher = better per column, normalised)",
@@ -336,7 +370,7 @@ def _draw_metric_heatmap(gs, fig, configs, metrics):
 
     cax = ax.inset_axes([1.01, 0.1, 0.02, 0.8])
     cb  = fig.colorbar(im, cax=cax)
-    cb.ax.tick_params(labelsize=FS_TICK - 0.5, length=1.5)
+    cb.ax.tick_params(labelsize=FS_TICK, length=1.5)
     cb.set_label("Norm. score", fontsize=FS_AXIS - 1, labelpad=2)
     return ax
 
@@ -406,7 +440,7 @@ def build_figure(rdir: Path, outdir: Path):
         figure=fig,
     )
 
-    # A: Radar (left) — needs polar, right = just empty or later split
+    # A: Synergy heatmap (left) + summary table (right)
     gs_A_row = gridspec.GridSpecFromSubplotSpec(
         1, 2, subplot_spec=outer[0], wspace=0.30)
     gs_B = gridspec.GridSpecFromSubplotSpec(
@@ -416,8 +450,8 @@ def build_figure(rdir: Path, outdir: Path):
     gs_D = gridspec.GridSpecFromSubplotSpec(
         1, 1, subplot_spec=outer[3])
 
-    print("  Drawing Panel A (Radar chart)...")
-    ax_A = _draw_radar(gs_A_row[0], fig, configs, metrics)
+    print("  Drawing Panel A (Synergy heatmap + summary table)...")
+    ax_A = _draw_synergy_heatmap(gs_A_row[0], fig, rdir)
 
     # Panel A right: quick summary table of top metric per config
     ax_A_table = fig.add_subplot(gs_A_row[1])
@@ -446,15 +480,15 @@ def build_figure(rdir: Path, outdir: Path):
     issues = detect_all_conflicts(fig, label="ablation_summary", verbose=True)
 
     outpath = outdir / "ablation_summary.png"
-    fig.savefig(outpath, dpi=DPI)
+    fig.savefig(outpath, **SAVEFIG_KW)
 
     # Export individual panel sub-figures
-    sub_dir = outdir / "fig5_ablation_summary"
+    sub_dir = outdir / "fig3_ablation_summary"
     sub_dir.mkdir(parents=True, exist_ok=True)
-    _export_subpanels(fig, sub_dir, [(ax_A, "panelA_radar"),
+    _export_subpanels(fig, sub_dir, [(ax_A, "panelA_synergy"),
                                      (ax_B, "panelB_delta_ari"),
-                                     (ax_C, "panelC_geometry"),
-                                     (ax_D, "panelD_runtime")])
+                                     (ax_C, "panelC_heatmap"),
+                                     (ax_D, "panelD_permutation")])
     plt.close(fig)
 
     n_warn = sum(1 for x in issues if x.get("severity") == "warning")
@@ -503,7 +537,7 @@ def main():
     _benchmarks = Path(__file__).resolve().parent.parent.parent  # benchmarks/
     p = argparse.ArgumentParser()
     p.add_argument("--resultsdir",
-                   default=str(_benchmarks / "results" / "dataset_default"))
+                   default=str(_benchmarks / "results" / "IRALL"))
     p.add_argument("--outdir",
                    default=str(_benchmarks / "figures"))
     args = p.parse_args()

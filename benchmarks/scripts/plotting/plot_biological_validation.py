@@ -41,7 +41,8 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent.parent.parent))
 
 from benchmarks.scripts.pipeline.visual_conflict_detector import detect_all_conflicts
 
-warnings.filterwarnings("ignore")
+warnings.filterwarnings("ignore", category=FutureWarning)
+warnings.filterwarnings("ignore", category=UserWarning, module="matplotlib")
 
 # ── Arial font (match benchmark figure) ──────────────────────────────────────
 _FONT_DIR = Path(__file__).resolve().parent.parent.parent / "fonts"
@@ -62,7 +63,7 @@ FS_TITLE = 7      # axes title
 FS_AXIS  = 6      # axis label
 FS_TICK  = 5      # tick label
 FS_LEG   = 4.5    # legend text
-FS_SMALL = 4      # gene-name & colorbar annotations
+FS_SMALL = 4.5      # gene-name & colorbar annotations
 
 # ── Scientific constants ──────────────────────────────────────────────────────
 TOP_COMPS      = 6    # latent dims shown in heatmaps (per config)
@@ -116,7 +117,7 @@ def _compute_umap(latent: np.ndarray, cache_path: Path | None = None) -> np.ndar
         return np.load(cache_path)["emb"]
     import umap as _umap
     reducer = _umap.UMAP(n_components=2, random_state=42,
-                         n_neighbors=15, min_dist=0.1, metric="euclidean")
+                         n_neighbors=30, min_dist=0.3, metric="euclidean")
     emb = reducer.fit_transform(latent).astype(np.float32)
     if cache_path is not None:
         np.savez_compressed(cache_path, emb=emb)
@@ -547,7 +548,7 @@ def build_figure(data, adata, outpath: Path):
     print("\n── Conflict Detection ──")
     issues = detect_all_conflicts(fig, label="bio_validation_abcd", verbose=True)
 
-    fig.savefig(outpath, dpi=DPI)
+    fig.savefig(outpath, dpi=DPI, bbox_inches="tight", pad_inches=0.08)
 
     # Export individual panel sub-figures
     sub_dir = outpath.parent / "fig3_biological_validation"
@@ -575,7 +576,7 @@ def main():
     _data_base = os.environ.get("MOCOO_DATA_DIR", "data")
     parser = argparse.ArgumentParser()
     parser.add_argument("--resultsdir",
-                        default=str(_benchmarks / "results" / "dataset_default"))
+                        default=str(_benchmarks / "results" / "IRALL"))
     parser.add_argument("--data",
                         default=os.path.join(_data_base, "Desktop/datasets/IRALL.h5ad"))
     parser.add_argument("--outdir",

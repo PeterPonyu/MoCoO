@@ -33,7 +33,8 @@ import numpy as np
 from sklearn.neighbors import NearestNeighbors
 from umap import UMAP
 
-warnings.filterwarnings("ignore")
+warnings.filterwarnings("ignore", category=FutureWarning)
+warnings.filterwarnings("ignore", category=UserWarning, module="matplotlib")
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent.parent.parent))
 from benchmarks.scripts.pipeline.visual_conflict_detector import detect_all_conflicts
 
@@ -95,7 +96,7 @@ def _compute_umap(latent, cache_dir: Path, tag: str):
     if cache.exists():
         return np.load(cache)["emb"]
     emb = UMAP(n_components=2, random_state=42, min_dist=0.3,
-               n_neighbors=20, verbose=False).fit_transform(latent)
+               n_neighbors=30, verbose=False).fit_transform(latent)
     np.savez_compressed(cache, emb=emb)
     return emb
 
@@ -208,19 +209,18 @@ def _draw_clustering_bars(gs, fig, configs, metrics):
         ax.set_ylim(0, max(max(vals), max(tvals)) * 1.18)
         ax.yaxis.set_major_locator(plt.MaxNLocator(4, prune="upper"))
         if j == 0:
-            ax.legend(fontsize=FS_LEG, frameon=True, loc="upper right",
-                      framealpha=0.75, handlelength=0.8, labelspacing=0.15,
-                      edgecolor="#cccccc")
+            ax.legend(fontsize=FS_LEG, frameon=False, loc="upper right",
+                      handlelength=0.8, labelspacing=0.15)
     return ax_first
 
 
 def _draw_neighbourhood_quality(gs, fig, configs, metrics):
     """DREX: trustworthiness, continuity, distance Spearman + DRE overall."""
     items = [
-        ("DREX_trustworthiness",  "Trustworthiness ↑", True),
-        ("DREX_continuity",       "Continuity ↑",      True),
-        ("DREX_distance_spearman","Dist. Spearman ↑",  True),
-        ("DRE_umap_overall_quality", "DRE Quality ↑",  True),
+        ("DREX_trustworthiness",       "Trustworthiness \u2191", True),
+        ("DREX_neighborhood_symmetry", "Nbr. Symmetry \u2191",  True),
+        ("DREX_distance_spearman",     "Dist. Spearman \u2191",  True),
+        ("DRE_umap_overall_quality",   "DRE Quality \u2191",     True),
     ]
     x = np.arange(len(configs))
     colors = [_CONFIG_COLOR[c] for c in configs]
@@ -374,7 +374,7 @@ def main():
     _benchmarks = Path(__file__).resolve().parent.parent.parent  # benchmarks/
     p = argparse.ArgumentParser()
     p.add_argument("--resultsdir",
-                   default=str(_benchmarks / "results" / "dataset_default"))
+                   default=str(_benchmarks / "results" / "IRALL"))
     p.add_argument("--outdir",
                    default=str(_benchmarks / "figures"))
     args = p.parse_args()
