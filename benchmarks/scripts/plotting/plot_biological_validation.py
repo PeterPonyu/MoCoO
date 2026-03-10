@@ -39,11 +39,11 @@ import sys
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent.parent.parent))
 
 from benchmarks.scripts.pipeline.visual_conflict_detector import detect_all_conflicts
-from benchmarks.scripts.plotting.shared import setup_fonts, load_benchmark_npz, export_subpanels, panel_label
+from benchmarks.scripts.plotting.shared import setup_fonts, load_benchmark_npz, export_subpanels, panel_label, add_config_legend_footnote
 from mocoo.visualization.style import (
     FIG_WIDTH_IN, FIG_HEIGHT_IN, DPI,
     FS_LABEL, FS_TITLE, FS_AXIS, FS_TICK, FS_LEGEND, FS_SMALL,
-    apply_style, get_config_colors,
+    apply_style, get_config_colors, get_tick_name,
 )
 
 warnings.filterwarnings("ignore", category=FutureWarning)
@@ -64,7 +64,7 @@ HEATMAP_CONFIGS = [
     "VAE", "VAE+ODE", "VAE+MoCo",
     "VAE+MoCo+Proto", "VAE+ODE+MoCo", "Full",
 ]
-_SCATTER_KW    = dict(s=0.8, alpha=0.45, linewidths=0, rasterized=True)
+_SCATTER_KW    = dict(s=1.2, alpha=0.55, linewidths=0, rasterized=True)
 
 
 # ══════════════════════════════════════════════════════════════════════════════
@@ -237,9 +237,6 @@ def _umap_celltype(ax, emb, labels, title, show_ylabel=True):
     ax.set_xlim(xl, xh); ax.set_ylim(yl, yh)
     ax.set_title(title, fontsize=FS_TITLE, pad=3)
     ax.set_xticks([]); ax.set_yticks([])
-    ax.set_xlabel("UMAP 1", fontsize=FS_AXIS)
-    if show_ylabel:
-        ax.set_ylabel("UMAP 2", fontsize=FS_AXIS)
     if len(uniq) <= 12:
         handles = [plt.Line2D([0], [0], marker="o", color="w",
                               markerfacecolor=cm20(k % 20), markersize=3)
@@ -262,9 +259,6 @@ def _umap_scalar(ax, emb, values, title, cmap_name, cbar_label, fig, show_ylabel
     ax.set_xlim(xl, xh); ax.set_ylim(yl, yh)
     ax.set_title(title, fontsize=FS_TITLE, pad=3)
     ax.set_xticks([]); ax.set_yticks([])
-    ax.set_xlabel("UMAP 1", fontsize=FS_AXIS)
-    if show_ylabel:
-        ax.set_ylabel("UMAP 2", fontsize=FS_AXIS)
     _inset_cbar(fig, ax, sc, label=cbar_label)
 
 
@@ -464,7 +458,7 @@ def build_figure(data, adata, outpath: Path):
     outer = gridspec.GridSpec(
         4, 1,
         height_ratios=[2.5, 2.5, 2.5, 5.5],
-        hspace=0.28,
+        hspace=0.46,
         figure=fig,
     )
     # Row 0: Panel A (2 columns)
@@ -497,7 +491,8 @@ def build_figure(data, adata, outpath: Path):
     ax_D = _draw_panel_D(gs_D, fig, configs, latents, X_raw, n_cells, gene_names)
 
     # ── 8. Global layout before placing panel letters ─────────────────────
-    fig.subplots_adjust(left=0.10, right=0.96, top=0.97, bottom=0.03)
+    fig.subplots_adjust(left=0.10, right=0.96, top=0.97, bottom=0.08)
+    add_config_legend_footnote(fig, y_pos=0.005)
 
     # ── 9. Panel letters — placed AFTER subplots_adjust fixes positions ───
     panel_label(fig, ax_A, "A", x_off=-0.018)

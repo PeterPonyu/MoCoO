@@ -25,12 +25,12 @@ warnings.filterwarnings("ignore", category=FutureWarning)
 warnings.filterwarnings("ignore", category=UserWarning, module="matplotlib")
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent.parent.parent))
 
-from benchmarks.scripts.plotting.shared import setup_fonts, panel_label
+from benchmarks.scripts.plotting.shared import setup_fonts, panel_label, add_config_legend_footnote
 from benchmarks.scripts.pipeline.visual_conflict_detector import detect_all_conflicts
 from mocoo.visualization.style import (
     FIG_WIDTH_IN, FIG_HEIGHT_IN, DPI,
     FS_LABEL, FS_TITLE, FS_AXIS, FS_TICK, FS_LEGEND, FS_SMALL,
-    apply_style, get_config_order, get_config_colors, get_short_name,
+    apply_style, get_config_order, get_config_colors, get_short_name, get_tick_name,
     get_line_style, get_line_width,
 )
 
@@ -123,10 +123,11 @@ def build_figure(results_base: Path, outdir: Path):
     # Single legend at bottom, adjacent to axes
     handles, labels = axes[0, 0].get_legend_handles_labels()
     fig.legend(handles, labels, fontsize=FS_LEGEND, ncol=6,
-               loc="lower center", bbox_to_anchor=(0.50, 0.01),
+               loc="lower center", bbox_to_anchor=(0.50, 0.04),
                frameon=False, handlelength=1.5, columnspacing=1.0)
 
-    fig.subplots_adjust(left=0.08, right=0.98, top=0.97, bottom=0.08)
+    fig.subplots_adjust(left=0.08, right=0.98, top=0.97, bottom=0.13)
+    add_config_legend_footnote(fig, y_pos=0.02)
 
     # Panel labels
     letters = "ABCDEFGHI"

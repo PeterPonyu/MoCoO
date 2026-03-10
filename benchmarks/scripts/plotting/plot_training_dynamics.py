@@ -33,14 +33,14 @@ warnings.filterwarnings("ignore", category=FutureWarning)
 warnings.filterwarnings("ignore", category=UserWarning, module="matplotlib")
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent.parent.parent))
 from benchmarks.scripts.pipeline.visual_conflict_detector import detect_all_conflicts
-from benchmarks.scripts.plotting.shared import setup_fonts, load_benchmark_npz, load_config_metrics, export_subpanels, panel_label
+from benchmarks.scripts.plotting.shared import setup_fonts, load_benchmark_npz, load_config_metrics, export_subpanels, panel_label, add_config_legend_footnote
 
 # ── Import centralized style ────────────────────────────────────────────────
 from mocoo.visualization.style import (
     FIG_WIDTH_IN as FIG_W, FIG_HEIGHT_IN as FIG_H, DPI,
     FS_LABEL, FS_TITLE, FS_AXIS, FS_TICK, FS_LEGEND as FS_LEG, FS_SMALL,
     get_config_colors, get_config_order, get_short_name, get_line_style,
-    get_line_width, apply_style,
+    get_line_width, apply_style, get_tick_name, get_legend_name,
 )
 
 apply_style()
@@ -51,7 +51,7 @@ setup_fonts()
 # ── Style constants from centralized module ──────────────────────────────────
 _CONFIGS = get_config_order()
 _CONFIG_COLOR = get_config_colors()
-_XSHORT = {c: get_short_name(c) for c in _CONFIGS}
+_XSHORT = {c: get_tick_name(c) for c in _CONFIGS}
 
 
 def _load_data(rdir: Path):
@@ -195,7 +195,7 @@ def _draw_efficiency(gs, fig, configs, metrics):
 
         ax.annotate(short, (t, a),
                     textcoords="offset points", xytext=(dx, dy),
-                    fontsize=FS_SMALL + 0.5, color=col,
+                    fontsize=FS_SMALL, color=col,
                     arrowprops=dict(arrowstyle="-", color=col, lw=0.4, alpha=0.5)
                     if abs(dx) > 5 or abs(dy) > 10 else None)
         placed.append((t, a))
@@ -214,7 +214,7 @@ def _draw_efficiency(gs, fig, configs, metrics):
                 label="Pareto frontier", zorder=2)
 
     ax.set_xlabel("Training Time (s)", fontsize=FS_AXIS)
-    ax.set_ylabel("Validation ARI \u2191", fontsize=FS_AXIS)
+    ax.set_ylabel("ARI \u2191", fontsize=FS_AXIS)
     ax.set_title("Efficiency: ARI vs Training Time\n(Bubble size = peak GPU memory)",
                  fontsize=FS_TITLE, pad=3)
     ax.tick_params(labelsize=FS_TICK)
@@ -244,7 +244,7 @@ def build_figure(rdir: Path, outdir: Path):
         outer = gridspec.GridSpec(
             3, 1,
             height_ratios=[2.5, 2.5, 3.5],
-            hspace=0.24,
+            hspace=0.42,
             figure=fig,
         )
         gs_A = gridspec.GridSpecFromSubplotSpec(1, 2, subplot_spec=outer[0], wspace=0.24)
@@ -258,7 +258,8 @@ def build_figure(rdir: Path, outdir: Path):
         print("  Drawing Panel C (Efficiency)...")
         ax_C = _draw_efficiency(gs_C, fig, configs, metrics)
 
-        fig.subplots_adjust(left=0.09, right=0.97, top=0.94, bottom=0.04)
+        fig.subplots_adjust(left=0.09, right=0.97, top=0.94, bottom=0.06)
+        add_config_legend_footnote(fig, y_pos=0.005)
 
         handles, labels = ax_A.get_legend_handles_labels()
         fig.legend(
@@ -284,7 +285,7 @@ def build_figure(rdir: Path, outdir: Path):
         outer = gridspec.GridSpec(
             2, 1,
             height_ratios=[1.0, 1.2],
-            hspace=0.12,
+            hspace=0.42,
             figure=fig,
         )
 
@@ -297,7 +298,8 @@ def build_figure(rdir: Path, outdir: Path):
         print("  Drawing Panel B (Efficiency)...")
         ax_B = _draw_efficiency(gs_B, fig, configs, metrics)
 
-        fig.subplots_adjust(left=0.09, right=0.97, top=0.94, bottom=0.05)
+        fig.subplots_adjust(left=0.09, right=0.97, top=0.94, bottom=0.07)
+        add_config_legend_footnote(fig, y_pos=0.005)
 
         handles, labels = ax_A.get_legend_handles_labels()
         fig.legend(

@@ -40,12 +40,12 @@ ACCENT_BEST     = "crimson"  # best-value highlight edge
 # ---------------------------------------------------------------------------
 # Font sizes (calibrated for the 17 x 21 cm canvas)
 # ---------------------------------------------------------------------------
-FS_LABEL = 11    # Panel letters (A), (B), ...
-FS_TITLE = 9     # Subplot titles
-FS_AXIS = 8      # Axis labels
-FS_TICK = 7      # Tick labels
-FS_LEGEND = 7    # Legend text
-FS_SMALL = 6.5   # Annotations / heatmap cells (≥6pt for readability)
+FS_LABEL = 16    # Panel letters (A), (B), ...
+FS_TITLE = 13    # Subplot titles
+FS_AXIS = 11     # Axis labels
+FS_TICK = 10     # Tick labels
+FS_LEGEND = 9    # Legend text
+FS_SMALL = 8     # Annotations / heatmap cells (≥6pt for readability)
 
 # ---------------------------------------------------------------------------
 # Model configurations: canonical order and display names
@@ -60,12 +60,12 @@ _CONFIG_ORDER: List[str] = [
 ]
 
 _PALETTE: List[str] = [
-    "#4C72B0",  # VAE            — muted blue
-    "#DD8452",  # VAE+ODE        — soft orange
-    "#55A868",  # VAE+MoCo       — forest green
-    "#C44E52",  # VAE+MoCo+Proto — brick red
-    "#8172B3",  # VAE+ODE+MoCo   — muted purple
-    "#937860",  # Full           — warm brown
+    "#0072B2",  # VAE            — blue (Wong)
+    "#E69F00",  # VAE+ODE        — orange (Wong)
+    "#009E73",  # VAE+MoCo       — bluish green (Wong)
+    "#CC79A7",  # VAE+MoCo+Proto — reddish purple (Wong)
+    "#56B4E9",  # VAE+ODE+MoCo   — sky blue (Wong)
+    "#D55E00",  # Full           — vermilion (Wong)
 ]
 
 _CONFIG_COLORS: Dict[str, str] = OrderedDict(
@@ -95,6 +95,40 @@ _SHORT_NAMES: Dict[str, str] = {
     "VAE+ODE+MoCo": "V+OM",
     "Full": "Full",
 }
+
+# ---------------------------------------------------------------------------
+# Metric glossary and direction indicators
+# ---------------------------------------------------------------------------
+METRIC_GLOSSARY: Dict[str, str] = {
+    "ARI": "Adj. Rand Index",
+    "NMI": "Norm. Mutual Info.",
+    "ASW": "Avg. Silhouette Width",
+    "CAL": "Calinski\u2013Harabasz",
+    "DAV": "Davies\u2013Bouldin",
+    "COR": "Pearson Corr.",
+    "DRE": "Dim. Red. Eval.",
+    "DREX": "Ext. Dim. Red. Eval.",
+    "LSE": "Latent Space Eval.",
+    "LSEX": "Ext. Latent Space Eval.",
+    "iLISI": "Integration LISI",
+    "bASW": "Batch ASW",
+    "cLISI": "Cell-type LISI",
+}
+
+METRIC_DIRECTION: Dict[str, bool] = {
+    "ARI": True, "NMI": True, "ASW": True, "CAL": True,
+    "DAV": False, "COR": True, "DRE": True, "DREX": True,
+    "LSE": True, "LSEX": True, "iLISI": True, "bASW": True,
+    "cLISI": True,
+}
+
+# ---------------------------------------------------------------------------
+# Standardized decimal format constants
+# ---------------------------------------------------------------------------
+FMT_SCORE = ".3f"        # Metric scores in [0,1]
+FMT_SCORE_SHORT = ".2f"  # Heatmap cells (space-constrained)
+FMT_LARGE = ".1f"        # Values > 10
+FMT_DELTA = "+.3f"       # Signed delta annotations
 
 # Per-config line styles for training curve differentiation
 _LINE_STYLES: Dict[str, object] = {
@@ -253,3 +287,30 @@ def get_line_style(config: str):
 def get_line_width(config: str) -> float:
     """Return the matplotlib linewidth for the given config."""
     return _LINE_WIDTHS.get(config, 1.4)
+
+
+def get_tick_name(config: str) -> str:
+    """Short name for x-tick labels (V+O, V+M, etc.)."""
+    return _SHORT_NAMES.get(config, config)
+
+
+def get_legend_name(config: str) -> str:
+    """Full display name for legend entries (VAE+ODE, etc.)."""
+    return _DISPLAY_NAMES.get(config, config)
+
+
+def metric_label(abbrev: str, include_direction: bool = True) -> str:
+    """Return display label like 'ARI (Adj. Rand Index) ↑' for axis labels."""
+    arrow = ""
+    if include_direction and abbrev in METRIC_DIRECTION:
+        arrow = " \u2191" if METRIC_DIRECTION[abbrev] else " \u2193"
+    full = METRIC_GLOSSARY.get(abbrev, abbrev)
+    return f"{abbrev} ({full}){arrow}"
+
+
+def metric_title(abbrev: str) -> str:
+    """Short title like 'ARI ↑' for subplot titles."""
+    arrow = ""
+    if abbrev in METRIC_DIRECTION:
+        arrow = " \u2191" if METRIC_DIRECTION[abbrev] else " \u2193"
+    return f"{abbrev}{arrow}"

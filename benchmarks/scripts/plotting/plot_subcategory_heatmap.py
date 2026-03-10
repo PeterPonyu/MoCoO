@@ -20,13 +20,14 @@ import numpy as np
 
 import sys
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent.parent.parent))
-from benchmarks.scripts.plotting.shared import setup_fonts, panel_label
+from benchmarks.scripts.plotting.shared import setup_fonts, panel_label, add_config_legend_footnote, add_metric_footnote
 from benchmarks.scripts.pipeline.visual_conflict_detector import detect_all_conflicts
 from mocoo.visualization.style import (
     FIG_WIDTH_IN, FIG_HEIGHT_IN, DPI,
     FS_LABEL, FS_TITLE, FS_AXIS, FS_TICK, FS_LEGEND, FS_SMALL,
     HEATMAP_DARK_THRESHOLD,
     apply_style, get_config_order, get_config_colors, get_short_name,
+    get_tick_name, FMT_SCORE_SHORT,
 )
 
 CONFIGS = get_config_order()
@@ -77,7 +78,7 @@ PANELS = {
     ],
 }
 
-SHORT_NAMES = {c: get_short_name(c) for c in CONFIGS}
+SHORT_NAMES = {c: get_tick_name(c) for c in CONFIGS}
 
 
 def load_metrics(rdir: Path) -> dict:
@@ -146,7 +147,7 @@ def make_heatmap(ax, data, panel_name, metrics_spec, configs):
             if np.isnan(val):
                 continue
             # Format: use integer for large values, 3 decimal otherwise
-            txt = f"{val:.0f}" if abs(val) > 10 else f"{val:.3f}"
+            txt = f"{val:.0f}" if abs(val) > 10 else f"{val:.2f}"
             color = "white" if norm_mat[i, j] > HEATMAP_DARK_THRESHOLD else "black"
             ax.text(j, i, txt, ha="center", va="center",
                     fontsize=FS_SMALL, fontweight="normal", color=color)
@@ -191,8 +192,8 @@ def main():
     n_cols = 3
     n_rows = 2
     fig, axes = plt.subplots(n_rows, n_cols,
-                              figsize=(FIG_WIDTH_IN * 1.55, FIG_HEIGHT_IN * 0.90),
-                              gridspec_kw={"hspace": 0.38, "wspace": 0.34})
+                              figsize=(FIG_WIDTH_IN * 1.7, FIG_HEIGHT_IN * 1.0),
+                              gridspec_kw={"hspace": 0.45, "wspace": 0.40})
 
     letters = "ABCDE"
     total_wins = np.zeros(len(CONFIGS), dtype=int)
@@ -223,6 +224,7 @@ def main():
     # Finalise layout BEFORE adding panel labels so that ax.get_position()
     # returns the correct post-adjustment coordinates.
     fig.subplots_adjust(left=0.09, right=0.97, top=0.96, bottom=0.08)
+    add_config_legend_footnote(fig, y_pos=0.005)
 
     # Add panel labels after layout adjustment to avoid overlap with cells.
     for idx in range(n_panels):

@@ -34,12 +34,12 @@ warnings.filterwarnings("ignore", category=FutureWarning)
 warnings.filterwarnings("ignore", category=UserWarning, module="matplotlib")
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent.parent.parent))
 from benchmarks.scripts.pipeline.visual_conflict_detector import detect_all_conflicts
-from benchmarks.scripts.plotting.shared import setup_fonts, load_benchmark_npz, load_config_metrics, export_subpanels, panel_label
+from benchmarks.scripts.plotting.shared import setup_fonts, load_benchmark_npz, load_config_metrics, export_subpanels, panel_label, add_config_legend_footnote
 from mocoo.visualization.style import (
     FIG_WIDTH_IN, FIG_HEIGHT_IN, DPI,
     FS_LABEL, FS_TITLE, FS_AXIS, FS_TICK, FS_LEGEND, FS_SMALL,
     HEATMAP_DARK_THRESHOLD,
-    apply_style, get_config_order, get_config_colors, get_short_name,
+    apply_style, get_config_order, get_config_colors, get_short_name, get_tick_name,
 )
 
 setup_fonts()
@@ -48,7 +48,7 @@ FS_LEG = FS_LEGEND
 
 _CONFIGS = get_config_order()
 _CONFIG_COLOR = get_config_colors()
-_SHORT = {c: get_short_name(c) for c in _CONFIGS}
+_SHORT = {c: get_tick_name(c) for c in _CONFIGS}
 
 _DATASETS = ["IRALL", "dentate", "endo"]
 _DS_SHORT = {"IRALL": "IRALL", "dataset_default": "IRALL",
@@ -352,7 +352,7 @@ def build_figure(results_base: Path, outdir: Path):
 
     # ── Create figure ──
     fig = plt.figure(figsize=(FIG_WIDTH_IN, FIG_HEIGHT_IN))
-    gs = gridspec.GridSpec(4, 2, figure=fig, hspace=0.34, wspace=0.24,
+    gs = gridspec.GridSpec(4, 2, figure=fig, hspace=0.52, wspace=0.28,
                            height_ratios=[1, 0.9, 1.1, 1.1])
 
     # Panel A: Batch integration bars (span full width)
@@ -393,7 +393,8 @@ def build_figure(results_base: Path, outdir: Path):
     ax_D = fig.add_subplot(gs[3, :], polar=True)
     _draw_cross_radar(ax_D, cross_data)
 
-    fig.subplots_adjust(left=0.10, right=0.96, top=0.97, bottom=0.05)
+    fig.subplots_adjust(left=0.10, right=0.96, top=0.97, bottom=0.08)
+    add_config_legend_footnote(fig, y_pos=0.005)
 
     panel_label(fig, ax_A, "A")
     panel_label(fig, ax_B, "B")

@@ -40,14 +40,16 @@ from benchmarks.scripts.pipeline.visual_conflict_detector import detect_all_conf
 from benchmarks.scripts.plotting.shared import (
     setup_fonts, unify_metric_keys, load_benchmark_npz, load_config_metrics,
     export_subpanels, panel_label,
+    add_config_legend_footnote, add_metric_footnote, load_multiseed_stats,
 )
 
 # ── Import centralized style ────────────────────────────────────────────────
 from mocoo.visualization.style import (
     FIG_WIDTH_IN as FIG_W, FIG_HEIGHT_IN as FIG_H, DPI,
     FS_LABEL, FS_TITLE, FS_AXIS, FS_TICK, FS_LEGEND as FS_LEG, FS_SMALL,
-    HEATMAP_DARK_THRESHOLD,
+    HEATMAP_DARK_THRESHOLD, FMT_SCORE_SHORT,
     get_config_colors, get_config_order, get_short_name, apply_style,
+    get_tick_name, get_legend_name, metric_title,
 )
 
 apply_style()
@@ -57,7 +59,7 @@ setup_fonts()
 
 _CONFIGS = get_config_order()
 _CONFIG_COLOR = get_config_colors()
-_SHORT = {c: get_short_name(c) for c in _CONFIGS}
+_SHORT = {c: get_tick_name(c) for c in _CONFIGS}
 
 
 def _load_data(rdir: Path):
@@ -195,7 +197,7 @@ def _draw_synergy_heatmap(gs, fig, rdir):
             txt = f"{sign}{v:.3f}"
             text_col = "white" if abs(v) > vabs * 0.65 else "black"
             ax.text(bi, mi, txt, ha="center", va="center",
-                    fontsize=FS_SMALL + 0.5, color=text_col)
+                    fontsize=FS_SMALL, color=text_col)
 
     ax.set_xticks(np.arange(len(beta_labels)))
     ax.set_xticklabels(beta_labels, fontsize=FS_TICK)
@@ -207,13 +209,13 @@ def _draw_synergy_heatmap(gs, fig, rdir):
     cax = ax.inset_axes([1.03, 0.1, 0.03, 0.8])
     cb = fig.colorbar(im, cax=cax)
     cb.ax.tick_params(labelsize=FS_TICK, length=1.5)
-    cb.set_label("Interaction term", fontsize=FS_AXIS - 1, labelpad=2)
+    cb.set_label("Interaction term", fontsize=FS_SMALL, labelpad=2)
     return ax
 
 
 # ── Panel B: Incremental gain waterfall ───────────────────────────────────
 
-def _draw_incremental_gain(gs, fig, configs, metrics):
+def _draw_incremental_gain(gs, fig, configs, metrics, multiseed_stats=None):
     """For ARI, NMI, ASW: plot bar per config with delta from VAE baseline.
 
     Negative deltas are drawn below the baseline; annotations are placed
@@ -250,6 +252,12 @@ def _draw_incremental_gain(gs, fig, configs, metrics):
                 ax.text(k, txt_y, f"{sign}{delta:.3f}",
                         ha="center", va="center", fontsize=FS_SMALL,
                         color=delta_c, zorder=10)
+
+            # Error bar from multiseed variance
+            if multiseed_stats and cfg in multiseed_stats and key in multiseed_stats[cfg]:
+                _, std = multiseed_stats[cfg][key]
+                ax.errorbar(k, val, yerr=std, fmt="none",
+                            ecolor="black", capsize=2, capthick=0.6, elinewidth=0.6, zorder=10)
 
         ax.axhline(baseline, color="gray", ls="--", lw=0.8, alpha=0.7, zorder=1)
         ax.yaxis.set_major_locator(plt.MaxNLocator(4, prune="upper"))
@@ -310,23 +318,23 @@ def _draw_metric_heatmap(gs, fig, configs, metrics):
     for ci in range(n_rows):
         for mi in range(n_cols):
             raw = metrics[configs[ci]].get(metric_groups[mi][0], np.nan)
-            txt = f"{raw:.3f}" if not np.isnan(raw) else "\u2014"
+            txt = f"{raw:.2f}" if not np.isnan(raw) else "\u2014"
             text_col = "white" if mat_norm[ci, mi] > HEATMAP_DARK_THRESHOLD else "black"
             ax.text(mi, ci, txt, ha="center", va="center",
-                    fontsize=FS_SMALL + 0.5, color=text_col)
+                    fontsize=FS_SMALL, color=text_col)
 
     ax.set_xticks(np.arange(n_cols))
     ax.set_xticklabels([m[1] for m in metric_groups],
                         fontsize=FS_TICK, rotation=40, ha="right")
     ax.set_yticks(np.arange(n_rows))
     ax.set_yticklabels([_SHORT[c] for c in configs], fontsize=FS_TICK)
-    ax.set_title("Comprehensive Performance Heatmap\n(higher = better per column, normalised)",
+    ax.set_title("Performance Heatmap\n(column-normalised; darker = better)",
                  fontsize=FS_TITLE, pad=3)
 
     cax = ax.inset_axes([1.01, 0.1, 0.02, 0.8])
     cb  = fig.colorbar(im, cax=cax)
     cb.ax.tick_params(labelsize=FS_TICK, length=1.5)
-    cb.set_label("Norm. score", fontsize=FS_AXIS - 1, labelpad=2)
+    cb.set_label("Norm. score", fontsize=FS_SMALL, labelpad=2)
     return ax
 
 
@@ -384,14 +392,14 @@ def _draw_perm_boxplots(gs, fig, configs, latents, labels):
 
 # ── Main ───────────────────────────────────────────────────────────────────
 
-def build_figure(rdir: Path, outdir: Path):
+def build_figure(rdir: Path, outdir: Path, multiseed_stats=None):
     configs, latents, labels, metrics = _load_data(rdir)
 
     fig = plt.figure(figsize=(FIG_W, FIG_H), dpi=DPI)
     outer = gridspec.GridSpec(
         4, 1,
         height_ratios=[3.2, 2.5, 3.2, 2.5],
-        hspace=0.52,
+        hspace=0.58,
         figure=fig,
     )
 
@@ -399,7 +407,7 @@ def build_figure(rdir: Path, outdir: Path):
     gs_A_row = gridspec.GridSpecFromSubplotSpec(
         1, 2, subplot_spec=outer[0], wspace=0.24)
     gs_B = gridspec.GridSpecFromSubplotSpec(
-        1, 3, subplot_spec=outer[1], wspace=0.28)
+        1, 3, subplot_spec=outer[1], wspace=0.35)
     gs_C = gridspec.GridSpecFromSubplotSpec(
         1, 1, subplot_spec=outer[2])
     gs_D = gridspec.GridSpecFromSubplotSpec(
@@ -413,7 +421,7 @@ def build_figure(rdir: Path, outdir: Path):
     _draw_summary_table(ax_A_table, configs, metrics)
 
     print("  Drawing Panel B (Incremental gain)...")
-    ax_B = _draw_incremental_gain(gs_B, fig, configs, metrics)
+    ax_B = _draw_incremental_gain(gs_B, fig, configs, metrics, multiseed_stats=multiseed_stats)
 
     print("  Drawing Panel C (Metric heatmap)...")
     ax_C = _draw_metric_heatmap(gs_C[0], fig, configs, metrics)
@@ -422,6 +430,9 @@ def build_figure(rdir: Path, outdir: Path):
     ax_D = _draw_perm_boxplots(gs_D, fig, configs, latents, labels)
 
     fig.subplots_adjust(left=0.10, right=0.96, top=0.97, bottom=0.07)
+
+    add_config_legend_footnote(fig, y_pos=0.005)
+    add_metric_footnote(fig, ["ARI", "NMI", "ASW", "DAV", "DRE", "DREX", "LSE", "LSEX"], y_pos=-0.005)
 
     panel_label(fig, ax_A, "A")
     panel_label(fig, ax_B, "B")
@@ -496,11 +507,15 @@ def main():
                    default=str(_benchmarks / "results" / "single_dataset"))
     p.add_argument("--outdir",
                    default=str(_benchmarks / "figures"))
+    p.add_argument("--multiseed-csv", default=None)
     args = p.parse_args()
     rdir   = Path(args.resultsdir)
     outdir = Path(args.outdir)
     outdir.mkdir(parents=True, exist_ok=True)
-    build_figure(rdir, outdir)
+    multiseed_stats = None
+    if args.multiseed_csv:
+        multiseed_stats = load_multiseed_stats(Path(args.multiseed_csv))
+    build_figure(rdir, outdir, multiseed_stats=multiseed_stats)
 
 
 if __name__ == "__main__":

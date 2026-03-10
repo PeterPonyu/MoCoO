@@ -166,3 +166,94 @@ def panel_label(
         f"({letter})", fontsize=fontsize, fontweight="bold",
         va="bottom", ha="right", clip_on=False,
     )
+
+
+# ---------------------------------------------------------------------------
+# Multiseed data loading
+# ---------------------------------------------------------------------------
+
+def load_multiseed_stats(
+    csv_path: Path,
+    metrics: Optional[List[str]] = None,
+) -> Dict[str, Dict[str, "tuple[float, float]"]]:
+    """Load multiseed CSV and compute mean +/- std per config per metric.
+
+    Parameters
+    ----------
+    csv_path : Path
+        Path to multiseed_IRALL.csv (cols: config, seed, ARI, NMI, ...).
+    metrics : list of str, optional
+        Subset of metric columns. Defaults to all numeric columns.
+
+    Returns
+    -------
+    dict
+        ``{config_name: {metric_name: (mean, std)}}``
+    """
+    import pandas as pd
+
+    df = pd.read_csv(csv_path)
+    if metrics is None:
+        skip = {"config", "seed", "dataset", "actual_epochs"}
+        metrics = [c for c in df.columns if c not in skip]
+    grouped = df.groupby("config")
+    result: Dict[str, Dict[str, tuple]] = {}
+    for cfg, grp in grouped:
+        result[str(cfg)] = {}
+        for m in metrics:
+            if m in grp.columns:
+                vals = grp[m].dropna()
+                if len(vals) > 0:
+                    result[str(cfg)][m] = (float(vals.mean()), float(vals.std()))
+    return result
+
+
+# ---------------------------------------------------------------------------
+# Figure footnotes (config key + metric abbreviations)
+# ---------------------------------------------------------------------------
+
+def add_config_legend_footnote(fig: Any, y_pos: float = 0.01) -> None:
+    """Add a footnote mapping short names → full names at the figure bottom."""
+    from mocoo.visualization.style import (
+        get_config_order, get_tick_name, get_legend_name, FS_SMALL,
+    )
+    entries = [
+        f"{get_tick_name(c)} = {get_legend_name(c)}"
+        for c in get_config_order()
+        if get_tick_name(c) != get_legend_name(c)
+    ]
+    if not entries:
+        return
+    footnote = "Config key: " + " | ".join(entries)
+    fig.text(0.50, y_pos, footnote,
+             fontsize=max(FS_SMALL - 1, 7), ha="center", va="bottom",
+             style="italic", color="#555555")
+
+
+def add_metric_footnote(
+    fig: Any,
+    metrics_used: List[str],
+    y_pos: float = -0.01,
+) -> None:
+    """Add a footnote defining metric abbreviations at the figure bottom.
+
+    Example output::
+
+        ARI = Adj. Rand Index ↑; NMI = Norm. Mutual Info. ↑; ...
+    """
+    from mocoo.visualization.style import (
+        METRIC_GLOSSARY, METRIC_DIRECTION, FS_SMALL,
+    )
+    entries = []
+    for m in metrics_used:
+        full = METRIC_GLOSSARY.get(m, None)
+        if full is None:
+            continue
+        direction = "\u2191" if METRIC_DIRECTION.get(m, True) else "\u2193"
+        entries.append(f"{m} = {full} {direction}")
+    if not entries:
+        return
+    footnote_text = ";  ".join(entries)
+    fig.text(0.50, y_pos, footnote_text,
+             fontsize=max(FS_SMALL - 1, 7), ha="center", va="top",
+             color="#666666", style="italic")

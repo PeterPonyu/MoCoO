@@ -41,10 +41,12 @@ from mocoo.visualization.style import (
     FIG_WIDTH_IN as FIG_W, FIG_HEIGHT_IN as FIG_H, DPI,
     FS_LABEL, FS_TITLE, FS_AXIS, FS_TICK, FS_LEGEND as FS_LEG, FS_SMALL,
     get_config_colors, get_config_order, get_short_name, apply_style,
+    get_tick_name, get_legend_name, metric_title, FMT_SCORE_SHORT,
 )
 from benchmarks.scripts.plotting.shared import (
     setup_fonts, unify_metric_keys, load_benchmark_npz,
     load_config_metrics, export_subpanels, panel_label,
+    add_config_legend_footnote, add_metric_footnote, load_multiseed_stats,
 )
 
 apply_style()
@@ -55,7 +57,7 @@ setup_fonts()
 # ── Style constants from centralized module ──────────────────────────────────
 _CONFIGS = get_config_order()
 _CONFIG_COLOR = get_config_colors()
-_SCATTER = dict(s=0.6, alpha=0.55, linewidths=0, rasterized=True)
+_SCATTER = dict(s=1.2, alpha=0.60, linewidths=0, rasterized=True)
 _XSHORT = {c: get_short_name(c) for c in _CONFIGS}
 
 # ── Data loading ───────────────────────────────────────────────────────────
@@ -107,14 +109,9 @@ def _draw_umap_grid(gs, fig, configs, latents, labels, cache_dir):
             m = labels[j] == lb
             ax.scatter(emb[m, 0], emb[m, 1], color=cm20(k % 20), **_SCATTER)
         ax.set_xticks([]); ax.set_yticks([])
-        ax.set_xlabel("UMAP 1", fontsize=FS_AXIS)
-        if j % 3 == 0:
-            ax.set_ylabel("UMAP 2", fontsize=FS_AXIS)
-        ax.set_title(cfg, fontsize=FS_TITLE, pad=2,
-                     color=_CONFIG_COLOR[cfg])
+        ax.set_title(cfg, fontsize=FS_TITLE, pad=2)
         for spine in ax.spines.values():
-            spine.set_edgecolor(_CONFIG_COLOR[cfg])
-            spine.set_linewidth(1.0)
+            spine.set_visible(False)
     # Shared legend in first panel
     uniq = np.unique(labels[0])
     handles = [plt.Line2D([0],[0], marker="o", color="w",
@@ -123,11 +120,11 @@ def _draw_umap_grid(gs, fig, configs, latents, labels, cache_dir):
     ax_first.legend(handles, [str(lb) for lb in uniq],
                     fontsize=FS_LEG, ncol=2, loc="lower left",
                     framealpha=0.70, handletextpad=0.1,
-                    borderpad=0.2, markerscale=0.9, columnspacing=0.4)
+                    borderpad=0.2, markerscale=1.5, columnspacing=0.4)
     return ax_first
 
 
-def _draw_clustering_bars(gs, fig, configs, metrics):
+def _draw_clustering_bars(gs, fig, configs, metrics, multiseed_stats=None):
     """Grouped bar charts: ARI, NMI, ASW (val + test)."""
     metric_pairs = [
         ("ARI",      "test_ARI",  "ARI",  True),
@@ -146,6 +143,10 @@ def _draw_clustering_bars(gs, fig, configs, metrics):
         colors = [_CONFIG_COLOR[c] for c in configs]
         bars1 = ax.bar(x - w/2, vals,  w, color=colors, alpha=0.85,
                        edgecolor="black", linewidth=0.4, label="Val")
+        if multiseed_stats:
+            yerr = [multiseed_stats.get(c, {}).get(vkey, (0, 0))[1] for c in configs]
+            ax.errorbar(x - w/2, vals, yerr=yerr, fmt="none",
+                        ecolor="black", capsize=2.5, capthick=0.7, elinewidth=0.7, zorder=5)
         bars2 = ax.bar(x + w/2, tvals, w, color=colors, alpha=0.4,
                        edgecolor="black", linewidth=0.4, hatch="//",
                        label="Test")
@@ -254,7 +255,7 @@ def _draw_latent_structure(gs, fig, configs, metrics):
 
 # ── Main ───────────────────────────────────────────────────────────────────
 
-def build_figure(rdir: Path, outdir: Path):
+def build_figure(rdir: Path, outdir: Path, multiseed_stats=None):
     configs, latents, labels, metrics = _load_data(rdir)
     cache_dir = rdir
 
@@ -263,31 +264,31 @@ def build_figure(rdir: Path, outdir: Path):
     outer = gridspec.GridSpec(
         4, 1,
         height_ratios=[3.8, 2.6, 2.6, 2.6],
-        hspace=0.28,
+        hspace=0.58,
         figure=fig,
     )
 
     # Row A: UMAP grid (2×3)
     gs_A = gridspec.GridSpecFromSubplotSpec(
-        2, 3, subplot_spec=outer[0], wspace=0.12, hspace=0.28)
+        2, 3, subplot_spec=outer[0], wspace=0.12, hspace=0.50)
 
     # Row B: 3 bar charts
     gs_B = gridspec.GridSpecFromSubplotSpec(
-        1, 3, subplot_spec=outer[1], wspace=0.28)
+        1, 3, subplot_spec=outer[1], wspace=0.35)
 
     # Row C: 4 neighbourhood quality bars
     gs_C = gridspec.GridSpecFromSubplotSpec(
-        1, 4, subplot_spec=outer[2], wspace=0.28)
+        1, 4, subplot_spec=outer[2], wspace=0.35)
 
     # Row D: 4 latent structure bars
     gs_D = gridspec.GridSpecFromSubplotSpec(
-        1, 4, subplot_spec=outer[3], wspace=0.28)
+        1, 4, subplot_spec=outer[3], wspace=0.35)
 
     print("  Drawing Panel A (UMAP grid)...")
     ax_A = _draw_umap_grid(gs_A, fig, configs, latents, labels, cache_dir)
 
     print("  Drawing Panel B (Clustering metrics)...")
-    ax_B = _draw_clustering_bars(gs_B, fig, configs, metrics)
+    ax_B = _draw_clustering_bars(gs_B, fig, configs, metrics, multiseed_stats=multiseed_stats)
 
     print("  Drawing Panel C (Neighbourhood quality)...")
     ax_C = _draw_neighbourhood_quality(gs_C, fig, configs, metrics)
@@ -295,7 +296,10 @@ def build_figure(rdir: Path, outdir: Path):
     print("  Drawing Panel D (Latent structure)...")
     ax_D = _draw_latent_structure(gs_D, fig, configs, metrics)
 
-    fig.subplots_adjust(left=0.08, right=0.98, top=0.97, bottom=0.06)
+    fig.subplots_adjust(left=0.08, right=0.98, top=0.97, bottom=0.10)
+
+    add_config_legend_footnote(fig, y_pos=0.005)
+    add_metric_footnote(fig, ["ARI", "NMI", "ASW", "DRE", "DREX", "LSE"], y_pos=-0.005)
 
     panel_label(fig, ax_A, "A", x_off=-0.026)
     panel_label(fig, ax_B, "B", x_off=-0.026)
@@ -332,11 +336,15 @@ def main():
                    default=str(_benchmarks / "results" / "single_dataset"))
     p.add_argument("--outdir",
                    default=str(_benchmarks / "figures"))
+    p.add_argument("--multiseed-csv", default=None)
     args = p.parse_args()
     rdir   = Path(args.resultsdir)
     outdir = Path(args.outdir)
     outdir.mkdir(parents=True, exist_ok=True)
-    build_figure(rdir, outdir)
+    ms_stats = None
+    if args.multiseed_csv:
+        ms_stats = load_multiseed_stats(Path(args.multiseed_csv))
+    build_figure(rdir, outdir, multiseed_stats=ms_stats)
 
 
 if __name__ == "__main__":

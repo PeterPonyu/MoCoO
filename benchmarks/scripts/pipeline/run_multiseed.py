@@ -44,7 +44,7 @@ SHARED = dict(
     i_dim=4,
     lr=1e-4,
     batch_size=128,
-    beta=1.0,
+    beta=0.1,
     recon=1.0,
     loss_mode="nb",
     train_size=0.7,
@@ -173,6 +173,15 @@ def train_and_evaluate(adata, config_name, config, seed, epochs, patience, val_e
 
     res = model.get_resource_metrics()
 
+    # Leiden clustering (reclustering-free alternative to KMeans)
+    try:
+        from mocoo.evaluation import compute_leiden_metrics, compute_neighborhood_metrics
+        leiden = compute_leiden_metrics(latent, labels_all)
+        nbr = compute_neighborhood_metrics(latent, labels_all)
+    except Exception:
+        leiden = {"Leiden_ARI_best": np.nan, "Leiden_NMI_best": np.nan}
+        nbr = {"kNN_purity": np.nan}
+
     return {
         "config": config_name,
         "seed": seed,
@@ -181,6 +190,9 @@ def train_and_evaluate(adata, config_name, config, seed, epochs, patience, val_e
         "ASW": round(silhouette_score(latent, pred), 4),
         "CH": round(calinski_harabasz_score(latent, pred), 2),
         "DB": round(davies_bouldin_score(latent, pred), 4),
+        "leiden_ARI": round(leiden.get("Leiden_ARI_best", np.nan), 4),
+        "leiden_NMI": round(leiden.get("Leiden_NMI_best", np.nan), 4),
+        "knn_purity": round(nbr.get("kNN_purity", np.nan), 4),
         "test_ARI": round(adjusted_rand_score(labels_test, pred_test), 4),
         "test_NMI": round(normalized_mutual_info_score(labels_test, pred_test), 4),
         "test_ASW": round(silhouette_score(test_latent, pred_test), 4),
@@ -204,11 +216,15 @@ def main():
     parser.add_argument("--patience", type=int, default=50)
     parser.add_argument("--val_every", type=int, default=5)
     parser.add_argument("--output_dir", type=str, default=None)
+    parser.add_argument("--beta", type=float, default=None,
+                        help="Override KL weight beta (default: use SHARED default)")
     parser.add_argument("--resume", action="store_true",
                         help="Skip configs/seeds already in output CSV")
     args = parser.parse_args()
 
     configs_to_run = args.configs or list(CONFIGS.keys())
+    if args.beta is not None:
+        SHARED["beta"] = args.beta
     out_dir = Path(args.output_dir) if args.output_dir else \
         BASE_DIR / "MoCoO" / "benchmarks" / "results" / "multiseed"
     out_dir.mkdir(parents=True, exist_ok=True)

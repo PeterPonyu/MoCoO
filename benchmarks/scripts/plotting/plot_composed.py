@@ -29,11 +29,11 @@ warnings.filterwarnings("ignore", category=UserWarning, module="matplotlib")
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent.parent.parent))
 
 from benchmarks.scripts.pipeline.visual_conflict_detector import detect_all_conflicts
-from benchmarks.scripts.plotting.shared import setup_fonts, load_benchmark_npz, load_config_metrics
+from benchmarks.scripts.plotting.shared import setup_fonts, load_benchmark_npz, load_config_metrics, add_config_legend_footnote
 from mocoo.visualization.style import (
     FIG_WIDTH_IN, FIG_HEIGHT_IN, DPI,
     FS_LABEL, FS_TITLE, FS_AXIS, FS_TICK, FS_LEGEND, FS_SMALL,
-    apply_style, get_config_colors, get_short_name,
+    apply_style, get_config_colors, get_short_name, get_tick_name,
 )
 
 setup_fonts()
@@ -53,7 +53,7 @@ FONT_ANNOT        = FS_SMALL   # heatmap cell annotations
 PALETTE = list(get_config_colors().values())
 
 def _s(cfg):
-    return get_short_name(str(cfg))
+    return get_tick_name(str(cfg))
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -122,7 +122,7 @@ def _draw_umap_panel(fig, gs_parent, configs, latents, labels_arr,
     if umap_embeddings is None:
         return
 
-    inner = gs_parent.subgridspec(2, 3, wspace=0.03, hspace=0.14)
+    inner = gs_parent.subgridspec(2, 3, wspace=0.03, hspace=0.34)
     n = len(configs)
     for i in range(n):
         ax = fig.add_subplot(inner[i // 3, i % 3])
@@ -132,19 +132,22 @@ def _draw_umap_panel(fig, gs_parent, configs, latents, labels_arr,
         cmap = plt.colormaps.get_cmap("tab20")
         for j, lbl in enumerate(unique):
             mask = labels_arr[i] == lbl
-            ax.scatter(emb[mask, 0], emb[mask, 1], s=0.6, alpha=0.55,
+            ax.scatter(emb[mask, 0], emb[mask, 1], s=1.2, alpha=0.60,
                        c=[cmap(j / n_types)], label=str(lbl), rasterized=True)
-        ax.set_title(_s(configs[i]), fontsize=FONT_PANEL_TITLE)
+        ax.set_title(configs[i], fontsize=FONT_PANEL_TITLE)
         ax.set_xticks([]); ax.set_yticks([])
         for sp in ax.spines.values():
             sp.set_visible(False)
 
     # shared legend below the UMAP block
     handles, lbls = fig.axes[0].get_legend_handles_labels()
+    # Use more columns for datasets with many cell types to keep legend compact
+    n_cols = min(max(6, len(lbls) // 4), 10)
     fig.legend(handles, lbls, loc="lower center",
                bbox_to_anchor=(0.5, 0.685),
-               ncol=min(6, len(lbls)), markerscale=3,
-               fontsize=FONT_LEGEND, frameon=False)
+               ncol=n_cols, markerscale=2.5,
+               fontsize=FONT_ANNOT, frameon=False,
+               handlelength=0.8, columnspacing=0.5, labelspacing=0.2)
 
 
 def _draw_training_curves(fig, gs_parent, configs, val_losses, val_scores):
@@ -195,11 +198,11 @@ def _draw_training_curves(fig, gs_parent, configs, val_losses, val_scores):
                             lw=1, label=_s(cfg))
         ax.set_title(title, fontsize=FONT_PANEL_TITLE)
         if src == "loss":
-            ax.set_ylabel("Loss", fontsize=FONT_AXIS_LABEL - 1)
+            ax.set_ylabel("Loss", fontsize=FONT_AXIS_LABEL)
         if has_scores and pidx // 4 == 1:
-            ax.set_xlabel("Epoch", fontsize=FONT_AXIS_LABEL - 1)
+            ax.set_xlabel("Epoch", fontsize=FONT_AXIS_LABEL)
         elif not has_scores:
-            ax.set_xlabel("Epoch", fontsize=FONT_AXIS_LABEL - 1)
+            ax.set_xlabel("Epoch", fontsize=FONT_AXIS_LABEL)
         ax.tick_params(labelsize=FONT_TICK)
         ax.xaxis.set_major_locator(plt.MaxNLocator(nbins=4, integer=True,
                                                      prune='both'))
@@ -266,7 +269,7 @@ def _draw_heatmap(ax, configs, mets):
             fmt = f"{v:.2f}" if abs(v) < 100 else f"{v:.0f}"
             clr = "white" if norm[r, c] > 0.45 else "black"
             ax.text(c, r, fmt, ha="center", va="center",
-                    fontsize=FONT_ANNOT + 1.0, color=clr)
+                    fontsize=FONT_ANNOT, color=clr)
     cb = ax.figure.colorbar(im, ax=ax, shrink=0.55, pad=0.02)
     cb.ax.tick_params(labelsize=FONT_TICK)
 
@@ -342,6 +345,8 @@ def build_composed(data, outpath: Path, cache_dir: Path | None = None):
             pass
 
     # ── Conflict detection ──────────────────────────────────────────────
+    fig.subplots_adjust(bottom=0.10)
+    add_config_legend_footnote(fig, y_pos=0.005)
     print("\n── Conflict Detection on Composed Figure ──")
     issues = detect_all_conflicts(fig, label="composed", verbose=True)
 

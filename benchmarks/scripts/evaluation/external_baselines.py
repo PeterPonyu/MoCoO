@@ -186,7 +186,10 @@ def run_harmony(adata, seed=42, n_pcs=50, batch_col="batch"):
     ho = harmonypy.run_harmony(
         adata_h.obsm["X_pca"], adata_h.obs, batch_col, random_state=seed
     )
-    latent = ho.Z_corr.T
+    # ho.Z_corr shape is (n_cells, n_pcs) in harmonypy >= 0.0.5
+    latent = ho.Z_corr
+    if latent.shape[0] != adata_h.n_obs:
+        latent = latent.T  # fallback for older harmonypy where shape is (n_pcs, n_cells)
     return latent
 
 

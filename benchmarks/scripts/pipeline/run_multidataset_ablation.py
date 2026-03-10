@@ -135,6 +135,18 @@ def train_and_evaluate(adata, config_name, config, epochs, cell_type_col, seed=4
     latent = model.get_latent()
     labels = model.labels
     metrics = compute_clustering_metrics(latent, labels, random_state=seed)
+
+    # Add Leiden metrics
+    try:
+        from mocoo.evaluation import compute_leiden_metrics, compute_neighborhood_metrics
+        leiden = compute_leiden_metrics(latent, labels)
+        nbr = compute_neighborhood_metrics(latent, labels)
+        metrics["leiden_ARI"] = round(leiden.get("Leiden_ARI_best", np.nan), 4)
+        metrics["leiden_NMI"] = round(leiden.get("Leiden_NMI_best", np.nan), 4)
+        metrics["knn_purity"] = round(nbr.get("kNN_purity", np.nan), 4)
+    except Exception:
+        pass
+
     metrics["train_time_s"] = round(train_time, 1)
 
     return metrics
@@ -143,6 +155,7 @@ def train_and_evaluate(adata, config_name, config, epochs, cell_type_col, seed=4
 def main():
     parser = argparse.ArgumentParser(description="Multi-dataset ablation")
     parser.add_argument("--datasets", nargs="+", default=["IRALL", "paul", "dentate"])
+    parser.add_argument("--seeds", type=int, default=3, help="Number of seeds per dataset")
     parser.add_argument("--outdir", type=str, default=str(_REPO_ROOT / "benchmarks" / "results" / "multidataset"))
     args = parser.parse_args()
 
@@ -161,33 +174,50 @@ def main():
         print(f"DATASET: {ds_name}")
         print(f"{'='*60}")
 
-        adata = load_dataset(spec["path"], spec["max_cells"])
+        for seed in range(args.seeds):
+            print(f"\n  --- Seed {seed} ---")
+            adata = load_dataset(spec["path"], spec["max_cells"], seed=seed)
+            if "cell_type" not in adata.obs.columns:
+                adata.obs["cell_type"] = adata.obs[spec["cell_type_col"]].values
 
-        for cfg_name, cfg in CONFIGS.items():
-            print(f"\n  Config: {cfg_name}")
-            try:
-                metrics = train_and_evaluate(
-                    adata, cfg_name, cfg, spec["epochs"],
-                    spec["cell_type_col"],
-                )
-                row = {"dataset": ds_name, "config": cfg_name, **metrics}
-                all_rows.append(row)
-                print(f"    ARI={metrics['ARI']:.4f}  NMI={metrics['NMI']:.4f}  "
-                      f"ASW={metrics.get('ASW', float('nan')):.4f}")
-            except Exception as e:
-                print(f"    ERROR: {e}")
-                all_rows.append({"dataset": ds_name, "config": cfg_name, "error": str(e)})
+            for cfg_name, cfg in CONFIGS.items():
+                print(f"\n  Config: {cfg_name}")
+                try:
+                    metrics = train_and_evaluate(
+                        adata, cfg_name, cfg, spec["epochs"],
+                        spec["cell_type_col"], seed=seed,
+                    )
+                    row = {"dataset": ds_name, "config": cfg_name, "seed": seed, **metrics}
+                    all_rows.append(row)
+                    print(f"    ARI={metrics['ARI']:.4f}  NMI={metrics['NMI']:.4f}  "
+                          f"ASW={metrics.get('ASW', float('nan')):.4f}")
+                except Exception as e:
+                    print(f"    ERROR: {e}")
+                    all_rows.append({"dataset": ds_name, "config": cfg_name, "seed": seed, "error": str(e)})
 
     df = pd.DataFrame(all_rows)
     df.to_csv(outdir / "multidataset_ablation.csv", index=False)
 
-    # Summary pivot
+    # Summary pivot (mean ± std across seeds)
     if "ARI" in df.columns:
-        pivot = df.pivot_table(index="config", columns="dataset", values="ARI", aggfunc="first")
+        summary = df.groupby(["config", "dataset"]).agg(
+            ARI_mean=("ARI", "mean"), ARI_std=("ARI", "std"),
+            NMI_mean=("NMI", "mean"), NMI_std=("NMI", "std"),
+            ASW_mean=("ASW", "mean"), ASW_std=("ASW", "std"),
+            DB_mean=("DB" if "DB" in df.columns else "DAV", "mean"),
+        ).round(4)
         print(f"\n{'='*60}")
-        print("ARI PIVOT TABLE")
+        print("SUMMARY (mean ± std across seeds)")
         print(f"{'='*60}")
-        print(pivot.to_string())
+        print(summary.to_string())
+        summary.to_csv(outdir / "multidataset_summary.csv")
+
+        # ARI pivot table
+        pivot = df.groupby(["config", "dataset"])["ARI"].mean().unstack()
+        print(f"\n{'='*60}")
+        print("ARI PIVOT TABLE (mean)")
+        print(f"{'='*60}")
+        print(pivot.round(4).to_string())
         pivot.to_csv(outdir / "multidataset_ari_pivot.csv")
 
     print(f"\nResults saved to {outdir}/")

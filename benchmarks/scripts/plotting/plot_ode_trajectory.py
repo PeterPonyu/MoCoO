@@ -45,11 +45,11 @@ warnings.filterwarnings("ignore", category=FutureWarning)
 warnings.filterwarnings("ignore", category=UserWarning, module="matplotlib")
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent.parent.parent))
 from benchmarks.scripts.pipeline.visual_conflict_detector import detect_all_conflicts
-from benchmarks.scripts.plotting.shared import setup_fonts, load_benchmark_npz, export_subpanels, panel_label
+from benchmarks.scripts.plotting.shared import setup_fonts, load_benchmark_npz, export_subpanels, panel_label, add_config_legend_footnote
 from mocoo.visualization.style import (
     FIG_WIDTH_IN, FIG_HEIGHT_IN, DPI,
     FS_LABEL, FS_TITLE, FS_AXIS, FS_TICK, FS_LEGEND, FS_SMALL,
-    apply_style, get_config_order, get_config_colors, get_short_name,
+    apply_style, get_config_order, get_config_colors, get_short_name, get_tick_name,
 )
 
 FS_LEG = FS_LEGEND
@@ -59,7 +59,7 @@ apply_style()
 
 _CONFIGS = get_config_order()
 _CONFIG_COLOR = get_config_colors()
-_SCATTER = dict(s=0.8, alpha=0.50, linewidths=0, rasterized=True)
+_SCATTER = dict(s=1.2, alpha=0.55, linewidths=0, rasterized=True)
 
 
 def _load_data(rdir: Path):
@@ -121,8 +121,7 @@ def _draw_pca_comparison(gs, fig, configs, latents, labels):
         if j == 0:
             ax_ct.set_ylabel("PC 2", fontsize=FS_AXIS)
         for spine in ax_ct.spines.values():
-            spine.set_edgecolor(_CONFIG_COLOR.get(cfg, "#999"))
-            spine.set_linewidth(1.0)
+            spine.set_visible(False)
 
         ax_pt = fig.add_subplot(gs[1, j])
         sc = ax_pt.scatter(emb[:, 0], emb[:, 1], c=pt,
@@ -328,7 +327,7 @@ def _draw_trajectory_smoothness(gs, fig, configs, latents, labels):
             bars[k].set_edgecolor("#DD8452")
             bars[k].set_linewidth(1.3)
     ax_ent.set_xticks(x)
-    ax_ent.set_xticklabels([get_short_name(c) for c in configs],
+    ax_ent.set_xticklabels([get_tick_name(c) for c in configs],
                             fontsize=FS_TICK, rotation=30, ha="right")
     ax_ent.set_ylabel("kNN entropy", fontsize=FS_AXIS)
     ax_ent.set_title("kNN Entropy", fontsize=FS_TITLE, pad=3)
@@ -364,13 +363,13 @@ def build_figure(rdir: Path, outdir: Path, adata_path: str):
     outer = gridspec.GridSpec(
         4, 1,
         height_ratios=[4.0, 2.5, 2.8, 2.5],
-        hspace=0.24,
+        hspace=0.42,
         figure=fig,
     )
 
     # A: 2-row × 3-col PCA grid (cell type + pseudotime)
     gs_A = gridspec.GridSpecFromSubplotSpec(
-        2, 3, subplot_spec=outer[0], wspace=0.14, hspace=0.22)
+        2, 3, subplot_spec=outer[0], wspace=0.14, hspace=0.38)
 
     # B: 2 violin plots
     gs_B = gridspec.GridSpecFromSubplotSpec(
@@ -397,6 +396,7 @@ def build_figure(rdir: Path, outdir: Path, adata_path: str):
     ax_D = _draw_trajectory_smoothness(gs_D, fig, configs, latents, labels)
 
     fig.subplots_adjust(left=0.10, right=0.96, top=0.97, bottom=0.06)
+    add_config_legend_footnote(fig, y_pos=0.005)
 
     panel_label(fig, ax_A, "A")
     panel_label(fig, ax_B, "B")
