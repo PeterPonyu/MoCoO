@@ -27,7 +27,6 @@ from pathlib import Path
 import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
-import matplotlib.gridspec as gridspec
 import numpy as np
 
 warnings.filterwarnings("ignore", category=FutureWarning)
@@ -40,6 +39,7 @@ from mocoo.visualization.style import (
     FS_LABEL, FS_TITLE, FS_AXIS, FS_TICK, FS_LEGEND, FS_SMALL,
     HEATMAP_DARK_THRESHOLD,
     apply_style, get_config_order, get_config_colors, get_short_name, get_tick_name,
+    row_of_axes, place_axes, grid_of_axes,
 )
 
 setup_fonts()
@@ -352,19 +352,17 @@ def build_figure(results_base: Path, outdir: Path):
 
     # ── Create figure ──
     fig = plt.figure(figsize=(FIG_WIDTH_IN, FIG_HEIGHT_IN))
-    gs = gridspec.GridSpec(4, 2, figure=fig, hspace=0.52, wspace=0.28,
-                           height_ratios=[1, 0.9, 1.1, 1.1])
 
-    # Panel A: Batch integration bars (span full width)
-    ax_A = fig.add_subplot(gs[0, :])
+    # Panel A: Batch integration bars (full width)
+    ax_A = place_axes(fig, [0.10, 0.78, 0.86, 0.18])
     _draw_batch_bars(ax_A, batch_metrics)
 
     # Panel B: Bio vs Batch scatter
-    ax_B = fig.add_subplot(gs[1, 0])
+    ax_B = fig.add_axes([0.10, 0.56, 0.40, 0.18])
     _draw_bio_batch_scatter(ax_B, batch_metrics)
 
     # Panel B2: Overall score bar
-    ax_B2 = fig.add_subplot(gs[1, 1])
+    ax_B2 = fig.add_axes([0.56, 0.56, 0.40, 0.18])
     configs_present = [c for c in _CONFIGS if c in batch_metrics]
     overall = [batch_metrics[c].get("overall_score", 0) for c in configs_present]
     if not configs_present or all(v == 0 for v in overall):
@@ -385,15 +383,13 @@ def build_figure(results_base: Path, outdir: Path):
         ax_B2.spines["top"].set_visible(False)
         ax_B2.spines["right"].set_visible(False)
 
-    # Panel C: Cross-dataset heatmap (span full width)
-    ax_C = fig.add_subplot(gs[2, :])
+    # Panel C: Cross-dataset heatmap (full width)
+    ax_C = place_axes(fig, [0.10, 0.30, 0.86, 0.22])
     _draw_cross_dataset_heatmap(ax_C, cross_data)
 
-    # Panel D: Cross-dataset radar
-    ax_D = fig.add_subplot(gs[3, :], polar=True)
+    # Panel D: Cross-dataset radar (polar)
+    ax_D = fig.add_axes([0.20, 0.03, 0.60, 0.24], polar=True)
     _draw_cross_radar(ax_D, cross_data)
-
-    fig.subplots_adjust(left=0.10, right=0.96, top=0.97, bottom=0.08)
     add_config_legend_footnote(fig, y_pos=0.005)
 
     panel_label(fig, ax_A, "A")

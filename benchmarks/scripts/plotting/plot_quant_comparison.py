@@ -27,7 +27,6 @@ from pathlib import Path
 import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
-import matplotlib.gridspec as gridspec
 import numpy as np
 from umap import UMAP
 
@@ -42,6 +41,7 @@ from mocoo.visualization.style import (
     FS_LABEL, FS_TITLE, FS_AXIS, FS_TICK, FS_LEGEND as FS_LEG, FS_SMALL,
     get_config_colors, get_config_order, get_short_name, apply_style,
     get_tick_name, get_legend_name, metric_title, FMT_SCORE_SHORT,
+    row_of_axes, grid_of_axes,
 )
 from benchmarks.scripts.plotting.shared import (
     setup_fonts, unify_metric_keys, load_benchmark_npz,
@@ -94,13 +94,13 @@ def _highlight_best(ax, bars, vals, higher_better=True):
 
 # ── Panel drawing ──────────────────────────────────────────────────────────
 
-def _draw_umap_grid(gs, fig, configs, latents, labels, cache_dir):
+def _draw_umap_grid(axes_grid, fig, configs, latents, labels, cache_dir):
     """2-row × 3-col UMAP grid coloured by cell type."""
     cm20 = plt.colormaps.get_cmap("tab20")
     ax_first = None
     for j, cfg in enumerate(configs):
         r, c = divmod(j, 3)
-        ax = fig.add_subplot(gs[r, c])
+        ax = axes_grid[r][c]
         if j == 0:
             ax_first = ax
         emb    = _compute_umap(latents[j], cache_dir, cfg.replace("+", "_"))
@@ -124,7 +124,7 @@ def _draw_umap_grid(gs, fig, configs, latents, labels, cache_dir):
     return ax_first
 
 
-def _draw_clustering_bars(gs, fig, configs, metrics, multiseed_stats=None):
+def _draw_clustering_bars(axes_list, fig, configs, metrics, multiseed_stats=None):
     """Grouped bar charts: ARI, NMI, ASW (val + test)."""
     metric_pairs = [
         ("ARI",      "test_ARI",  "ARI",  True),
@@ -135,7 +135,7 @@ def _draw_clustering_bars(gs, fig, configs, metrics, multiseed_stats=None):
     w = 0.38
     ax_first = None
     for j, (vkey, tkey, label, higher_better) in enumerate(metric_pairs):
-        ax = fig.add_subplot(gs[j])
+        ax = axes_list[j]
         if j == 0:
             ax_first = ax
         vals  = [metrics[c].get(vkey, 0) for c in configs]
@@ -169,7 +169,7 @@ def _draw_clustering_bars(gs, fig, configs, metrics, multiseed_stats=None):
     return ax_first
 
 
-def _draw_neighbourhood_quality(gs, fig, configs, metrics):
+def _draw_neighbourhood_quality(axes_list, fig, configs, metrics):
     """DREX: trustworthiness, continuity, distance Spearman + DRE overall."""
     items = [
         ("DREX_trustworthiness",       "Trustworthiness \u2191", True),
@@ -182,7 +182,7 @@ def _draw_neighbourhood_quality(gs, fig, configs, metrics):
     short = [_XSHORT[c] for c in configs]
     ax_first = None
     for j, (key, label, higher_better) in enumerate(items):
-        ax = fig.add_subplot(gs[j])
+        ax = axes_list[j]
         if j == 0:
             ax_first = ax
         vals = [metrics[c].get(key, 0) for c in configs]
@@ -218,7 +218,7 @@ def _draw_neighbourhood_quality(gs, fig, configs, metrics):
     return ax_first
 
 
-def _draw_latent_structure(gs, fig, configs, metrics):
+def _draw_latent_structure(axes_list, fig, configs, metrics):
     """Latent structure: participation ratio, manifold dimensionality, anisotropy."""
     items = [
         ("LSE_participation_ratio",    "Participation\nRatio ↑",   True),
@@ -231,7 +231,7 @@ def _draw_latent_structure(gs, fig, configs, metrics):
     short = [_XSHORT[c] for c in configs]
     ax_first = None
     for j, (key, label, higher_better) in enumerate(items):
-        ax = fig.add_subplot(gs[j])
+        ax = axes_list[j]
         if j == 0:
             ax_first = ax
         vals = [metrics[c].get(key, 0) for c in configs]
@@ -261,42 +261,29 @@ def build_figure(rdir: Path, outdir: Path, multiseed_stats=None):
 
     fig = plt.figure(figsize=(FIG_W, FIG_H), dpi=DPI)
 
-    outer = gridspec.GridSpec(
-        4, 1,
-        height_ratios=[3.8, 2.6, 2.6, 2.6],
-        hspace=0.58,
-        figure=fig,
-    )
-
     # Row A: UMAP grid (2×3)
-    gs_A = gridspec.GridSpecFromSubplotSpec(
-        2, 3, subplot_spec=outer[0], wspace=0.12, hspace=0.50)
+    axes_A = grid_of_axes(fig, 2, 3, [0.06, 0.72, 0.90, 0.24], hgap=0.04, wgap=0.03)
 
     # Row B: 3 bar charts
-    gs_B = gridspec.GridSpecFromSubplotSpec(
-        1, 3, subplot_spec=outer[1], wspace=0.35)
+    axes_B = row_of_axes(fig, 3, [0.08, 0.48, 0.88, 0.18], gap=0.06)
 
     # Row C: 4 neighbourhood quality bars
-    gs_C = gridspec.GridSpecFromSubplotSpec(
-        1, 4, subplot_spec=outer[2], wspace=0.35)
+    axes_C = row_of_axes(fig, 4, [0.08, 0.27, 0.88, 0.16], gap=0.04)
 
     # Row D: 4 latent structure bars
-    gs_D = gridspec.GridSpecFromSubplotSpec(
-        1, 4, subplot_spec=outer[3], wspace=0.35)
+    axes_D = row_of_axes(fig, 4, [0.08, 0.06, 0.88, 0.16], gap=0.04)
 
     print("  Drawing Panel A (UMAP grid)...")
-    ax_A = _draw_umap_grid(gs_A, fig, configs, latents, labels, cache_dir)
+    ax_A = _draw_umap_grid(axes_A, fig, configs, latents, labels, cache_dir)
 
     print("  Drawing Panel B (Clustering metrics)...")
-    ax_B = _draw_clustering_bars(gs_B, fig, configs, metrics, multiseed_stats=multiseed_stats)
+    ax_B = _draw_clustering_bars(axes_B, fig, configs, metrics, multiseed_stats=multiseed_stats)
 
     print("  Drawing Panel C (Neighbourhood quality)...")
-    ax_C = _draw_neighbourhood_quality(gs_C, fig, configs, metrics)
+    ax_C = _draw_neighbourhood_quality(axes_C, fig, configs, metrics)
 
     print("  Drawing Panel D (Latent structure)...")
-    ax_D = _draw_latent_structure(gs_D, fig, configs, metrics)
-
-    fig.subplots_adjust(left=0.08, right=0.98, top=0.97, bottom=0.10)
+    ax_D = _draw_latent_structure(axes_D, fig, configs, metrics)
 
     add_config_legend_footnote(fig, y_pos=0.005)
     add_metric_footnote(fig, ["ARI", "NMI", "ASW", "DRE", "DREX", "LSE"], y_pos=-0.005)

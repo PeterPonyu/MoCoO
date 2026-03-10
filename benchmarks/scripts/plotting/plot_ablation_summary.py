@@ -29,7 +29,6 @@ from pathlib import Path
 import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
-import matplotlib.gridspec as gridspec
 import numpy as np
 from sklearn.neighbors import NearestNeighbors
 
@@ -166,12 +165,11 @@ def _compute_synergy(beta_metrics: dict) -> tuple:
     return mat, metric_labels, beta_labels
 
 
-def _draw_synergy_heatmap(gs, fig, rdir):
+def _draw_synergy_heatmap(ax, fig, rdir):
     """ODE × MoCo synergy heatmap across metrics and beta values."""
     beta_metrics = _load_beta_metrics(rdir)
     if not beta_metrics:
         # Fallback: empty axes with note
-        ax = fig.add_subplot(gs)
         ax.text(0.5, 0.5, "Beta sweep data\nnot available",
                 ha="center", va="center", fontsize=FS_AXIS,
                 transform=ax.transAxes, color="gray")
@@ -179,8 +177,6 @@ def _draw_synergy_heatmap(gs, fig, rdir):
         return ax
 
     mat, metric_labels, beta_labels = _compute_synergy(beta_metrics)
-
-    ax = fig.add_subplot(gs)
 
     # Use diverging colormap: blue = negative, white = 0, red = positive
     vabs = np.nanmax(np.abs(mat))
@@ -215,7 +211,7 @@ def _draw_synergy_heatmap(gs, fig, rdir):
 
 # ── Panel B: Incremental gain waterfall ───────────────────────────────────
 
-def _draw_incremental_gain(gs, fig, configs, metrics, multiseed_stats=None):
+def _draw_incremental_gain(axes, fig, configs, metrics, multiseed_stats=None):
     """For ARI, NMI, ASW: plot bar per config with delta from VAE baseline.
 
     Negative deltas are drawn below the baseline; annotations are placed
@@ -228,7 +224,7 @@ def _draw_incremental_gain(gs, fig, configs, metrics, multiseed_stats=None):
     ]
     ax_first = None
     for j, (key, title) in enumerate(metric_triples):
-        ax = fig.add_subplot(gs[j])
+        ax = axes[j]
         if j == 0:
             ax_first = ax
         baseline = metrics["VAE"].get(key, 0)
@@ -279,7 +275,7 @@ def _draw_incremental_gain(gs, fig, configs, metrics, multiseed_stats=None):
 
 # ── Panel C: Comprehensive metric heatmap ─────────────────────────────────
 
-def _draw_metric_heatmap(gs, fig, configs, metrics):
+def _draw_metric_heatmap(ax, fig, configs, metrics):
     """Rows = configs, Cols = key metrics, colour = normalised score.
 
     Uses a focused set of 8 metrics for readability at journal column width.
@@ -310,7 +306,6 @@ def _draw_metric_heatmap(gs, fig, configs, metrics):
     col_rng = np.where(col_max - col_min < 1e-8, 1.0, col_max - col_min)
     mat_norm = (mat - col_min) / col_rng
 
-    ax = fig.add_subplot(gs)
     im = ax.imshow(mat_norm, aspect="auto", cmap="YlOrRd", vmin=0, vmax=1,
                    interpolation="nearest")
 
@@ -340,9 +335,8 @@ def _draw_metric_heatmap(gs, fig, configs, metrics):
 
 # ── Panel D: Permutation importance box plots ─────────────────────────────
 
-def _draw_perm_boxplots(gs, fig, configs, latents, labels):
+def _draw_perm_boxplots(ax, fig, configs, latents, labels):
     """Box plot of permutation importance distribution across 32 dims per config."""
-    ax = fig.add_subplot(gs[:])
     all_drops = []
     for i, cfg in enumerate(configs):
         print(f"    Permutation importance for {cfg}...")
@@ -396,40 +390,62 @@ def build_figure(rdir: Path, outdir: Path, multiseed_stats=None):
     configs, latents, labels, metrics = _load_data(rdir)
 
     fig = plt.figure(figsize=(FIG_W, FIG_H), dpi=DPI)
-    outer = gridspec.GridSpec(
-        4, 1,
-        height_ratios=[3.2, 2.5, 3.2, 2.5],
-        hspace=0.58,
-        figure=fig,
-    )
 
-    # A: Synergy heatmap (left) + summary table (right)
-    gs_A_row = gridspec.GridSpecFromSubplotSpec(
-        1, 2, subplot_spec=outer[0], wspace=0.24)
-    gs_B = gridspec.GridSpecFromSubplotSpec(
-        1, 3, subplot_spec=outer[1], wspace=0.35)
-    gs_C = gridspec.GridSpecFromSubplotSpec(
-        1, 1, subplot_spec=outer[2])
-    gs_D = gridspec.GridSpecFromSubplotSpec(
-        1, 1, subplot_spec=outer[3])
+    # ── absolute geometry (replaces GridSpec) ────────────────────────────
+    L, R, TOP, BOT = 0.10, 0.96, 0.97, 0.07
+    W_all = R - L
+    H_all = TOP - BOT
+
+    _ratios = np.array([3.2, 2.5, 3.2, 2.5])
+    _hspace = 0.58
+    _gap_r  = _hspace * _ratios.mean()
+    _unit   = H_all / (_ratios.sum() + 3 * _gap_r)
+    row_h   = _ratios * _unit
+    gap     = _gap_r * _unit
+
+    row_b = np.empty(4)
+    _y = TOP
+    for _i in range(4):
+        _y -= row_h[_i]
+        row_b[_i] = _y
+        if _i < 3:
+            _y -= gap
+
+    # Row A: two panels (synergy heatmap + summary table), wspace~0.24
+    _gapA = 0.24 * (W_all / 2)
+    _cwA  = (W_all - _gapA) / 2
+    ax_A       = fig.add_axes([L,                  row_b[0], _cwA, row_h[0]])
+    ax_A_table = fig.add_axes([L + _cwA + _gapA,   row_b[0], _cwA, row_h[0]])
+
+    # Row B: three panels (incremental gain), wspace~0.35
+    _gapB = 0.35 * (W_all / 3)
+    _cwB  = (W_all - 2 * _gapB) / 3
+    axes_B = [
+        fig.add_axes([L,                          row_b[1], _cwB, row_h[1]]),
+        fig.add_axes([L + _cwB + _gapB,           row_b[1], _cwB, row_h[1]]),
+        fig.add_axes([L + 2 * (_cwB + _gapB),     row_b[1], _cwB, row_h[1]]),
+    ]
+
+    # Row C: metric heatmap (full width)
+    ax_C = fig.add_axes([L, row_b[2], W_all, row_h[2]])
+
+    # Row D: permutation boxplots (full width)
+    ax_D = fig.add_axes([L, row_b[3], W_all, row_h[3]])
 
     print("  Drawing Panel A (Synergy heatmap + summary table)...")
-    ax_A = _draw_synergy_heatmap(gs_A_row[0], fig, rdir)
+    _draw_synergy_heatmap(ax_A, fig, rdir)
 
     # Panel A right: quick summary table of top metric per config
-    ax_A_table = fig.add_subplot(gs_A_row[1])
     _draw_summary_table(ax_A_table, configs, metrics)
 
     print("  Drawing Panel B (Incremental gain)...")
-    ax_B = _draw_incremental_gain(gs_B, fig, configs, metrics, multiseed_stats=multiseed_stats)
+    ax_B = _draw_incremental_gain(axes_B, fig, configs, metrics, multiseed_stats=multiseed_stats)
 
     print("  Drawing Panel C (Metric heatmap)...")
-    ax_C = _draw_metric_heatmap(gs_C[0], fig, configs, metrics)
+    _draw_metric_heatmap(ax_C, fig, configs, metrics)
 
     print("  Drawing Panel D (Permutation box plots)...")
-    ax_D = _draw_perm_boxplots(gs_D, fig, configs, latents, labels)
-
-    fig.subplots_adjust(left=0.10, right=0.96, top=0.97, bottom=0.07)
+    _draw_perm_boxplots(ax_D, fig, configs, latents, labels)
 
     add_config_legend_footnote(fig, y_pos=0.005)
     add_metric_footnote(fig, ["ARI", "NMI", "ASW", "DAV", "DRE", "DREX", "LSE", "LSEX"], y_pos=-0.005)

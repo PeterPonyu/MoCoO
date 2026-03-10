@@ -21,7 +21,6 @@ from pathlib import Path
 import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
-import matplotlib.gridspec as gridspec
 import numpy as np
 
 warnings.filterwarnings("ignore", category=FutureWarning)
@@ -34,6 +33,7 @@ from mocoo.visualization.style import (
     FIG_WIDTH_IN, FIG_HEIGHT_IN, DPI,
     FS_LABEL, FS_TITLE, FS_AXIS, FS_TICK, FS_LEGEND, FS_SMALL,
     apply_style, get_config_colors, get_short_name, get_tick_name,
+    row_of_axes, grid_of_axes, place_axes, col_of_axes,
 )
 
 setup_fonts()
@@ -116,16 +116,15 @@ def _compute_umaps(configs, latents, cache_path=None):
     return embeddings
 
 
-def _draw_umap_panel(fig, gs_parent, configs, latents, labels_arr,
+def _draw_umap_panel(fig, umap_axes, configs, latents, labels_arr,
                      umap_embeddings=None):
-    """Draw 2×3 UMAP grid inside *gs_parent*."""
+    """Draw 2×3 UMAP grid on pre-created *umap_axes*."""
     if umap_embeddings is None:
         return
 
-    inner = gs_parent.subgridspec(2, 3, wspace=0.03, hspace=0.34)
     n = len(configs)
     for i in range(n):
-        ax = fig.add_subplot(inner[i // 3, i % 3])
+        ax = umap_axes[i // 3][i % 3]
         emb = umap_embeddings[i]
         unique = np.unique(labels_arr[i])
         n_types = len(unique)
@@ -150,7 +149,7 @@ def _draw_umap_panel(fig, gs_parent, configs, latents, labels_arr,
                handlelength=0.8, columnspacing=0.5, labelspacing=0.2)
 
 
-def _draw_training_curves(fig, gs_parent, configs, val_losses, val_scores):
+def _draw_training_curves(fig, curve_axes, configs, val_losses, val_scores):
     """Val loss + validation metrics over training.
 
     val_scores columns (from MoCoO agent.py):
@@ -166,7 +165,6 @@ def _draw_training_curves(fig, gs_parent, configs, val_losses, val_scores):
     )
 
     if has_scores:
-        inner = gs_parent.subgridspec(2, 4, wspace=0.32, hspace=0.52)
         panels = [
             ("Val Loss",  "loss"),
             ("Val ARI",   0),
@@ -177,15 +175,10 @@ def _draw_training_curves(fig, gs_parent, configs, val_losses, val_scores):
             ("Val COR",   5),
         ]
     else:
-        inner = gs_parent.subgridspec(1, 2, wspace=0.28)
         panels = [("Val Loss", "loss")]
 
     for pidx, (title, src) in enumerate(panels):
-        if has_scores:
-            row, col = divmod(pidx, 4)
-            ax = fig.add_subplot(inner[row, col])
-        else:
-            ax = fig.add_subplot(inner[0, 0])
+        ax = curve_axes[pidx]
 
         for i, (cfg, vl, vs) in enumerate(zip(configs, val_losses, val_scores)):
             c = PALETTE[i % len(PALETTE)]
@@ -214,9 +207,9 @@ def _draw_training_curves(fig, gs_parent, configs, val_losses, val_scores):
 
     # Place legend
     if has_scores:
-        ax_leg = fig.add_subplot(inner[1, 3])
+        ax_leg = curve_axes[7]
     else:
-        ax_leg = fig.add_subplot(inner[0, 1])
+        ax_leg = curve_axes[1]
     ax_leg.set_axis_off()
     handles, lbls = [], []
     for ax_check in fig.axes:
@@ -302,25 +295,30 @@ def build_composed(data, outpath: Path, cache_dir: Path | None = None):
         cache_path = cache_dir / "umap_cache.npz"
     umap_embeddings = _compute_umaps(configs, latents, cache_path)
 
-    # ── Figure and GridSpec (3 rows) ─────────────────────────────────────
+    # ── Figure with absolute-geometry layout ─────────────────────────────
     fig = plt.figure(figsize=(FIG_W, FIG_H * 0.55), dpi=DPI)
-    outer = gridspec.GridSpec(
-        3, 1, figure=fig,
-        height_ratios=[4.2, 2.8, 2.8],
-        hspace=0.40,
-    )
 
     # Row 0 — UMAP grid (A)
-    gs_umap = outer[0].subgridspec(1, 1)
-    _draw_umap_panel(fig, gs_umap[0], configs, latents, labels,
+    umap_axes = grid_of_axes(fig, 2, 3, [0.04, 0.68, 0.92, 0.28],
+                             hgap=0.04, wgap=0.03)
+    _draw_umap_panel(fig, umap_axes, configs, latents, labels,
                      umap_embeddings=umap_embeddings)
 
     # Row 1 — Training curves (B)
-    gs_r1 = outer[1].subgridspec(1, 1)
-    _draw_training_curves(fig, gs_r1[0], configs, val_losses, val_scores)
+    has_scores = any(
+        np.asarray(vs).ndim == 2 and np.asarray(vs).shape[0] > 0
+        for vs in val_scores
+    )
+    if has_scores:
+        _cg = grid_of_axes(fig, 2, 4, [0.10, 0.38, 0.86, 0.24],
+                           hgap=0.05, wgap=0.05)
+        curve_axes = [ax for row in _cg for ax in row]
+    else:
+        curve_axes = row_of_axes(fig, 2, [0.10, 0.38, 0.86, 0.24], gap=0.05)
+    _draw_training_curves(fig, curve_axes, configs, val_losses, val_scores)
 
     # Row 2 — Heatmap (C)
-    ax_hm = fig.add_subplot(outer[2])
+    ax_hm = place_axes(fig, [0.10, 0.06, 0.86, 0.26])
     _draw_heatmap(ax_hm, configs, mets)
 
     # ── Panel labels (A–C) ──────────────────────────────────────────────
@@ -345,7 +343,6 @@ def build_composed(data, outpath: Path, cache_dir: Path | None = None):
             pass
 
     # ── Conflict detection ──────────────────────────────────────────────
-    fig.subplots_adjust(bottom=0.10)
     add_config_legend_footnote(fig, y_pos=0.005)
     print("\n── Conflict Detection on Composed Figure ──")
     issues = detect_all_conflicts(fig, label="composed", verbose=True)

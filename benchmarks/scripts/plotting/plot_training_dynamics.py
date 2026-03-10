@@ -26,7 +26,6 @@ from pathlib import Path
 import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
-import matplotlib.gridspec as gridspec
 import numpy as np
 
 warnings.filterwarnings("ignore", category=FutureWarning)
@@ -41,6 +40,7 @@ from mocoo.visualization.style import (
     FS_LABEL, FS_TITLE, FS_AXIS, FS_TICK, FS_LEGEND as FS_LEG, FS_SMALL,
     get_config_colors, get_config_order, get_short_name, get_line_style,
     get_line_width, apply_style, get_tick_name, get_legend_name,
+    row_of_axes, place_axes,
 )
 
 apply_style()
@@ -74,10 +74,10 @@ def _has_val_scores(val_scores):
 
 # ── Panel A: Loss curves ───────────────────────────────────────────────────
 
-def _draw_loss_curves(gs, fig, configs, train_losses, val_losses):
+def _draw_loss_curves(axes, fig, configs, train_losses, val_losses):
     _max_ep = max((len(tl) for tl in train_losses), default=50)
-    ax_train = fig.add_subplot(gs[0])
-    ax_val   = fig.add_subplot(gs[1])
+    ax_train = axes[0]
+    ax_val   = axes[1]
 
     for i, cfg in enumerate(configs):
         tl = train_losses[i]
@@ -109,7 +109,7 @@ def _draw_loss_curves(gs, fig, configs, train_losses, val_losses):
 
 # ── Panel: Validation metric evolution (only used when data exists) ──────
 
-def _draw_val_metric_evolution(gs, fig, configs, val_losses, val_scores):
+def _draw_val_metric_evolution(axes, fig, configs, val_losses, val_scores):
     """val_scores: (n_configs, n_checkpoints, 6) -> 0=ARI,1=NMI,2=ASW,3=CAL,4=DAV,5=COR"""
     _max_ep = max((len(vl) for vl in val_losses), default=50)
     score_defs = [
@@ -119,7 +119,7 @@ def _draw_val_metric_evolution(gs, fig, configs, val_losses, val_scores):
     ]
     ax_first = None
     for j, (si, title, higher) in enumerate(score_defs):
-        ax = fig.add_subplot(gs[j])
+        ax = axes[j]
         if j == 0:
             ax_first = ax
         for i, cfg in enumerate(configs):
@@ -144,9 +144,8 @@ def _draw_val_metric_evolution(gs, fig, configs, val_losses, val_scores):
 
 # ── Panel: Efficiency scatter ──────────────────────────────────────────────
 
-def _draw_efficiency(gs, fig, configs, metrics):
+def _draw_efficiency(ax, fig, configs, metrics):
     """Scatter: ARI vs train_time_s — bubble = peak_mem_gb."""
-    ax = fig.add_subplot(gs[:])
     ari   = np.array([metrics[c].get("ARI",    0) for c in configs])
     time_ = np.array([metrics[c].get("train_time_s", 1) for c in configs])
     mem   = np.array([metrics[c].get("peak_mem_gb",  0.05) for c in configs])
@@ -241,24 +240,17 @@ def build_figure(rdir: Path, outdir: Path):
     if has_scores:
         # Full layout: loss curves + val metrics + efficiency
         fig = plt.figure(figsize=(FIG_W, FIG_H), dpi=DPI)
-        outer = gridspec.GridSpec(
-            3, 1,
-            height_ratios=[2.5, 2.5, 3.5],
-            hspace=0.42,
-            figure=fig,
-        )
-        gs_A = gridspec.GridSpecFromSubplotSpec(1, 2, subplot_spec=outer[0], wspace=0.24)
-        gs_B = gridspec.GridSpecFromSubplotSpec(1, 3, subplot_spec=outer[1], wspace=0.24)
-        gs_C = gridspec.GridSpecFromSubplotSpec(1, 1, subplot_spec=outer[2])
+        axes_A = row_of_axes(fig, 2, [0.10, 0.68, 0.86, 0.26], gap=0.06)
+        axes_B = row_of_axes(fig, 3, [0.10, 0.36, 0.86, 0.26], gap=0.05)
+        ax_C   = place_axes(fig, [0.10, 0.06, 0.86, 0.24])
 
         print("  Drawing Panel A (Loss convergence)...")
-        ax_A = _draw_loss_curves(gs_A, fig, configs, train_losses, val_losses)
+        ax_A = _draw_loss_curves(axes_A, fig, configs, train_losses, val_losses)
         print("  Drawing Panel B (ARI/NMI/ASW evolution)...")
-        ax_B = _draw_val_metric_evolution(gs_B, fig, configs, val_losses, val_scores)
+        ax_B = _draw_val_metric_evolution(axes_B, fig, configs, val_losses, val_scores)
         print("  Drawing Panel C (Efficiency)...")
-        ax_C = _draw_efficiency(gs_C, fig, configs, metrics)
+        ax_C = _draw_efficiency(ax_C, fig, configs, metrics)
 
-        fig.subplots_adjust(left=0.09, right=0.97, top=0.94, bottom=0.06)
         add_config_legend_footnote(fig, y_pos=0.005)
 
         handles, labels = ax_A.get_legend_handles_labels()
@@ -282,23 +274,15 @@ def build_figure(rdir: Path, outdir: Path):
         print("  Note: val_scores is empty, using compact 2-row layout.")
         fig_h = FIG_W * 1.0  # balanced 2-panel layout
         fig = plt.figure(figsize=(FIG_W, fig_h), dpi=DPI)
-        outer = gridspec.GridSpec(
-            2, 1,
-            height_ratios=[1.0, 1.2],
-            hspace=0.42,
-            figure=fig,
-        )
-
-        gs_A = gridspec.GridSpecFromSubplotSpec(1, 2, subplot_spec=outer[0], wspace=0.24)
-        gs_B = gridspec.GridSpecFromSubplotSpec(1, 1, subplot_spec=outer[1])
+        axes_A = row_of_axes(fig, 2, [0.10, 0.54, 0.86, 0.38], gap=0.06)
+        ax_B   = place_axes(fig, [0.10, 0.08, 0.86, 0.38])
 
         print("  Drawing Panel A (Loss convergence)...")
-        ax_A = _draw_loss_curves(gs_A, fig, configs, train_losses, val_losses)
+        ax_A = _draw_loss_curves(axes_A, fig, configs, train_losses, val_losses)
 
         print("  Drawing Panel B (Efficiency)...")
-        ax_B = _draw_efficiency(gs_B, fig, configs, metrics)
+        ax_B = _draw_efficiency(ax_B, fig, configs, metrics)
 
-        fig.subplots_adjust(left=0.09, right=0.97, top=0.94, bottom=0.07)
         add_config_legend_footnote(fig, y_pos=0.005)
 
         handles, labels = ax_A.get_legend_handles_labels()

@@ -28,6 +28,7 @@ from mocoo.visualization.style import (
     HEATMAP_DARK_THRESHOLD,
     apply_style, get_config_order, get_config_colors, get_short_name,
     get_tick_name, FMT_SCORE_SHORT,
+    grid_of_axes, place_axes,
 )
 
 CONFIGS = get_config_order()
@@ -191,9 +192,9 @@ def main():
     # Grid layout: 3 columns x 2 rows (5 panels + 1 empty) for better space use
     n_cols = 3
     n_rows = 2
-    fig, axes = plt.subplots(n_rows, n_cols,
-                              figsize=(FIG_WIDTH_IN * 1.7, FIG_HEIGHT_IN * 1.0),
-                              gridspec_kw={"hspace": 0.45, "wspace": 0.40})
+    fig = plt.figure(figsize=(FIG_WIDTH_IN * 1.7, FIG_HEIGHT_IN * 1.0))
+    axes_list = grid_of_axes(fig, n_rows, n_cols, [0.08, 0.08, 0.88, 0.86], hgap=0.06, wgap=0.06)
+    axes = np.array(axes_list)
 
     letters = "ABCDE"
     total_wins = np.zeros(len(CONFIGS), dtype=int)
@@ -223,7 +224,6 @@ def main():
 
     # Finalise layout BEFORE adding panel labels so that ax.get_position()
     # returns the correct post-adjustment coordinates.
-    fig.subplots_adjust(left=0.09, right=0.97, top=0.96, bottom=0.08)
     add_config_legend_footnote(fig, y_pos=0.005)
 
     # Add panel labels after layout adjustment to avoid overlap with cells.

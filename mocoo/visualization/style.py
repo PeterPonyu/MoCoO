@@ -24,7 +24,7 @@ FIG_HEIGHT_IN = FIG_HEIGHT_CM / 2.54  # ~8.268 in
 DPI = 300
 
 # Standard savefig keyword arguments for all scripts
-SAVEFIG_KW = dict(dpi=DPI, bbox_inches="tight", pad_inches=0.08)
+SAVEFIG_KW = dict(dpi=DPI)
 
 # Threshold for heatmap text colour: above this normalised value, use white text
 HEATMAP_DARK_THRESHOLD = 0.45
@@ -147,6 +147,153 @@ _LINE_WIDTHS: Dict[str, float] = {
 
 
 # ---------------------------------------------------------------------------
+# Absolute-geometry layout helpers
+# ---------------------------------------------------------------------------
+# All coordinates are normalised figure fractions [0, 1].  The helpers below
+# free every figure script from tight_layout / bbox_inches="tight" by
+# computing exact axes positions up-front.
+
+def place_axes(fig, rect):
+    """Create an axes at an exact position.
+
+    Parameters
+    ----------
+    fig : matplotlib.figure.Figure
+    rect : tuple (left, bottom, width, height) in figure-normalised coords.
+
+    Returns
+    -------
+    matplotlib.axes.Axes
+    """
+    return fig.add_axes(rect)
+
+
+def row_of_axes(fig, n, rect, gap=0.04, widths=None):
+    """Distribute *n* axes horizontally inside *rect*.
+
+    Parameters
+    ----------
+    fig : matplotlib.figure.Figure
+    n : int
+    rect : tuple (left, bottom, width, height)
+    gap : float  — horizontal gap between adjacent axes (figure fraction).
+    widths : list of float, optional
+        Relative widths for each axes.  If *None*, all are equal.
+
+    Returns
+    -------
+    list of matplotlib.axes.Axes
+    """
+    left, bottom, total_w, height = rect
+    if widths is None:
+        widths = [1.0] * n
+    wsum = sum(widths)
+    usable = total_w - gap * (n - 1)
+    axes = []
+    x = left
+    for i, w in enumerate(widths):
+        aw = usable * (w / wsum)
+        axes.append(fig.add_axes([x, bottom, aw, height]))
+        x += aw + gap
+    return axes
+
+
+def col_of_axes(fig, n, rect, gap=0.04, heights=None):
+    """Distribute *n* axes vertically inside *rect* (top to bottom).
+
+    Parameters
+    ----------
+    fig : matplotlib.figure.Figure
+    n : int
+    rect : tuple (left, bottom, width, height)
+    gap : float  — vertical gap between adjacent axes (figure fraction).
+    heights : list of float, optional
+        Relative heights (top-to-bottom order).  If *None*, all equal.
+
+    Returns
+    -------
+    list of matplotlib.axes.Axes  — ordered top to bottom.
+    """
+    left, bottom, width, total_h = rect
+    if heights is None:
+        heights = [1.0] * n
+    hsum = sum(heights)
+    usable = total_h - gap * (n - 1)
+    axes = []
+    # Build from top downward
+    y = bottom + total_h
+    for i, h in enumerate(heights):
+        ah = usable * (h / hsum)
+        y -= ah
+        axes.append(fig.add_axes([left, y, width, ah]))
+        y -= gap
+    return axes
+
+
+def grid_of_axes(fig, nrows, ncols, rect, hgap=0.04, wgap=0.04,
+                 heights=None, widths=None):
+    """Create a *nrows* × *ncols* grid of axes inside *rect*.
+
+    Parameters
+    ----------
+    fig : matplotlib.figure.Figure
+    nrows, ncols : int
+    rect : tuple (left, bottom, width, height)
+    hgap : float — vertical gap between rows (figure fraction).
+    wgap : float — horizontal gap between columns (figure fraction).
+    heights : list of float, optional
+        Relative row heights (top-to-bottom).
+    widths : list of float, optional
+        Relative column widths (left-to-right).
+
+    Returns
+    -------
+    list of list of matplotlib.axes.Axes
+        ``axes[row][col]``, row 0 is the top row.
+    """
+    left, bottom, total_w, total_h = rect
+    if heights is None:
+        heights = [1.0] * nrows
+    if widths is None:
+        widths = [1.0] * ncols
+    hsum = sum(heights)
+    wsum = sum(widths)
+    usable_h = total_h - hgap * (nrows - 1)
+    usable_w = total_w - wgap * (ncols - 1)
+
+    # Pre-compute row bottoms (top-to-bottom order)
+    row_bottoms = []
+    row_heights = []
+    y = bottom + total_h
+    for rh in heights:
+        ah = usable_h * (rh / hsum)
+        y -= ah
+        row_bottoms.append(y)
+        row_heights.append(ah)
+        y -= hgap
+
+    # Pre-compute column lefts
+    col_lefts = []
+    col_widths = []
+    x = left
+    for cw in widths:
+        aw = usable_w * (cw / wsum)
+        col_lefts.append(x)
+        col_widths.append(aw)
+        x += aw + wgap
+
+    axes = []
+    for ri in range(nrows):
+        row = []
+        for ci in range(ncols):
+            ax = fig.add_axes([col_lefts[ci], row_bottoms[ri],
+                               col_widths[ci], row_heights[ri]])
+            row.append(ax)
+        axes.append(row)
+    return axes
+
+
+# ---------------------------------------------------------------------------
 # Public API
 # ---------------------------------------------------------------------------
 
@@ -162,8 +309,6 @@ def apply_style() -> None:
         "figure.figsize": (FIG_WIDTH_IN, FIG_HEIGHT_IN),
         "figure.dpi": DPI,
         "savefig.dpi": DPI,
-        "savefig.bbox": "tight",
-        "savefig.pad_inches": 0.08,
 
         # Font — Arial normal weight throughout
         "font.family": "sans-serif",

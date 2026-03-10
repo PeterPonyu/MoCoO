@@ -29,7 +29,6 @@ from typing import Dict, List, Optional, Sequence, Union
 import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
-import matplotlib.gridspec as gridspec
 import numpy as np
 
 try:
@@ -53,7 +52,7 @@ def _save_and_return(fig: plt.Figure, outpath: Optional[Union[str, Path]]) -> pl
     if outpath is not None:
         outpath = Path(outpath)
         outpath.parent.mkdir(parents=True, exist_ok=True)
-        fig.savefig(str(outpath), dpi=_style.DPI, bbox_inches="tight")
+        fig.savefig(str(outpath), dpi=_style.DPI)
     return fig
 
 
@@ -146,9 +145,8 @@ def plot_ablation_radar(
     bar_w = 0.12
     group_gap = 1.0
 
-    fig, ax = plt.subplots(
-        figsize=(_style.FIG_WIDTH_IN, _style.FIG_HEIGHT_IN * 0.3)
-    )
+    fig = plt.figure(figsize=(_style.FIG_WIDTH_IN, _style.FIG_HEIGHT_IN * 0.3))
+    ax = fig.add_axes([0.10, 0.20, 0.86, 0.70])
     ax.set_facecolor("#f9f9f9")
 
     for j, cfg in enumerate(configs):
@@ -177,7 +175,6 @@ def plot_ablation_radar(
         columnspacing=0.6, borderpad=0.3,
     )
 
-    fig.tight_layout()
     return _save_and_return(fig, outpath)
 
 
@@ -222,13 +219,8 @@ def plot_metric_bars(
     metric_names = list(metric_names)
 
     n_panels = len(metric_names)
-    fig, axes = plt.subplots(
-        1, n_panels,
-        figsize=(_style.FIG_WIDTH_IN, _style.FIG_HEIGHT_IN * 0.25),
-        sharey=False,
-    )
-    if n_panels == 1:
-        axes = [axes]
+    fig = plt.figure(figsize=(_style.FIG_WIDTH_IN, _style.FIG_HEIGHT_IN * 0.25))
+    axes = _style.row_of_axes(fig, n_panels, [0.10, 0.22, 0.86, 0.68], gap=0.06)
 
     x = np.arange(len(configs))
     w = 0.38
@@ -278,7 +270,6 @@ def plot_metric_bars(
         if idx == 0 and has_test:
             ax.legend(fontsize=_style.FS_LEGEND, loc="upper left")
 
-    fig.tight_layout()
     return _save_and_return(fig, outpath)
 
 
@@ -330,13 +321,10 @@ def plot_umap_grid(
     ncols = min(n, 3)
     nrows = max(1, (n + ncols - 1) // ncols)
 
-    fig, axes = plt.subplots(
-        nrows, ncols,
-        figsize=(_style.FIG_WIDTH_IN, _style.FIG_HEIGHT_IN * 0.38 * nrows),
-    )
-    if n == 1:
-        axes = np.array([[axes]])
-    axes = np.atleast_2d(axes)
+    fig = plt.figure(figsize=(_style.FIG_WIDTH_IN, _style.FIG_HEIGHT_IN * 0.38 * nrows))
+    axes_grid = _style.grid_of_axes(fig, nrows, ncols, [0.04, 0.06, 0.92, 0.88],
+                                     hgap=0.06, wgap=0.04)
+    axes = np.array(axes_grid)
 
     cmap = plt.colormaps.get_cmap("tab20")
 
@@ -398,7 +386,6 @@ def plot_umap_grid(
         borderpad=0.2, markerscale=0.9, columnspacing=0.4,
     )
 
-    fig.tight_layout()
     return _save_and_return(fig, outpath)
 
 
@@ -457,15 +444,13 @@ def plot_training_curves(
     fig = plt.figure(
         figsize=(_style.FIG_WIDTH_IN, _style.FIG_HEIGHT_IN * 0.22 * total_rows)
     )
-    outer = gridspec.GridSpec(
-        total_rows, 1, figure=fig,
-        hspace=0.45,
-    )
 
-    # ── Row 0: train + val loss ──
-    gs_loss = gridspec.GridSpecFromSubplotSpec(1, 2, subplot_spec=outer[0], wspace=0.30)
-    ax_train = fig.add_subplot(gs_loss[0])
-    ax_val = fig.add_subplot(gs_loss[1])
+    if total_rows == 1:
+        row0_rect = [0.10, 0.18, 0.86, 0.74]
+    else:
+        row0_rect = [0.10, 0.56, 0.86, 0.38]
+
+    ax_train, ax_val = _style.row_of_axes(fig, 2, row0_rect, gap=0.08)
 
     max_epoch = 0
     for cfg in configs:
@@ -513,11 +498,10 @@ def plot_training_curves(
     # ── Row 1: val metric evolution (optional) ──
     if n_bottom_panels > 0:
         score_labels = ["Val ARI", "Val NMI", "Val ASW", "Val CAL", "Val DAV", "Val COR"]
-        gs_scores = gridspec.GridSpecFromSubplotSpec(
-            1, n_bottom_panels, subplot_spec=outer[1], wspace=0.30,
-        )
+        row1_rect = [0.10, 0.08, 0.86, 0.38]
+        score_axes = _style.row_of_axes(fig, n_bottom_panels, row1_rect, gap=0.06)
         for si in range(n_bottom_panels):
-            ax = fig.add_subplot(gs_scores[si])
+            ax = score_axes[si]
             for cfg in configs:
                 vs = loss_histories[cfg].get("val_scores")
                 if vs is None:
@@ -544,12 +528,6 @@ def plot_training_curves(
             ax.set_xlim(0, xlim)
             ax.yaxis.set_major_locator(plt.MaxNLocator(4, prune="upper"))
 
-    try:
-        fig.tight_layout()
-    except ValueError:
-        # GridSpec figures with mixed subplot specs may not support
-        # tight_layout; fall back silently.
-        pass
     return _save_and_return(fig, outpath)
 
 
@@ -628,14 +606,10 @@ def plot_pseudotime_markers(
     ncols = min(n_genes, 4)
     nrows = max(1, (n_genes + ncols - 1) // ncols)
 
-    fig, axes = plt.subplots(
-        nrows, ncols,
-        figsize=(_style.FIG_WIDTH_IN, _style.FIG_HEIGHT_IN * 0.2 * nrows),
-        sharex=True,
-    )
-    if n_genes == 1:
-        axes = np.array([[axes]])
-    axes = np.atleast_2d(axes)
+    fig = plt.figure(figsize=(_style.FIG_WIDTH_IN, _style.FIG_HEIGHT_IN * 0.2 * nrows))
+    axes_grid = _style.grid_of_axes(fig, nrows, ncols, [0.10, 0.10, 0.86, 0.82],
+                                     hgap=0.06, wgap=0.05)
+    axes = np.array(axes_grid)
 
     cmap = plt.colormaps.get_cmap("viridis")
 
@@ -684,9 +658,8 @@ def plot_pseudotime_markers(
 
     fig.suptitle(
         f"Top {n_genes} Marker Genes vs. Pseudotime",
-        fontsize=_style.FS_TITLE + 1, y=1.01,
+        fontsize=_style.FS_TITLE + 1, y=0.97,
     )
-    fig.tight_layout()
     return _save_and_return(fig, outpath)
 
 
@@ -746,9 +719,8 @@ def plot_beta_sensitivity(
         ax.set_axis_off()
         return _save_and_return(fig, outpath)
 
-    fig, ax = plt.subplots(
-        figsize=(_style.FIG_WIDTH_IN, _style.FIG_HEIGHT_IN * 0.28)
-    )
+    fig = plt.figure(figsize=(_style.FIG_WIDTH_IN, _style.FIG_HEIGHT_IN * 0.28))
+    ax = fig.add_axes([0.12, 0.18, 0.84, 0.72])
 
     for cfg in configs:
         d = data[cfg]
@@ -781,5 +753,4 @@ def plot_beta_sensitivity(
         ncol=2, framealpha=0.65, handlelength=1.0,
     )
 
-    fig.tight_layout()
     return _save_and_return(fig, outpath)

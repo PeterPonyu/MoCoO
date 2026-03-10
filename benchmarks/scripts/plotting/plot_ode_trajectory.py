@@ -35,7 +35,6 @@ from pathlib import Path
 import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
-import matplotlib.gridspec as gridspec
 import numpy as np
 from sklearn.decomposition import PCA
 from sklearn.neighbors import NearestNeighbors
@@ -50,6 +49,7 @@ from mocoo.visualization.style import (
     FIG_WIDTH_IN, FIG_HEIGHT_IN, DPI,
     FS_LABEL, FS_TITLE, FS_AXIS, FS_TICK, FS_LEGEND, FS_SMALL,
     apply_style, get_config_order, get_config_colors, get_short_name, get_tick_name,
+    row_of_axes, grid_of_axes, place_axes,
 )
 
 FS_LEG = FS_LEGEND
@@ -92,7 +92,7 @@ def _nn_entropy(latent, k=10):
 
 # ── Panel A: PCA comparison — VAE vs VAE+ODE ──────────────────────────────
 
-def _draw_pca_comparison(gs, fig, configs, latents, labels):
+def _draw_pca_comparison(axes, fig, configs, latents, labels):
     cm20  = plt.colormaps.get_cmap("tab20")
     virid = plt.colormaps.get_cmap("plasma")
     show  = ["VAE", "VAE+ODE", "Full"]
@@ -106,7 +106,7 @@ def _draw_pca_comparison(gs, fig, configs, latents, labels):
         uniq     = np.unique(labels[ci])
 
         # Left = celltype, middle = pseudotime PC1
-        ax_ct = fig.add_subplot(gs[0, j])
+        ax_ct = axes[0][j]
         if j == 0:
             ax_first = ax_ct
 
@@ -123,7 +123,7 @@ def _draw_pca_comparison(gs, fig, configs, latents, labels):
         for spine in ax_ct.spines.values():
             spine.set_visible(False)
 
-        ax_pt = fig.add_subplot(gs[1, j])
+        ax_pt = axes[1][j]
         sc = ax_pt.scatter(emb[:, 0], emb[:, 1], c=pt,
                            cmap="plasma", vmin=0, vmax=1, **_SCATTER)
         ax_pt.set_xticks([]); ax_pt.set_yticks([])
@@ -151,7 +151,7 @@ def _draw_pca_comparison(gs, fig, configs, latents, labels):
 
 # ── Panel B: Pseudotime violin per cell type ──────────────────────────────
 
-def _draw_pseudotime_violins(gs, fig, configs, latents, labels):
+def _draw_pseudotime_violins(axes, fig, configs, latents, labels):
     """VAE vs VAE+ODE pseudotime distributions per cell type."""
     compare = [("VAE", 0), ("VAE+ODE", 1)]
     ax_first = None
@@ -162,7 +162,7 @@ def _draw_pseudotime_violins(gs, fig, configs, latents, labels):
         pt  = _pseudotime(latents[ci])
         uniq = np.unique(labels[ci])
 
-        ax = fig.add_subplot(gs[j])
+        ax = axes[j]
         if j == 0:
             ax_first = ax
 
@@ -193,7 +193,7 @@ def _draw_pseudotime_violins(gs, fig, configs, latents, labels):
 
 # ── Panel C: Gene expression along pseudotime ─────────────────────────────
 
-def _draw_gene_pseudotime(gs, fig, configs, latents, labels, adata_path: str):
+def _draw_gene_pseudotime(ax, fig, configs, latents, labels, adata_path: str):
     """Top 8 marker genes (by ARI correlation with pseudotime)."""
     try:
         import scanpy as sc
@@ -221,8 +221,6 @@ def _draw_gene_pseudotime(gs, fig, configs, latents, labels, adata_path: str):
     ci  = configs.index(cfg)
     pt  = _pseudotime(latents[ci])
     n   = len(pt)
-
-    ax = fig.add_subplot(gs[:])
 
     if has_expr:
         X_sub = X_raw[:n]
@@ -278,12 +276,12 @@ def _draw_gene_pseudotime(gs, fig, configs, latents, labels, adata_path: str):
 
 # ── Panel D: Trajectory smoothness — pairwise distances ───────────────────
 
-def _draw_trajectory_smoothness(gs, fig, configs, latents, labels):
+def _draw_trajectory_smoothness(axes, fig, configs, latents, labels):
     """Histogram of pairwise distances + NN entropy comparison.
     Smoother trajectories = more uniform pairwise distance distribution.
     """
-    ax_hist = fig.add_subplot(gs[0])
-    ax_ent  = fig.add_subplot(gs[1])
+    ax_hist = axes[0]
+    ax_ent  = axes[1]
 
     for i, cfg in enumerate(configs):
         lat = latents[i]
@@ -360,42 +358,33 @@ def build_figure(rdir: Path, outdir: Path, adata_path: str):
     configs, latents, labels = _load_data(rdir)
 
     fig = plt.figure(figsize=(FIG_WIDTH_IN, FIG_HEIGHT_IN * 0.92), dpi=DPI)
-    outer = gridspec.GridSpec(
-        4, 1,
-        height_ratios=[4.0, 2.5, 2.8, 2.5],
-        hspace=0.42,
-        figure=fig,
-    )
 
-    # A: 2-row × 3-col PCA grid (cell type + pseudotime)
-    gs_A = gridspec.GridSpecFromSubplotSpec(
-        2, 3, subplot_spec=outer[0], wspace=0.14, hspace=0.38)
+    n_cfgs = 3  # VAE, VAE+ODE, Full
+
+    # A: 2-row × n_cfgs-col PCA grid (cell type + pseudotime)
+    grid_A = grid_of_axes(fig, 2, n_cfgs,
+                          [0.08, 0.70, 0.88, 0.27], hgap=0.03, wgap=0.03)
 
     # B: 2 violin plots
-    gs_B = gridspec.GridSpecFromSubplotSpec(
-        1, 2, subplot_spec=outer[1], wspace=0.24)
+    axes_B = row_of_axes(fig, 2, [0.10, 0.47, 0.86, 0.18], gap=0.06)
 
     # C: single wide gene expression panel
-    gs_C = gridspec.GridSpecFromSubplotSpec(
-        1, 1, subplot_spec=outer[2])
+    ax_C_single = place_axes(fig, [0.10, 0.25, 0.86, 0.18])
 
     # D: 2 panels — pairwise dist histogram + NN entropy bars
-    gs_D = gridspec.GridSpecFromSubplotSpec(
-        1, 2, subplot_spec=outer[3], wspace=0.24)
+    axes_D = row_of_axes(fig, 2, [0.10, 0.04, 0.86, 0.17], gap=0.06)
 
     print("  Drawing Panel A (PCA pseudotime)...")
-    ax_A = _draw_pca_comparison(gs_A, fig, configs, latents, labels)
+    ax_A = _draw_pca_comparison(grid_A, fig, configs, latents, labels)
 
     print("  Drawing Panel B (Pseudotime violins)...")
-    ax_B = _draw_pseudotime_violins(gs_B, fig, configs, latents, labels)
+    ax_B = _draw_pseudotime_violins(axes_B, fig, configs, latents, labels)
 
     print("  Drawing Panel C (Gene expression along pseudotime)...")
-    ax_C = _draw_gene_pseudotime(gs_C, fig, configs, latents, labels, adata_path)
+    ax_C = _draw_gene_pseudotime(ax_C_single, fig, configs, latents, labels, adata_path)
 
     print("  Drawing Panel D (Trajectory smoothness)...")
-    ax_D = _draw_trajectory_smoothness(gs_D, fig, configs, latents, labels)
-
-    fig.subplots_adjust(left=0.10, right=0.96, top=0.97, bottom=0.06)
+    ax_D = _draw_trajectory_smoothness(axes_D, fig, configs, latents, labels)
     add_config_legend_footnote(fig, y_pos=0.005)
 
     panel_label(fig, ax_A, "A")

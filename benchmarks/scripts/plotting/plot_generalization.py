@@ -34,6 +34,7 @@ from mocoo.visualization.style import (
     FIG_WIDTH_IN, FIG_HEIGHT_IN, DPI,
     FS_LABEL, FS_TITLE, FS_AXIS, FS_TICK, FS_LEGEND, FS_SMALL,
     apply_style, get_config_order, get_config_colors, get_short_name, get_tick_name,
+    row_of_axes,
 )
 
 setup_fonts()
@@ -143,23 +144,13 @@ def build_figure(rdir: Path, outdir: Path, multiseed_stats=None):
     n_row1 = len(_ROW1)
     n_row2 = len(_ROW2)
 
-    # Use GridSpec with 12 sub-columns for proper uneven layout
-    from matplotlib.gridspec import GridSpec
-
     fig = plt.figure(figsize=(FIG_WIDTH_IN, FIG_HEIGHT_IN * 0.65))
-    gs = GridSpec(2, 12, figure=fig, hspace=0.42, wspace=0.36,
-                  left=0.08, right=0.97, top=0.94, bottom=0.12)
 
-    # Row 1: 3 panels, each spanning 4 of 12 sub-columns (fills full width)
-    ax_row1 = [fig.add_subplot(gs[0, 0:4]),
-               fig.add_subplot(gs[0, 4:8]),
-               fig.add_subplot(gs[0, 8:12])]
+    # Row 1: 3 equally-spaced clustering panels
+    ax_row1 = row_of_axes(fig, 3, [0.08, 0.56, 0.88, 0.38], gap=0.06)
 
-    # Row 2: 4 panels, each spanning 3 of 12 sub-columns
-    ax_row2 = [fig.add_subplot(gs[1, 0:3]),
-               fig.add_subplot(gs[1, 3:6]),
-               fig.add_subplot(gs[1, 6:9]),
-               fig.add_subplot(gs[1, 9:12])]
+    # Row 2: 4 equally-spaced quality panels
+    ax_row2 = row_of_axes(fig, 4, [0.08, 0.08, 0.88, 0.38], gap=0.04)
 
     # Row 1: clustering (3 metrics, now spanning full width)
     for j, (mk, ml) in enumerate(_ROW1):

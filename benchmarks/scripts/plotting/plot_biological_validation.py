@@ -30,7 +30,6 @@ from pathlib import Path
 import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
-import matplotlib.gridspec as gridspec
 import numpy as np
 import scanpy as sc
 from sklearn.neighbors import NearestNeighbors
@@ -44,6 +43,7 @@ from mocoo.visualization.style import (
     FIG_WIDTH_IN, FIG_HEIGHT_IN, DPI,
     FS_LABEL, FS_TITLE, FS_AXIS, FS_TICK, FS_LEGEND, FS_SMALL,
     apply_style, get_config_colors, get_tick_name,
+    row_of_axes, grid_of_axes, place_axes,
 )
 
 warnings.filterwarnings("ignore", category=FutureWarning)
@@ -267,12 +267,11 @@ def _umap_scalar(ax, emb, values, title, cmap_name, cbar_label, fig, show_ylabel
 # Panel drawing functions
 # ══════════════════════════════════════════════════════════════════════════════
 
-def _draw_panel_A(gs_A, fig, configs, latents, labels_all,
+def _draw_panel_A(ax_a1, ax_a2, fig, configs, latents, labels_all,
                   full_idx, perm_drops):
     """Panel A — two stacked plots: global robustness + per-comp sensitivity."""
 
     # A-top: global perturbation line chart
-    ax_a1 = fig.add_subplot(gs_A[0])
     cm10 = plt.colormaps.get_cmap("tab10")
     for i, cfg in enumerate(configs):
         mu, sd = _global_perturbation(latents[i], labels_all[i],
@@ -295,7 +294,6 @@ def _draw_panel_A(gs_A, fig, configs, latents, labels_all,
                  handlelength=1.0, labelspacing=0.2, columnspacing=0.6)
 
     # A-bot: per-component sensitivity bar chart (Full config)
-    ax_a2 = fig.add_subplot(gs_A[1])
     
     # Plot top 10 components by permutation drop
     top_10_idx = np.argsort(perm_drops)[-10:][::-1]
@@ -320,14 +318,14 @@ def _draw_panel_A(gs_A, fig, configs, latents, labels_all,
     return ax_a1  # return topmost axes for panel-label placement
 
 
-def _draw_panel_B(gs_B, fig, emb, Z_full, labels_f, n_cells,
+def _draw_panel_B(axes_b, fig, emb, Z_full, labels_f, n_cells,
                   umap_comp_indices):
     """Panel B — UMAP: cell-type + TOP_COMPS component-intensity UMAPs."""
-    ax_b0 = fig.add_subplot(gs_B[0])
+    ax_b0 = axes_b[0]
     _umap_celltype(ax_b0, emb, labels_f,
                    title="UMAP\nCell type (Full)", show_ylabel=True)
     for j, ci in enumerate(umap_comp_indices):
-        ax_bj = fig.add_subplot(gs_B[j + 1])
+        ax_bj = axes_b[j + 1]
         _umap_scalar(ax_bj, emb, Z_full[:n_cells, ci],
                      title=f"Z{ci+1} intensity",
                      cmap_name="plasma",
@@ -336,14 +334,14 @@ def _draw_panel_B(gs_B, fig, emb, Z_full, labels_f, n_cells,
     return ax_b0
 
 
-def _draw_panel_C(gs_C, fig, emb, X_raw, labels_f,
+def _draw_panel_C(axes_c, fig, emb, X_raw, labels_f,
                   umap_comp_indices, rf_gene_idx_table, rf_gene_name_table):
     """Panel C — UMAP: cell-type reference + top-gene expression UMAPs (RF importance)."""
-    ax_c0 = fig.add_subplot(gs_C[0])
+    ax_c0 = axes_c[0]
     _umap_celltype(ax_c0, emb, labels_f,
                    title="UMAP\nCell type (ref.)", show_ylabel=True)
     for j, ci in enumerate(umap_comp_indices):
-        ax_cj = fig.add_subplot(gs_C[j + 1])
+        ax_cj = axes_c[j + 1]
         g_idx = rf_gene_idx_table[j][0]
         tg    = rf_gene_name_table[j][0]
         _umap_scalar(ax_cj, emb, X_raw[:, g_idx],
@@ -354,14 +352,14 @@ def _draw_panel_C(gs_C, fig, emb, X_raw, labels_f,
     return ax_c0
 
 
-def _draw_panel_D(gs_D, fig, configs, latents, X_raw, n_cells, gene_names):
+def _draw_panel_D(axes_d, fig, configs, latents, X_raw, n_cells, gene_names):
     """Panel D — per-config component-grouped Pearson heatmaps (2x3 grid)."""
     k = GENES_PER_COMP
     ax_d0 = None
     
     for j, cfg in enumerate(HEATMAP_CONFIGS):
         r, c = divmod(j, 3)
-        ax_dj = fig.add_subplot(gs_D[r, c])
+        ax_dj = axes_d[r][c]
         if j == 0:
             ax_d0 = ax_dj
             
@@ -455,50 +453,40 @@ def build_figure(data, adata, outpath: Path):
     # ── 6. Figure skeleton ────────────────────────────────────────────────
     fig = plt.figure(figsize=(FIG_WIDTH_IN, FIG_HEIGHT_IN), dpi=DPI)
 
-    outer = gridspec.GridSpec(
-        4, 1,
-        height_ratios=[2.5, 2.5, 2.5, 5.5],
-        hspace=0.46,
-        figure=fig,
-    )
-    # Row 0: Panel A (2 columns)
-    gs_A = gridspec.GridSpecFromSubplotSpec(
-        1, 2, subplot_spec=outer[0], wspace=0.20)
+    # Row A: 2 sub-rows (perturbation robustness + importance bars)
+    ax_a1 = place_axes(fig, [0.10, 0.85, 0.86, 0.12])
+    ax_a2 = place_axes(fig, [0.10, 0.72, 0.86, 0.10])
 
-    # Row 1: Panel B (full width)
-    gs_B = gridspec.GridSpecFromSubplotSpec(
-        1, UMAP_COMPS + 1, subplot_spec=outer[1], wspace=0.12)
+    # Row B: UMAP panels (1 cell-type + 4 component UMAPs)
+    axes_b = row_of_axes(fig, 5, [0.04, 0.54, 0.92, 0.14], gap=0.02)
 
-    # Row 2: Panel C (full width)
-    gs_C = gridspec.GridSpecFromSubplotSpec(
-        1, UMAP_COMPS + 1, subplot_spec=outer[2], wspace=0.12)
+    # Row C: Gene expression panels (5 scalar UMAPs)
+    axes_c = row_of_axes(fig, 5, [0.04, 0.38, 0.92, 0.12], gap=0.02)
 
-    # Row 3: Panel D — 2 rows x 3 cols (all 6 configs)
-    gs_D = gridspec.GridSpecFromSubplotSpec(
-        2, 3, subplot_spec=outer[3], wspace=0.58, hspace=0.34)
+    # Row D: 2×3 grid of per-config Pearson heatmaps
+    axes_d = grid_of_axes(fig, 2, 3, [0.06, 0.04, 0.90, 0.30], hgap=0.04, wgap=0.06)
 
     # ── 7. Draw panels ────────────────────────────────────────────────────
     print("  Drawing Panel A ...")
-    ax_A = _draw_panel_A(gs_A, fig, configs, latents, labels_all,
+    ax_A = _draw_panel_A(ax_a1, ax_a2, fig, configs, latents, labels_all,
                          full_idx, perm_drops)
     print("  Drawing Panel B ...")
-    ax_B = _draw_panel_B(gs_B, fig, emb, Z_full, labels_f, n_cells,
+    ax_B = _draw_panel_B(axes_b, fig, emb, Z_full, labels_f, n_cells,
                          umap_comp_indices)
     print("  Drawing Panel C ...")
-    ax_C = _draw_panel_C(gs_C, fig, emb, X_raw, labels_f,
+    ax_C = _draw_panel_C(axes_c, fig, emb, X_raw, labels_f,
                          umap_comp_indices, rf_gene_idx_table, rf_gene_name_table)
     print("  Drawing Panel D ...")
-    ax_D = _draw_panel_D(gs_D, fig, configs, latents, X_raw, n_cells, gene_names)
+    ax_D = _draw_panel_D(axes_d, fig, configs, latents, X_raw, n_cells, gene_names)
 
-    # ── 8. Global layout before placing panel letters ─────────────────────
-    fig.subplots_adjust(left=0.10, right=0.96, top=0.97, bottom=0.08)
+    # ── 8. Panel letters & legend ─────────────────────────────────────────
     add_config_legend_footnote(fig, y_pos=0.005)
 
-    # ── 9. Panel letters — placed AFTER subplots_adjust fixes positions ───
+    # ── 9. Panel letters ─────────────────────────────────────────────────
     panel_label(fig, ax_A, "A", x_off=-0.018)
     panel_label(fig, ax_B, "B", x_off=-0.018)
     panel_label(fig, ax_C, "C", x_off=-0.018)
-    panel_label(fig, ax_D, "D", x_off=-0.018)
+    panel_label(fig, axes_d[0][0], "D", x_off=-0.018)
 
     # ── 10. Conflict detection (all 13 passes) ────────────────────────────
     print("\n── Conflict Detection ──")

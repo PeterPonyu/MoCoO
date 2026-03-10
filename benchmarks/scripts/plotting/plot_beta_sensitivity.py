@@ -31,7 +31,7 @@ from mocoo.visualization.style import (
     FIG_WIDTH_IN, FIG_HEIGHT_IN, DPI,
     FS_LABEL, FS_TITLE, FS_AXIS, FS_TICK, FS_LEGEND, FS_SMALL,
     apply_style, get_config_order, get_config_colors, get_short_name, get_tick_name,
-    get_line_style, get_line_width,
+    get_line_style, get_line_width, grid_of_axes,
 )
 
 setup_fonts()
@@ -81,8 +81,8 @@ def build_figure(results_base: Path, outdir: Path):
 
     betas_present = sorted(all_data.keys())
 
-    fig, axes = plt.subplots(3, 3, figsize=(FIG_WIDTH_IN, FIG_HEIGHT_IN * 0.75),
-                              gridspec_kw={"hspace": 0.22, "wspace": 0.26})
+    fig = plt.figure(figsize=(FIG_WIDTH_IN, FIG_HEIGHT_IN * 0.75))
+    axes = np.array(grid_of_axes(fig, 3, 3, [0.08, 0.12, 0.88, 0.82], hgap=0.06, wgap=0.06))
 
     for idx, (metric_key, metric_label, higher_better) in enumerate(_METRICS):
         row, col = divmod(idx, 3)
@@ -126,7 +126,6 @@ def build_figure(results_base: Path, outdir: Path):
                loc="lower center", bbox_to_anchor=(0.50, 0.04),
                frameon=False, handlelength=1.5, columnspacing=1.0)
 
-    fig.subplots_adjust(left=0.08, right=0.98, top=0.97, bottom=0.13)
     add_config_legend_footnote(fig, y_pos=0.02)
 
     # Panel labels
