@@ -249,6 +249,10 @@ def main():
         "--expanded", action="store_true", default=True,
         help="Compute expanded metrics (DRE, LSE, DREX, LSEX) after training",
     )
+    parser.add_argument(
+        "--cell-type-col", default="cell_type",
+        help="Name of the cell type column in adata.obs (default: cell_type)",
+    )
     args = parser.parse_args()
 
     # Load config
@@ -271,6 +275,12 @@ def main():
 
     # Load dataset once
     adata = load_dataset(args.data, args.max_cells, args.hvg)
+
+    # Rename cell type column if needed (e.g. paul15_clusters -> cell_type)
+    ct_col = args.cell_type_col
+    if ct_col != "cell_type" and ct_col in adata.obs.columns:
+        adata.obs["cell_type"] = adata.obs[ct_col].values
+        print(f"Renamed '{ct_col}' -> 'cell_type'")
 
     print(f"\n{'=' * 60}")
     print(f"  Beta Ablation Study")

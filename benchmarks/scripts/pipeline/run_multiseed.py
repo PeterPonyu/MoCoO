@@ -84,21 +84,27 @@ BASE_DIR = Path(os.environ.get("MOCOO_DATA_DIR", str(Path.home())))
 
 DATASET_SPECS = {
     "IRALL": {
-        "path": str(BASE_DIR / "datasets" / "IRALL.h5ad"),
+        "path": str(BASE_DIR / "LAB" / "scRL" / "IRALL.h5ad"),
         "cell_type_col": "cell_type",
         "batch_col": "batch",
-        "epochs_default": 300,
+        "epochs_default": 150,
     },
     "dentate": {
-        "path": str(BASE_DIR / "datasets" / "DevelopmentDatasets" / "dentate.h5ad"),
+        "path": str(BASE_DIR / "vGAE_LAB" / "data" / "dentate.h5ad"),
         "cell_type_col": "Clusters",
         "batch_col": None,
         "epochs_default": 100,
     },
     "endo": {
-        "path": str(BASE_DIR / "datasets" / "DevelopmentDatasets" / "endo.h5ad"),
+        "path": str(BASE_DIR / "vGAE_LAB" / "data" / "endo.h5ad"),
         "cell_type_col": "clusters_fine",
         "batch_col": "day",
+        "epochs_default": 100,
+    },
+    "paul": {
+        "path": str(BASE_DIR / "LAB" / "data" / "paul.h5ad"),
+        "cell_type_col": "paul15_clusters",
+        "batch_col": None,
         "epochs_default": 100,
     },
 }

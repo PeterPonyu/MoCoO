@@ -541,7 +541,7 @@ def main():
     parser.add_argument("--resultsdir",
                         default=str(_benchmarks / "results" / "single_dataset"))
     parser.add_argument("--data",
-                        default=os.path.join(_data_base, "Desktop/datasets/IRALL.h5ad"))
+                        default=os.path.join(_data_base, "LAB/scRL/IRALL.h5ad"))
     parser.add_argument("--outdir",
                         default=str(_benchmarks / "figures"))
     args = parser.parse_args()

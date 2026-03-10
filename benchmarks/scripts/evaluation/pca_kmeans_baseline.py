@@ -29,19 +29,24 @@ warnings.filterwarnings("ignore")
 # ── Dataset registry (mirrors run_benchmark.py) ────────────────────────────
 DATASETS = {
     "IRALL": {
-        "path": "datasets/IRALL.h5ad",
+        "path": "LAB/scRL/IRALL.h5ad",
         "cell_type_col": "cell_type",
         "batch_col": "batch",
     },
     "dentate": {
-        "path": "datasets/DevelopmentDatasets/dentate.h5ad",
+        "path": "vGAE_LAB/data/dentate.h5ad",
         "cell_type_col": "Clusters",
         "batch_col": None,
     },
     "endo": {
-        "path": "datasets/DevelopmentDatasets/endo.h5ad",
+        "path": "vGAE_LAB/data/endo.h5ad",
         "cell_type_col": "clusters_fine",
         "batch_col": "day",
+    },
+    "paul": {
+        "path": "LAB/data/paul.h5ad",
+        "cell_type_col": "paul15_clusters",
+        "batch_col": None,
     },
 }
 
