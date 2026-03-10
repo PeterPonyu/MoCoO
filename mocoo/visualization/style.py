@@ -40,12 +40,12 @@ ACCENT_BEST     = "crimson"  # best-value highlight edge
 # ---------------------------------------------------------------------------
 # Font sizes (calibrated for the 17 x 21 cm canvas)
 # ---------------------------------------------------------------------------
-FS_LABEL = 9     # Panel letters (A), (B), ...
-FS_TITLE = 7     # Subplot titles
-FS_AXIS = 6      # Axis labels
-FS_TICK = 5      # Tick labels
-FS_LEGEND = 4.5  # Legend text
-FS_SMALL = 4.5   # Annotations / fine print (journal min ~5pt)
+FS_LABEL = 11    # Panel letters (A), (B), ...
+FS_TITLE = 9     # Subplot titles
+FS_AXIS = 8      # Axis labels
+FS_TICK = 7      # Tick labels
+FS_LEGEND = 7    # Legend text
+FS_SMALL = 6.5   # Annotations / heatmap cells (≥6pt for readability)
 
 # ---------------------------------------------------------------------------
 # Model configurations: canonical order and display names
@@ -108,7 +108,7 @@ _LINE_STYLES: Dict[str, object] = {
 
 # Per-config line widths (Full model gets emphasis)
 _LINE_WIDTHS: Dict[str, float] = {
-    c: (1.8 if c == "Full" else 1.1) for c in _CONFIG_ORDER
+    c: (2.2 if c == "Full" else 1.4) for c in _CONFIG_ORDER
 }
 
 
@@ -167,7 +167,7 @@ def apply_style() -> None:
         "legend.borderpad": 0.3,
 
         # Lines
-        "lines.linewidth": 1.1,
+        "lines.linewidth": 1.4,
         "lines.markersize": 3,
 
         # Scatter / patch
@@ -186,6 +186,26 @@ def apply_style() -> None:
         pass
 
     matplotlib.rcParams.update(params)
+
+
+def save_figure(fig, path, **extra_kw) -> None:
+    """Save figure as both PNG (raster) and PDF (vector) for publication.
+
+    Given ``path = 'foo/bar.png'``, saves:
+      - ``foo/bar.png``  (300 DPI raster)
+      - ``foo/bar.pdf``  (vector for journal submission)
+    """
+    from pathlib import Path as _Path
+
+    p = _Path(path)
+    p.parent.mkdir(parents=True, exist_ok=True)
+    kw = dict(SAVEFIG_KW, **extra_kw)
+    fig.savefig(str(p), **kw)
+    # Also save vector PDF
+    pdf_path = p.with_suffix(".pdf")
+    pdf_kw = dict(kw)
+    pdf_kw.pop("dpi", None)  # PDF is vector; DPI is irrelevant
+    fig.savefig(str(pdf_path), **pdf_kw)
 
 
 def get_config_colors() -> Dict[str, str]:
@@ -232,4 +252,4 @@ def get_line_style(config: str):
 
 def get_line_width(config: str) -> float:
     """Return the matplotlib linewidth for the given config."""
-    return _LINE_WIDTHS.get(config, 1.1)
+    return _LINE_WIDTHS.get(config, 1.4)

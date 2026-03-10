@@ -30,7 +30,6 @@ import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 import matplotlib.gridspec as gridspec
-import matplotlib.font_manager as fm
 import numpy as np
 from sklearn.neighbors import NearestNeighbors
 
@@ -45,7 +44,7 @@ from benchmarks.scripts.plotting.shared import (
 
 # ── Import centralized style ────────────────────────────────────────────────
 from mocoo.visualization.style import (
-    FIG_WIDTH_IN as FIG_W, FIG_HEIGHT_IN as FIG_H, DPI, SAVEFIG_KW,
+    FIG_WIDTH_IN as FIG_W, FIG_HEIGHT_IN as FIG_H, DPI,
     FS_LABEL, FS_TITLE, FS_AXIS, FS_TICK, FS_LEGEND as FS_LEG, FS_SMALL,
     HEATMAP_DARK_THRESHOLD,
     get_config_colors, get_config_order, get_short_name, apply_style,
@@ -392,7 +391,7 @@ def build_figure(rdir: Path, outdir: Path):
     outer = gridspec.GridSpec(
         4, 1,
         height_ratios=[3.2, 2.5, 3.2, 2.5],
-        hspace=0.46,
+        hspace=0.52,
         figure=fig,
     )
 
@@ -436,7 +435,8 @@ def build_figure(rdir: Path, outdir: Path):
     issues = detect_all_conflicts(fig, label="ablation_summary", verbose=True)
 
     outpath = outdir / "fig3_ablation_summary.png"
-    fig.savefig(outpath, **SAVEFIG_KW)
+    from mocoo.visualization.style import save_figure
+    save_figure(fig, outpath)
 
     # Export individual panel sub-figures
     sub_dir = outdir / "fig3_ablation_summary"

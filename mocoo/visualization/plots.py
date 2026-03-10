@@ -364,7 +364,7 @@ def plot_umap_grid(
             ax.scatter(
                 emb[mask, 0], emb[mask, 1],
                 color=cmap(label_to_idx[lb] % 20),
-                s=0.7, alpha=0.45, linewidths=0, rasterized=True,
+                s=0.5, alpha=0.55, linewidths=0, rasterized=True,
             )
 
         ax.set_xticks([])
@@ -393,7 +393,7 @@ def plot_umap_grid(
     ]
     axes[0, 0].legend(
         handles, [str(lb) for lb in all_labels],
-        fontsize=_style.FS_LEGEND - 0.5, ncol=2, loc="lower left",
+        fontsize=_style.FS_LEGEND, ncol=2, loc="lower left",
         framealpha=0.65, handletextpad=0.1,
         borderpad=0.2, markerscale=0.9, columnspacing=0.4,
     )
@@ -661,7 +661,7 @@ def plot_pseudotime_markers(
             expr_smooth = expr
 
         color = cmap(0.3 + 0.5 * abs(corr_val))
-        ax.plot(pt, expr_smooth, color=color, lw=1.0, alpha=0.85)
+        ax.plot(pt, expr_smooth, color=color, lw=1.2, alpha=0.85)
         ax.fill_between(pt, expr_smooth, alpha=0.12, color=color)
         ax.set_title(
             f"{gene} (r={corr_val:+.2f})",

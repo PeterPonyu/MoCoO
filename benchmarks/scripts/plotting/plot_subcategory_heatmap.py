@@ -21,8 +21,9 @@ import numpy as np
 import sys
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent.parent.parent))
 from benchmarks.scripts.plotting.shared import setup_fonts, panel_label
+from benchmarks.scripts.pipeline.visual_conflict_detector import detect_all_conflicts
 from mocoo.visualization.style import (
-    FIG_WIDTH_IN, FIG_HEIGHT_IN, DPI, SAVEFIG_KW,
+    FIG_WIDTH_IN, FIG_HEIGHT_IN, DPI,
     FS_LABEL, FS_TITLE, FS_AXIS, FS_TICK, FS_LEGEND, FS_SMALL,
     HEATMAP_DARK_THRESHOLD,
     apply_style, get_config_order, get_config_colors, get_short_name,
@@ -147,11 +148,6 @@ def make_heatmap(ax, data, panel_name, metrics_spec, configs):
             # Format: use integer for large values, 3 decimal otherwise
             txt = f"{val:.0f}" if abs(val) > 10 else f"{val:.3f}"
             color = "white" if norm_mat[i, j] > HEATMAP_DARK_THRESHOLD else "black"
-            # Add rank as superscript
-            rank_idx = np.where(valid_indices == i)[0]
-            if len(rank_idx) > 0:
-                rank = ranks[rank_idx[0]]
-                txt = f"{txt} ({rank})"
             ax.text(j, i, txt, ha="center", va="center",
                     fontsize=FS_SMALL, fontweight="normal", color=color)
 
@@ -195,8 +191,8 @@ def main():
     n_cols = 3
     n_rows = 2
     fig, axes = plt.subplots(n_rows, n_cols,
-                              figsize=(FIG_WIDTH_IN * 1.35, FIG_HEIGHT_IN * 0.85),
-                              gridspec_kw={"hspace": 0.32, "wspace": 0.28})
+                              figsize=(FIG_WIDTH_IN * 1.55, FIG_HEIGHT_IN * 0.90),
+                              gridspec_kw={"hspace": 0.38, "wspace": 0.34})
 
     letters = "ABCDE"
     total_wins = np.zeros(len(CONFIGS), dtype=int)
@@ -224,12 +220,9 @@ def main():
     for i, cfg in enumerate(CONFIGS):
         print(f"  {cfg}: {total_wins[i]} wins")
 
-    fig.suptitle("Subcategory Metric Breakdown ($\\beta = 0.1$, IRALL, 3000 cells)",
-                 fontsize=FS_LABEL, y=0.99)
-
     # Finalise layout BEFORE adding panel labels so that ax.get_position()
     # returns the correct post-adjustment coordinates.
-    fig.subplots_adjust(left=0.09, right=0.97, top=0.93, bottom=0.08)
+    fig.subplots_adjust(left=0.09, right=0.97, top=0.96, bottom=0.08)
 
     # Add panel labels after layout adjustment to avoid overlap with cells.
     for idx in range(n_panels):
@@ -238,9 +231,17 @@ def main():
         panel_label(fig, ax, letters[idx], x_off=-0.04, y_off=0.035)
 
     out_path = outdir / "fig5_subcategory_heatmap.png"
-    fig.savefig(out_path, **SAVEFIG_KW, facecolor="white")
+
+    print("\n── Conflict Detection ──")
+    issues = detect_all_conflicts(fig, label="subcategory_heatmap", verbose=True)
+    n_warn = sum(1 for i in issues if i["severity"] == "warning")
+    n_err = sum(1 for i in issues if i["severity"] == "error")
+
+    from mocoo.visualization.style import save_figure
+    save_figure(fig, out_path, facecolor="white")
     plt.close(fig)
     print(f"Saved: {out_path}")
+    print(f"{n_warn} warnings | {n_err} errors")
 
 
 if __name__ == "__main__":

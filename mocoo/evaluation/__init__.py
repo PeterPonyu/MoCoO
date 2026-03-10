@@ -40,11 +40,12 @@ from .lse import (
 )
 
 # ── Benchmark-optimized metric groups ───────────────────────────────────────
-from .clustering import compute_clustering_metrics
+from .clustering import compute_clustering_metrics, compute_leiden_metrics, compute_neighborhood_metrics
 from .bench import compute_dre_metrics, compute_lse_metrics
 from .drex import compute_drex_metrics
 from .lsex import compute_lsex_metrics
 from .diagnostics import compute_latent_diagnostics
+from .trajectory import pseudotime_concordance, velocity_consistency_score, pseudotime_smoothness
 
 # ── Display metadata ───────────────────────────────────────────────────────
 from .metadata import (
@@ -66,6 +67,8 @@ def compute_all_metrics(
     labels: np.ndarray,
     dre_k: int = 15,
     include_batch: bool = False,
+    include_leiden: bool = False,
+    include_neighborhood: bool = False,
     cell_type_labels: np.ndarray = None,
     batch_labels: np.ndarray = None,
 ) -> dict:
@@ -81,6 +84,10 @@ def compute_all_metrics(
         Number of neighbors for DRE / DREX evaluations.
     include_batch : bool
         Whether to compute batch integration metrics (requires ``scib``).
+    include_leiden : bool
+        Whether to compute Leiden-based clustering metrics (requires ``scanpy``).
+    include_neighborhood : bool
+        Whether to compute reclustering-free neighborhood metrics.
     cell_type_labels : array-like, optional
         String cell-type labels for batch integration.
     batch_labels : array-like, optional
@@ -149,7 +156,15 @@ def compute_all_metrics(
             compute_batch_integration(latent, cell_type_labels, batch_labels)
         )
 
-    # 10. Store projections for visualization
+    # 10. Leiden clustering (optional)
+    if include_leiden:
+        metrics.update(compute_leiden_metrics(latent, labels))
+
+    # 11. Neighborhood metrics (optional, reclustering-free)
+    if include_neighborhood:
+        metrics.update(compute_neighborhood_metrics(latent, labels, k=dre_k))
+
+    # 12. Store projections for visualization
     metrics["_umap_2d"] = umap_2d
     metrics["_tsne_2d"] = tsne_2d
 
@@ -168,11 +183,17 @@ __all__ = [
     "compute_all_metrics",
     # Individual metric groups
     "compute_clustering_metrics",
+    "compute_leiden_metrics",
+    "compute_neighborhood_metrics",
     "compute_dre_metrics",
     "compute_lse_metrics",
     "compute_drex_metrics",
     "compute_lsex_metrics",
     "compute_latent_diagnostics",
+    # Trajectory metrics
+    "pseudotime_concordance",
+    "velocity_consistency_score",
+    "pseudotime_smoothness",
     # Display metadata
     "CORE_METRICS",
     "ALL_METRIC_GROUPS",

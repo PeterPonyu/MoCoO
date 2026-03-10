@@ -31,7 +31,6 @@ import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 import matplotlib.gridspec as gridspec
-import matplotlib.font_manager as fm
 import numpy as np
 import scanpy as sc
 from sklearn.neighbors import NearestNeighbors
@@ -42,7 +41,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent.parent.parent))
 from benchmarks.scripts.pipeline.visual_conflict_detector import detect_all_conflicts
 from benchmarks.scripts.plotting.shared import setup_fonts, load_benchmark_npz, export_subpanels, panel_label
 from mocoo.visualization.style import (
-    FIG_WIDTH_IN, FIG_HEIGHT_IN, DPI, SAVEFIG_KW,
+    FIG_WIDTH_IN, FIG_HEIGHT_IN, DPI,
     FS_LABEL, FS_TITLE, FS_AXIS, FS_TICK, FS_LEGEND, FS_SMALL,
     apply_style, get_config_colors,
 )
@@ -246,7 +245,7 @@ def _umap_celltype(ax, emb, labels, title, show_ylabel=True):
                               markerfacecolor=cm20(k % 20), markersize=3)
                    for k in range(len(uniq))]
         ax.legend(handles, [str(lb) for lb in uniq],
-                  fontsize=FS_LEG - 1, ncol=2, loc="upper right",
+                  fontsize=FS_LEG, ncol=2, loc="upper right",
                   framealpha=0.65, handletextpad=0.15,
                   borderpad=0.2, markerscale=0.7,
                   columnspacing=0.5)
@@ -398,7 +397,7 @@ def _draw_panel_D(gs_D, fig, configs, latents, X_raw, n_cells, gene_names):
         ytick_pos = np.arange(TOP_COMPS) * k
         ytick_lbl = [gnames[0] for gnames in gene_name_table]
         ax_dj.set_yticks(ytick_pos)
-        ax_dj.set_yticklabels(ytick_lbl, fontsize=FS_TICK - 1)
+        ax_dj.set_yticklabels(ytick_lbl, fontsize=FS_TICK)
         if c == 0:
             ax_dj.set_ylabel("Top gene / group", fontsize=FS_AXIS)
         else:
@@ -413,8 +412,8 @@ def _draw_panel_D(gs_D, fig, configs, latents, X_raw, n_cells, gene_names):
         # Inset colorbar (right edge inside the axes)
         cax = ax_dj.inset_axes([1.03, 0.08, 0.035, 0.84])
         cb = fig.colorbar(im, cax=cax)
-        cb.ax.tick_params(labelsize=FS_TICK - 1, length=1.5)
-        cb.set_label("r", fontsize=FS_AXIS - 1, labelpad=2)
+        cb.ax.tick_params(labelsize=FS_TICK, length=1.5)
+        cb.set_label("r", fontsize=FS_AXIS, labelpad=2)
 
     return ax_d0
 
@@ -482,7 +481,7 @@ def build_figure(data, adata, outpath: Path):
 
     # Row 3: Panel D — 2 rows x 3 cols (all 6 configs)
     gs_D = gridspec.GridSpecFromSubplotSpec(
-        2, 3, subplot_spec=outer[3], wspace=0.52, hspace=0.28)
+        2, 3, subplot_spec=outer[3], wspace=0.58, hspace=0.34)
 
     # ── 7. Draw panels ────────────────────────────────────────────────────
     print("  Drawing Panel A ...")
@@ -511,7 +510,8 @@ def build_figure(data, adata, outpath: Path):
     fig.canvas.draw()
     issues = detect_all_conflicts(fig, label="bio_validation_abcd", verbose=True)
 
-    fig.savefig(outpath, **SAVEFIG_KW)
+    from mocoo.visualization.style import save_figure
+    save_figure(fig, outpath)
 
     # Export individual panel sub-figures
     sub_dir = outpath.parent / "fig3_biological_validation"

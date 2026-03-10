@@ -32,6 +32,18 @@ def bootstrap_ci(values, n_boot=10000, ci=0.95, seed=42):
     return float(lo), float(np.mean(values)), float(hi)
 
 
+def cohens_d(v1, v2):
+    """Compute Cohen's d effect size between two groups."""
+    n1, n2 = len(v1), len(v2)
+    if n1 < 2 or n2 < 2:
+        return np.nan
+    s1, s2 = np.std(v1, ddof=1), np.std(v2, ddof=1)
+    pooled_std = np.sqrt(((n1 - 1) * s1 ** 2 + (n2 - 1) * s2 ** 2) / (n1 + n2 - 2))
+    if pooled_std < 1e-12:
+        return 0.0
+    return float((np.mean(v2) - np.mean(v1)) / pooled_std)
+
+
 def pairwise_wilcoxon(df, metric, configs, alpha=0.05):
     """Pairwise Wilcoxon signed-rank test for a given metric across configs."""
     results = []
@@ -70,6 +82,7 @@ def pairwise_wilcoxon(df, metric, configs, alpha=0.05):
             "mean_1": np.mean(v1),
             "mean_2": np.mean(v2),
             "diff": np.mean(v2) - np.mean(v1),
+            "cohens_d": cohens_d(v1, v2),
             "statistic": stat,
             "p_raw": p,
             "p_bonferroni": p_adj,
@@ -111,6 +124,7 @@ def baseline_comparison(df, metric, baseline, configs, alpha=0.05):
             "mean_baseline": np.mean(v_base),
             "mean_config": np.mean(v),
             "diff": np.mean(v) - np.mean(v_base),
+            "cohens_d": cohens_d(v_base, v),
             "ci_lo": lo,
             "ci_hi": hi,
             "p_raw": p,

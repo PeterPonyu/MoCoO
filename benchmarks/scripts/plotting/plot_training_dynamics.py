@@ -27,7 +27,6 @@ import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 import matplotlib.gridspec as gridspec
-import matplotlib.font_manager as fm
 import numpy as np
 
 warnings.filterwarnings("ignore", category=FutureWarning)
@@ -38,7 +37,7 @@ from benchmarks.scripts.plotting.shared import setup_fonts, load_benchmark_npz, 
 
 # ── Import centralized style ────────────────────────────────────────────────
 from mocoo.visualization.style import (
-    FIG_WIDTH_IN as FIG_W, FIG_HEIGHT_IN as FIG_H, DPI, SAVEFIG_KW,
+    FIG_WIDTH_IN as FIG_W, FIG_HEIGHT_IN as FIG_H, DPI,
     FS_LABEL, FS_TITLE, FS_AXIS, FS_TICK, FS_LEGEND as FS_LEG, FS_SMALL,
     get_config_colors, get_config_order, get_short_name, get_line_style,
     get_line_width, apply_style,
@@ -167,7 +166,7 @@ def _draw_efficiency(gs, fig, configs, metrics):
     for i, (t, a, cfg, col) in enumerate(pts):
         short = _XSHORT.get(cfg, cfg)
         # Default offset: right and slightly up
-        dx, dy = 6, 6
+        dx, dy = 8, 8
 
         # Check if this point is close to any already-placed label
         for px, py in placed:
@@ -319,7 +318,8 @@ def build_figure(rdir: Path, outdir: Path):
     issues = detect_all_conflicts(fig, label="training_dynamics", verbose=True)
 
     outpath = outdir / "fig4_training_dynamics.png"
-    fig.savefig(outpath, **SAVEFIG_KW)
+    from mocoo.visualization.style import save_figure
+    save_figure(fig, outpath)
 
     # Export individual panel sub-figures
     sub_dir = outdir / "fig4_training_dynamics"

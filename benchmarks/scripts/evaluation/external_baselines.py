@@ -190,6 +190,40 @@ def run_harmony(adata, seed=42, n_pcs=50, batch_col="batch"):
     return latent
 
 
+# ── scANVI Baseline (semi-supervised) ─────────────────────────────────────
+
+
+def run_scanvi(adata, seed=42, n_latent=32, max_epochs=200, cell_type_col="cell_type"):
+    """Run scANVI (semi-supervised extension of scVI) and return latent."""
+    import scvi as scvi_pkg
+    import torch
+
+    np.random.seed(seed)
+    torch.manual_seed(seed)
+    if torch.cuda.is_available():
+        torch.cuda.manual_seed_all(seed)
+
+    adata_scanvi = adata.copy()
+
+    if "counts" in adata_scanvi.layers:
+        adata_scanvi.X = adata_scanvi.layers["counts"].copy()
+        if issparse(adata_scanvi.X):
+            adata_scanvi.X = adata_scanvi.X.toarray()
+
+    scvi_pkg.model.SCVI.setup_anndata(adata_scanvi, layer=None)
+    scvi_model = scvi_pkg.model.SCVI(adata_scanvi, n_latent=n_latent, gene_likelihood="nb")
+    scvi_model.train(max_epochs=max_epochs // 2, early_stopping=True, train_size=0.85)
+
+    scanvi_model = scvi_pkg.model.SCANVI.from_scvi_model(
+        scvi_model, unlabeled_category="unknown",
+        labels_key=cell_type_col,
+    )
+    scanvi_model.train(max_epochs=max_epochs // 2, early_stopping=True, train_size=0.85)
+
+    latent = scanvi_model.get_latent_representation()
+    return latent
+
+
 def main():
     parser = argparse.ArgumentParser(description="External baselines for MoCoO")
     parser.add_argument(
@@ -201,7 +235,7 @@ def main():
     parser.add_argument(
         "--methods",
         nargs="+",
-        default=["scVI", "DPT", "PCA+KMeans"],
+        default=["scVI", "DPT", "PCA+KMeans", "Harmony", "scANVI"],
         help="Methods to run",
     )
     args = parser.parse_args()
@@ -317,6 +351,60 @@ def main():
                     )
                 except Exception as e:
                     print(f"    PCA+KMeans ERROR: {e}")
+
+            # ── Harmony ──
+            if "Harmony" in args.methods:
+                spec = DATASETS[ds_name]
+                batch_col = spec.get("batch_col")
+                if batch_col is not None:
+                    print(f"\n  [Harmony] seed={seed}")
+                    try:
+                        t0 = time.time()
+                        latent = run_harmony(adata, seed=seed, batch_col=batch_col)
+                        elapsed = time.time() - t0
+                        m = compute_metrics(latent, labels, seed=seed)
+                        m.update({
+                            "method": "Harmony",
+                            "dataset": ds_name,
+                            "seed": seed,
+                            "train_time_s": round(elapsed, 1),
+                        })
+                        all_rows.append(m)
+                        print(f"    ARI={m['ARI']:.4f}  NMI={m['NMI']:.4f}  "
+                              f"ASW={m['ASW']:.4f}  time={elapsed:.0f}s")
+                    except Exception as e:
+                        print(f"    Harmony ERROR: {e}")
+                        all_rows.append({
+                            "method": "Harmony", "dataset": ds_name,
+                            "seed": seed, "error": str(e),
+                        })
+                else:
+                    print(f"\n  [Harmony] skipped (no batch column for {ds_name})")
+
+            # ── scANVI ──
+            if "scANVI" in args.methods:
+                print(f"\n  [scANVI] seed={seed}")
+                try:
+                    t0 = time.time()
+                    latent = run_scanvi(adata, seed=seed,
+                                        cell_type_col=DATASETS[ds_name]["cell_type_col"])
+                    elapsed = time.time() - t0
+                    m = compute_metrics(latent, labels, seed=seed)
+                    m.update({
+                        "method": "scANVI",
+                        "dataset": ds_name,
+                        "seed": seed,
+                        "train_time_s": round(elapsed, 1),
+                    })
+                    all_rows.append(m)
+                    print(f"    ARI={m['ARI']:.4f}  NMI={m['NMI']:.4f}  "
+                          f"ASW={m['ASW']:.4f}  time={elapsed:.0f}s")
+                except Exception as e:
+                    print(f"    scANVI ERROR: {e}")
+                    all_rows.append({
+                        "method": "scANVI", "dataset": ds_name,
+                        "seed": seed, "error": str(e),
+                    })
 
     # Save results
     df = pd.DataFrame([r for r in all_rows if "error" not in r])

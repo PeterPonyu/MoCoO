@@ -28,7 +28,6 @@ import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 import matplotlib.gridspec as gridspec
-import matplotlib.font_manager as fm
 import numpy as np
 
 warnings.filterwarnings("ignore", category=FutureWarning)
@@ -37,7 +36,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent.parent.parent))
 from benchmarks.scripts.pipeline.visual_conflict_detector import detect_all_conflicts
 from benchmarks.scripts.plotting.shared import setup_fonts, load_benchmark_npz, load_config_metrics, export_subpanels, panel_label
 from mocoo.visualization.style import (
-    FIG_WIDTH_IN, FIG_HEIGHT_IN, DPI, SAVEFIG_KW,
+    FIG_WIDTH_IN, FIG_HEIGHT_IN, DPI,
     FS_LABEL, FS_TITLE, FS_AXIS, FS_TICK, FS_LEGEND, FS_SMALL,
     HEATMAP_DARK_THRESHOLD,
     apply_style, get_config_order, get_config_colors, get_short_name,
@@ -274,7 +273,7 @@ def _draw_cross_dataset_heatmap(ax, cross_data):
             col_labels.append(f"{_DS_SHORT.get(ds, ds)}\n{mk}")
 
     ax.set_xticks(np.arange(n_cols))
-    ax.set_xticklabels(col_labels, fontsize=FS_SMALL, ha="center")
+    ax.set_xticklabels(col_labels, fontsize=FS_TICK, ha="center")
     ax.set_yticks(np.arange(n_rows))
     ax.set_yticklabels(row_labels, fontsize=FS_TICK)
 
@@ -330,7 +329,7 @@ def _draw_cross_radar(ax, cross_data):
         ax.fill(angles, vals, alpha=0.06, color=_CONFIG_COLOR[cfg])
 
     ax.set_xticks(angles[:-1])
-    ax.set_xticklabels(labels, fontsize=FS_SMALL)
+    ax.set_xticklabels(labels, fontsize=FS_TICK)
     ax.set_ylim(0, 0.7)
     ax.tick_params(axis="y", labelsize=FS_SMALL)
     ax.set_title("Cross-Dataset Profile", fontsize=FS_TITLE, pad=12)
@@ -407,7 +406,8 @@ def build_figure(results_base: Path, outdir: Path):
     issues = detect_all_conflicts(fig, label="batch_integration", verbose=True)
 
     outpath = outdir / "supp_batch_integration.png"
-    fig.savefig(outpath, **SAVEFIG_KW)
+    from mocoo.visualization.style import save_figure
+    save_figure(fig, outpath)
 
     # Export individual panels
     sub_dir = outdir / "fig7_batch_integration"

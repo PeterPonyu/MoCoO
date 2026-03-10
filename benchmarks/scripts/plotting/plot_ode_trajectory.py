@@ -27,7 +27,6 @@ Usage:
 from __future__ import annotations
 
 import argparse
-import json
 import os
 import sys
 import warnings
@@ -37,7 +36,6 @@ import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 import matplotlib.gridspec as gridspec
-import matplotlib.font_manager as fm
 import numpy as np
 from sklearn.decomposition import PCA
 from sklearn.neighbors import NearestNeighbors
@@ -49,7 +47,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent.parent.parent))
 from benchmarks.scripts.pipeline.visual_conflict_detector import detect_all_conflicts
 from benchmarks.scripts.plotting.shared import setup_fonts, load_benchmark_npz, export_subpanels, panel_label
 from mocoo.visualization.style import (
-    FIG_WIDTH_IN, FIG_HEIGHT_IN, DPI, SAVEFIG_KW,
+    FIG_WIDTH_IN, FIG_HEIGHT_IN, DPI,
     FS_LABEL, FS_TITLE, FS_AXIS, FS_TICK, FS_LEGEND, FS_SMALL,
     apply_style, get_config_order, get_config_colors, get_short_name,
 )
@@ -131,14 +129,14 @@ def _draw_pca_comparison(gs, fig, configs, latents, labels):
                            cmap="plasma", vmin=0, vmax=1, **_SCATTER)
         ax_pt.set_xticks([]); ax_pt.set_yticks([])
         ax_pt.set_title(f"{cfg} (Pseudotime)", fontsize=FS_TITLE, pad=2)
-        ax_pt.set_xlabel("PC 1", fontsize=FS_AXIS - 0.5)
+        ax_pt.set_xlabel("PC 1", fontsize=FS_AXIS)
         if j == 0:
             ax_pt.set_ylabel("PC 2", fontsize=FS_AXIS)
         # Tiny colorbar
         cax = ax_pt.inset_axes([0.78, 0.04, 0.04, 0.30])
         cb  = fig.colorbar(sc, cax=cax)
-        cb.ax.tick_params(labelsize=FS_SMALL, length=1.5)
-        cb.set_label("t", fontsize=FS_SMALL, labelpad=0)
+        cb.ax.tick_params(labelsize=FS_TICK, length=1.5)
+        cb.set_label("Pseudotime", fontsize=FS_AXIS, labelpad=2)
 
     # Legend for cell types in first panel
     uniq = np.unique(labels[0])
@@ -146,7 +144,7 @@ def _draw_pca_comparison(gs, fig, configs, latents, labels):
                            markerfacecolor=cm20(k % 20), markersize=2.5)
                for k in range(len(uniq))]
     ax_first.legend(handles, [str(lb) for lb in uniq],
-                    fontsize=FS_LEG - 0.5, ncol=2, loc="upper right",
+                    fontsize=FS_LEG, ncol=2, loc="upper right",
                     framealpha=0.65, handletextpad=0.1,
                     borderpad=0.2, markerscale=0.9, columnspacing=0.4)
     return ax_first
@@ -410,7 +408,8 @@ def build_figure(rdir: Path, outdir: Path, adata_path: str):
     issues = detect_all_conflicts(fig, label="ode_trajectory", verbose=True)
 
     outpath = outdir / "supp_ode_trajectory.png"
-    fig.savefig(outpath, **SAVEFIG_KW)
+    from mocoo.visualization.style import save_figure
+    save_figure(fig, outpath)
 
     # Export individual panel sub-figures
     sub_dir = outdir / "fig6_ode_trajectory"

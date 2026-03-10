@@ -135,6 +135,8 @@ def export_subpanels(
             extent = bbox.transformed(fig.dpi_scale_trans.inverted())
             sp = sub_dir / f"{name}.png"
             fig.savefig(sp, dpi=dpi, bbox_inches=extent)
+            sp_pdf = sub_dir / f"{name}.pdf"
+            fig.savefig(sp_pdf, bbox_inches=extent)
         except Exception as exc:
             print(f"  sub-panel {name}: skipped ({exc})")
 

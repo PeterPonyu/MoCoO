@@ -7,7 +7,7 @@ BIBTEX = bibtex
 FIGDIR = ../benchmarks/figures
 
 # All figures referenced by the article
-FIGS = $(wildcard $(FIGDIR)/*.png)
+FIGS = $(wildcard $(FIGDIR)/*.png) $(wildcard $(FIGDIR)/*.pdf)
 
 .PHONY: pdf clean
 

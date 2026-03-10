@@ -29,8 +29,9 @@ warnings.filterwarnings("ignore", category=UserWarning, module="matplotlib")
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent.parent.parent))
 
 from benchmarks.scripts.plotting.shared import setup_fonts, panel_label
+from benchmarks.scripts.pipeline.visual_conflict_detector import detect_all_conflicts
 from mocoo.visualization.style import (
-    FIG_WIDTH_IN, FIG_HEIGHT_IN, DPI, SAVEFIG_KW,
+    FIG_WIDTH_IN, FIG_HEIGHT_IN, DPI,
     FS_LABEL, FS_TITLE, FS_AXIS, FS_TICK, FS_LEGEND, FS_SMALL,
     apply_style, get_config_order, get_config_colors, get_short_name,
 )
@@ -98,7 +99,7 @@ def _draw_paired_bars(ax, data, metric_key, metric_label, configs):
             stagger = 0.02 * (i % 2)
             y_pos = base_y + stagger
             ax.text(x[i], y_pos, f"{sign}{gap:.3f}",
-                    ha="center", va="bottom", fontsize=FS_SMALL - 1.0,
+                    ha="center", va="bottom", fontsize=FS_SMALL,
                     color="#666666", rotation=45)
 
     # Zoom y-axis to data range for better readability
@@ -171,10 +172,18 @@ def build_figure(rdir: Path, outdir: Path):
     panel_label(fig, ax_row2[0], "B", x_off=-0.04, y_off=0.008)
 
     outpath = outdir / "fig7_generalization.png"
-    fig.savefig(outpath, **SAVEFIG_KW)
+
+    print("\n── Conflict Detection ──")
+    issues = detect_all_conflicts(fig, label="generalization", verbose=True)
+    n_warn = sum(1 for i in issues if i.get("severity") == "warning")
+    n_err = sum(1 for i in issues if i.get("severity") == "error")
+
+    from mocoo.visualization.style import save_figure
+    save_figure(fig, outpath)
     plt.close(fig)
     print(f"Saved: {outpath}")
-    return []
+    print(f"{n_warn} warnings | {n_err} errors")
+    return issues
 
 
 def main():

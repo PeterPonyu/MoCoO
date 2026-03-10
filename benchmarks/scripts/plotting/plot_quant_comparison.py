@@ -28,9 +28,7 @@ import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 import matplotlib.gridspec as gridspec
-import matplotlib.font_manager as fm
 import numpy as np
-from sklearn.neighbors import NearestNeighbors
 from umap import UMAP
 
 warnings.filterwarnings("ignore", category=FutureWarning)
@@ -40,7 +38,7 @@ from benchmarks.scripts.pipeline.visual_conflict_detector import detect_all_conf
 
 # ── Import centralized style ────────────────────────────────────────────────
 from mocoo.visualization.style import (
-    FIG_WIDTH_IN as FIG_W, FIG_HEIGHT_IN as FIG_H, DPI, SAVEFIG_KW,
+    FIG_WIDTH_IN as FIG_W, FIG_HEIGHT_IN as FIG_H, DPI,
     FS_LABEL, FS_TITLE, FS_AXIS, FS_TICK, FS_LEGEND as FS_LEG, FS_SMALL,
     get_config_colors, get_config_order, get_short_name, apply_style,
 )
@@ -57,7 +55,7 @@ setup_fonts()
 # ── Style constants from centralized module ──────────────────────────────────
 _CONFIGS = get_config_order()
 _CONFIG_COLOR = get_config_colors()
-_SCATTER = dict(s=1.2, alpha=0.50, linewidths=0, rasterized=True)
+_SCATTER = dict(s=0.6, alpha=0.55, linewidths=0, rasterized=True)
 _XSHORT = {c: get_short_name(c) for c in _CONFIGS}
 
 # ── Data loading ───────────────────────────────────────────────────────────
@@ -109,6 +107,9 @@ def _draw_umap_grid(gs, fig, configs, latents, labels, cache_dir):
             m = labels[j] == lb
             ax.scatter(emb[m, 0], emb[m, 1], color=cm20(k % 20), **_SCATTER)
         ax.set_xticks([]); ax.set_yticks([])
+        ax.set_xlabel("UMAP 1", fontsize=FS_AXIS)
+        if j % 3 == 0:
+            ax.set_ylabel("UMAP 2", fontsize=FS_AXIS)
         ax.set_title(cfg, fontsize=FS_TITLE, pad=2,
                      color=_CONFIG_COLOR[cfg])
         for spine in ax.spines.values():
@@ -305,7 +306,8 @@ def build_figure(rdir: Path, outdir: Path):
     issues = detect_all_conflicts(fig, label="quant_comparison", verbose=True)
 
     outpath = outdir / "fig2_quant_comparison.png"
-    fig.savefig(outpath, **SAVEFIG_KW)
+    from mocoo.visualization.style import save_figure
+    save_figure(fig, outpath)
 
     # Export individual panel sub-figures
     sub_dir = outdir / "fig2_quant_comparison"
