@@ -43,37 +43,37 @@ PANELS = {
         ("COR", "Corr", True),
     ],
     "DRE": [
-        ("DRE_umap_distance_correlation", "UMAP\nDistCorr", True),
-        ("DRE_umap_Q_local", "UMAP\nQ_loc", True),
-        ("DRE_umap_Q_global", "UMAP\nQ_glob", True),
-        ("DRE_tsne_distance_correlation", "tSNE\nDistCorr", True),
-        ("DRE_tsne_Q_local", "tSNE\nQ_loc", True),
-        ("DRE_tsne_Q_global", "tSNE\nQ_glob", True),
+        ("DRE_umap_distance_correlation", "U-DC", True),
+        ("DRE_umap_Q_local", "U-QL", True),
+        ("DRE_umap_Q_global", "U-QG", True),
+        ("DRE_tsne_distance_correlation", "T-DC", True),
+        ("DRE_tsne_Q_local", "T-QL", True),
+        ("DRE_tsne_Q_global", "T-QG", True),
     ],
     "DREX": [
-        ("DREX_trustworthiness", "Trust", True),
+        ("DREX_trustworthiness", "Trst", True),
         ("DREX_continuity", "Cont", True),
-        ("DREX_distance_spearman", "Spear", True),
-        ("DREX_distance_pearson", "Pearson", True),
-        ("DREX_local_scale_quality", "LocScale", True),
-        ("DREX_neighborhood_symmetry", "NbrSym", True),
-        ("DREX_knn_rank_correlation", "RankCorr", True),
+        ("DREX_distance_spearman", "Spr", True),
+        ("DREX_distance_pearson", "Pr", True),
+        ("DREX_local_scale_quality", "LSc", True),
+        ("DREX_neighborhood_symmetry", "NbrS", True),
+        ("DREX_knn_rank_correlation", "Rnk", True),
     ],
     "LSE": [
-        ("LSE_manifold_dimensionality", "ManDim", True),
-        ("LSE_spectral_decay_rate", "SpDecay", True),
-        ("LSE_participation_ratio", "PartRat", True),
+        ("LSE_manifold_dimensionality", "MDim", True),
+        ("LSE_spectral_decay_rate", "SDec", True),
+        ("LSE_participation_ratio", "PRat", True),
         ("LSE_anisotropy_score", "Aniso", False),
         ("LSE_noise_resilience", "NoiseR", True),
         ("LSE_core_quality", "Core", True),
     ],
     "LSEX": [
         ("LSEX_two_hop_connectivity", "2Hop", True),
-        ("LSEX_radial_concentration", "RadConc", True),
-        ("LSEX_local_curvature", "LocCurv", True),
-        ("LSEX_cluster_compactness", "Compact", True),
-        ("LSEX_neighbor_purity", "NbrPur", True),
-        ("LSEX_sampling_stability", "SampStab", True),
+        ("LSEX_radial_concentration", "RadC", True),
+        ("LSEX_local_curvature", "Curv", True),
+        ("LSEX_cluster_compactness", "Comp", True),
+        ("LSEX_neighbor_purity", "NPur", True),
+        ("LSEX_sampling_stability", "SStb", True),
         ("LSEX_inter_cluster_gap", "Gap", True),
     ],
 }
@@ -121,48 +121,24 @@ def make_heatmap(ax, data, panel_name, metrics_spec, configs, *, show_ylabels=Tr
     # Track wins per config
     wins = np.zeros(n_cfg, dtype=int)
 
-    # Annotate with raw values, bold the best, add rank superscript
     for j, (_, _, higher_better) in enumerate(metrics_spec):
         col = mat[:, j]
         valid = ~np.isnan(col)
         if valid.any():
             best_idx = np.nanargmax(col) if higher_better else np.nanargmin(col)
             wins[best_idx] += 1
-            # Compute ranks for this column
-            valid_vals = col[valid]
-            if higher_better:
-                order = np.argsort(-valid_vals)
-            else:
-                order = np.argsort(valid_vals)
-            ranks = np.zeros(len(valid_vals), dtype=int)
-            ranks[order] = np.arange(1, len(valid_vals) + 1)
-            valid_indices = np.where(valid)[0]
-        else:
-            best_idx = -1
-            valid_indices = np.array([], dtype=int)
-            ranks = np.array([], dtype=int)
-
-        for i in range(n_cfg):
-            val = mat[i, j]
-            if np.isnan(val):
-                continue
-            # Format: use integer for large values, 3 decimal otherwise
-            txt = f"{val:.0f}" if abs(val) > 10 else f"{val:.2f}"
-            color = "white" if norm_mat[i, j] > HEATMAP_DARK_THRESHOLD else "black"
-            ax.text(j, i, txt, ha="center", va="center",
-                    fontsize=FS_SMALL - 3, fontweight="normal", color=color)
 
     ax.set_xticks(range(n_met))
-    ax.set_xticklabels([m[1] for m in metrics_spec], fontsize=FS_SMALL - 2, rotation=65, ha="right")
+    ax.set_xticklabels([m[1] for m in metrics_spec], fontsize=max(FS_SMALL - 2, 5.5), rotation=45, ha="right")
     ax.set_yticks(range(n_cfg))
     ylabels = [SHORT_NAMES.get(c, c) for i, c in enumerate(configs)]
     if show_ylabels:
-        ax.set_yticklabels(ylabels, fontsize=FS_SMALL - 1)
+        ax.set_yticklabels(ylabels, fontsize=max(FS_SMALL - 2, 5.5))
     else:
         ax.set_yticklabels([])
     # Extra padding so labels don't overlap with heatmap boundaries
     ax.tick_params(axis="y", pad=8)
-    ax.tick_params(axis="x", pad=4)
+    ax.tick_params(axis="x", pad=2)
     ax.set_title(panel_name, fontsize=FS_TITLE - 1, pad=2)
     return im, wins
 
@@ -178,7 +154,7 @@ def draw_subcategory_block(fig, axes_list, data, configs=None):
             pname,
             metrics_spec,
             active_configs,
-            show_ylabels=(idx in (0, 3)),
+            show_ylabels=(idx == 0),
         )
         total_wins += wins
     return total_wins

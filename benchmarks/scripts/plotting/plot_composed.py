@@ -143,7 +143,7 @@ def _draw_umap_panel(fig, umap_axes, configs, latents, labels_arr,
         fig.legend(handles, lbls, loc="upper center",
                bbox_to_anchor=(0.5, 0.992),
                    ncol=len(lbls), markerscale=1.8,
-               fontsize=max(FONT_ANNOT - 3, 5), frameon=False,
+               fontsize=max(FONT_ANNOT - 2, 6), frameon=False,
                    handlelength=0.8, columnspacing=0.5, labelspacing=0.2)
 
 
@@ -253,16 +253,9 @@ def _draw_heatmap(ax, configs, mets):
                        fontsize=FONT_ANNOT)
     ax.set_yticks(range(len(short_c)))
     ax.set_yticklabels(short_c, fontsize=FONT_TICK - 1)
-    for r in range(matrix.shape[0]):
-        for c in range(matrix.shape[1]):
-            v = matrix[r, c]
-            fmt = f"{v:.2f}" if abs(v) < 100 else f"{v:.0f}"
-            clr = "white" if norm[r, c] > 0.45 else "black"
-            ax.text(c, r, fmt, ha="center", va="center",
-                    fontsize=FONT_ANNOT - 1, color=clr)
     cax = ax.inset_axes([0.90, 0.10, 0.035, 0.34])
     cb = ax.figure.colorbar(im, cax=cax)
-    cb.ax.tick_params(labelsize=FONT_TICK - 1, length=1.5, pad=0.6)
+    cb.ax.tick_params(labelsize=max(FONT_TICK, 6), length=1.5, pad=0.6)
     cb.outline.set_linewidth(0.5)
 
 
@@ -305,7 +298,7 @@ def build_composed(data, outpath: Path, cache_dir: Path | None = None):
         cache_path = cache_dir / "umap_cache.npz"
     umap_embeddings = _compute_umaps(configs, latents, cache_path)
 
-    fig = plt.figure(figsize=(FIG_W, FIG_H * 0.92), dpi=DPI)
+    fig = plt.figure(figsize=(FIG_W, FIG_H * 0.98), dpi=DPI)
 
     # Row 0 — UMAP grid (A)
     _u_cw = (0.90 - 0.025 * 2) / 3
@@ -347,7 +340,7 @@ def build_composed(data, outpath: Path, cache_dir: Path | None = None):
     _draw_training_curves(fig, curve_axes, configs, val_losses, val_scores)
 
     # Row 2 — curated heatmap (C)
-    ax_hm = fig.add_axes([0.12, 0.33, 0.80, 0.11])
+    ax_hm = fig.add_axes([0.12, 0.38, 0.80, 0.10])
     _draw_heatmap(ax_hm, configs, mets)
 
     # Row 3 — subcategory diagnostics (D)
@@ -356,11 +349,11 @@ def build_composed(data, outpath: Path, cache_dir: Path | None = None):
     d_bot_gap = 0.05
     d_bot_w = (0.80 - d_bot_gap) / 2
     axes_D = [
-        fig.add_axes([0.12, 0.14, d_top_w, 0.085]),
-        fig.add_axes([0.12 + d_top_w + d_top_gap, 0.14, d_top_w, 0.085]),
-        fig.add_axes([0.12 + 2 * (d_top_w + d_top_gap), 0.14, d_top_w, 0.085]),
-        fig.add_axes([0.12, 0.02, d_bot_w, 0.085]),
-        fig.add_axes([0.12 + d_bot_w + d_bot_gap, 0.02, d_bot_w, 0.085]),
+        fig.add_axes([0.12, 0.22, d_top_w, 0.075]),
+        fig.add_axes([0.12 + d_top_w + d_top_gap, 0.22, d_top_w, 0.075]),
+        fig.add_axes([0.12 + 2 * (d_top_w + d_top_gap), 0.22, d_top_w, 0.075]),
+        fig.add_axes([0.12, 0.08, d_bot_w, 0.075]),
+        fig.add_axes([0.12 + d_bot_w + d_bot_gap, 0.08, d_bot_w, 0.075]),
     ]
     if subcategory_data:
         draw_subcategory_block(fig, axes_D, subcategory_data, configs=configs)

@@ -388,7 +388,7 @@ def build_figure(rdir: Path, outdir: Path, multiseed_stats=None):
     fig = plt.figure(figsize=(FIG_W, FIG_H), dpi=DPI)
 
     # ── absolute geometry (replaces GridSpec) ────────────────────────────
-    L, R, TOP, BOT = 0.12, 0.96, 0.96, 0.11
+    L, R, TOP, BOT = 0.12, 0.96, 0.91, 0.11
     W_all = R - L
     H_all = TOP - BOT
 

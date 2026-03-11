@@ -167,6 +167,11 @@ def _draw_efficiency(ax, fig, configs, metrics):
         # Default offset: right and slightly up
         dx, dy = 8, 8
 
+        if cfg == "VAE":
+            dx, dy = -18, 10
+        elif cfg == "VAE+MoCo+Proto":
+            dx, dy = 10, -16
+
         # Check if this point is close to any already-placed label
         for px, py in placed:
             if abs(t - px) < 15 and abs(a - py) < 0.015:
@@ -292,7 +297,7 @@ def build_figure(rdir: Path, outdir: Path):
             fig.add_axes([0.10 + _aw_A2 + 0.10, 0.54, _aw_A2, 0.38]),
         ]
         # Row B: single efficiency panel
-        ax_B = fig.add_axes([0.10, 0.08, 0.86, 0.38])
+        ax_B = fig.add_axes([0.14, 0.08, 0.82, 0.34])
 
         print("  Drawing Panel A (Loss convergence)...")
         ax_A = _draw_loss_curves(axes_A, fig, configs, train_losses, val_losses)
@@ -310,7 +315,10 @@ def build_figure(rdir: Path, outdir: Path):
         )
 
         panel_label(fig, ax_A, "A", x_off=-0.08, y_off=0.040)
-        panel_label(fig, ax_B, "B", x_off=-0.08, y_off=0.012)
+        pos_B = ax_B.get_position()
+        fig.text(pos_B.x0 + 0.012, min(pos_B.y1 + 0.018, 0.970),
+             "(B)", fontsize=FS_LABEL, fontweight="bold",
+             va="bottom", ha="left")
 
         sub_panels = [(ax_A, "panelA_train_loss"),
                       (ax_B, "panelB_efficiency")]

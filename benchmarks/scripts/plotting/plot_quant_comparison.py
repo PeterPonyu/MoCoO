@@ -205,7 +205,7 @@ def _draw_neighbourhood_quality(axes_list, fig, configs, metrics):
         # Highlight best
         _highlight_best(ax, bars, vals, higher_better)
         ax.set_xticks(x)
-        ax.set_xticklabels(short, fontsize=FS_SMALL, rotation=45, ha="right")
+        ax.set_xticklabels(short, fontsize=max(FS_SMALL - 1, 5), rotation=90, ha="center")
         ax.set_xlim(-0.5, len(configs) - 0.5)
         ax.set_title(label, fontsize=FS_AXIS, pad=1)
         if j == 0:

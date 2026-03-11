@@ -394,7 +394,7 @@ def build_figure(rdir: Path, outdir: Path, adata_path: str):
     panel_label(fig, ax_A, "A", x_off=-0.08, y_off=0.010)
     panel_label(fig, ax_B, "B", x_off=-0.08, y_off=0.030)
     panel_label(fig, ax_C, "C", x_off=-0.08, y_off=0.035)
-    panel_label(fig, ax_D, "D", x_off=-0.08, y_off=0.010)
+    panel_label(fig, ax_D, "D", x_off=-0.13, y_off=0.000)
 
     fig.canvas.draw()
     print("\n── Conflict Detection ──")
