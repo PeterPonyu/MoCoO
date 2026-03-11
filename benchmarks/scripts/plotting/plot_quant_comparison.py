@@ -80,16 +80,10 @@ def _compute_umap(latent, cache_dir: Path, tag: str):
 
 
 def _highlight_best(ax, bars, vals, higher_better=True):
-    """Highlight the best-performing bar with a bold edge and value label."""
+    """Highlight the best-performing bar with a bold edge."""
     best_i = int(np.argmax(vals)) if higher_better else int(np.argmin(vals))
     bars[best_i].set_edgecolor("crimson")
     bars[best_i].set_linewidth(1.4)
-    # Add value label above the best bar
-    yval = vals[best_i]
-    fmt = f"{yval:.3f}" if yval < 1.0 else f"{yval:.1f}"
-    ax.annotate(fmt, xy=(best_i, yval),
-                xytext=(0, 3), textcoords="offset points",
-                ha="center", fontsize=FS_SMALL, color="crimson")
 
 
 # ── Panel drawing ──────────────────────────────────────────────────────────
@@ -119,10 +113,10 @@ def _draw_umap_grid(axes_grid, fig, configs, latents, labels, cache_dir):
                for k in range(len(uniq))]
     n_cols = min(max(6, len(uniq) // 2), 10)
     fig.legend(handles, [str(lb) for lb in uniq],
-               fontsize=FS_LEG, ncol=n_cols, loc="upper center",
+               fontsize=max(FS_SMALL - 1, 5), ncol=n_cols, loc="upper center",
                bbox_to_anchor=(0.50, 0.695),
-               frameon=False, handletextpad=0.1,
-               borderpad=0.2, markerscale=1.5, columnspacing=0.5)
+               frameon=False, handletextpad=0.15,
+               borderpad=0.15, markerscale=1.0, columnspacing=0.6)
     return ax_first
 
 
@@ -156,18 +150,21 @@ def _draw_clustering_bars(axes_list, fig, configs, metrics, multiseed_stats=None
         _highlight_best(ax, bars1, vals, higher_better)
         ax.set_xticks(x)
         short = [_XSHORT[c] for c in configs]
-        ax.set_xticklabels(short, fontsize=FS_TICK, rotation=45, ha="right")
+        ax.set_xticklabels(short, fontsize=FS_SMALL, rotation=90, ha="center")
+        ax.set_xlim(-0.5, len(configs) - 0.5)
         ax.set_title(f"{label} {'↑' if higher_better else '↓'}",
-                     fontsize=FS_TITLE, pad=2)
+                     fontsize=FS_TITLE, pad=1)
         if j == 0:
             ax.set_ylabel("Score", fontsize=FS_AXIS)
         ax.tick_params(labelsize=FS_TICK)
         ax.grid(alpha=0.22, linestyle="--", linewidth=0.4, axis="y")
-        ax.set_ylim(0, max(max(vals), max(tvals)) * 1.18)
-        ax.yaxis.set_major_locator(plt.MaxNLocator(4, prune="upper"))
+        ax.set_ylim(0, max(max(vals), max(tvals)) * 1.25)
+        ax.yaxis.set_major_locator(plt.MaxNLocator(4, prune="both"))
+        # Val/Test legend placed between Row A and Row B as fig.text
         if j == 0:
-            ax.legend(fontsize=FS_LEG, frameon=False, loc="upper right",
-                      handlelength=0.8, labelspacing=0.15)
+            pos = ax.get_position()
+            fig.text(pos.x0 + pos.width + 0.01, pos.y1 + 0.005,
+                     "\u25a0 Val  \u25cb Test", fontsize=FS_SMALL, va="bottom")
     return ax_first
 
 
@@ -188,45 +185,47 @@ def _draw_neighbourhood_quality(axes_list, fig, configs, metrics):
         if j == 0:
             ax_first = ax
         vals = [metrics[c].get(key, 0) for c in configs]
-        bars = ax.bar(x, vals, color=colors, alpha=0.80,
-                      edgecolor="black", linewidth=0.4)
-        # Highlight best
-        _highlight_best(ax, bars, vals, higher_better)
-        ax.set_xticks(x)
-        ax.set_xticklabels(short, fontsize=FS_TICK, rotation=45, ha="right")
-        ax.set_title(label, fontsize=FS_TITLE, pad=2)
-        if j == 0:
-            ax.set_ylabel("Score", fontsize=FS_AXIS)
-        ax.tick_params(labelsize=FS_TICK)
-        ax.grid(alpha=0.22, linestyle="--", linewidth=0.4, axis="y")
-        # Smart y-axis: zoom in to show differences if values are clustered
+        # Compute ylim BEFORE drawing bars to avoid patch_truncation
         valid_vals = [v for v in vals if v > 0 and np.isfinite(v)]
+        ylo = 0.0
         if valid_vals:
             vmin, vmax = min(valid_vals), max(valid_vals)
             val_range = vmax - vmin
             if val_range < 0.15 * vmax and vmin > 0.3:
-                # Values are tightly clustered — zoom in
                 ylo = max(0, vmin - val_range * 1.5)
                 yhi = vmax + val_range * 1.5
-                ax.set_ylim(ylo, yhi)
-                # Disable offset notation — show plain values
-                ax.yaxis.get_major_formatter().set_useOffset(False)
-                ax.ticklabel_format(axis='y', useOffset=False, style='plain')
             else:
-                ax.set_ylim(0, vmax * 1.18)
+                yhi = vmax * 1.18
         else:
-            ax.set_ylim(0, 1.0)
-        ax.yaxis.set_major_locator(plt.MaxNLocator(5, prune="both"))
+            yhi = 1.0
+        bars = ax.bar(x, [v - ylo for v in vals], bottom=ylo,
+                      color=colors, alpha=0.80,
+                      edgecolor="black", linewidth=0.4)
+        # Highlight best
+        _highlight_best(ax, bars, vals, higher_better)
+        ax.set_xticks(x)
+        ax.set_xticklabels(short, fontsize=FS_SMALL, rotation=90, ha="center")
+        ax.set_xlim(-0.5, len(configs) - 0.5)
+        ax.set_title(label, fontsize=FS_AXIS, pad=1)
+        if j == 0:
+            ax.set_ylabel("Score", fontsize=FS_AXIS)
+        ax.tick_params(labelsize=FS_TICK)
+        ax.grid(alpha=0.22, linestyle="--", linewidth=0.4, axis="y")
+        ax.set_ylim(ylo, yhi)
+        if ylo > 0:
+            ax.yaxis.get_major_formatter().set_useOffset(False)
+            ax.ticklabel_format(axis='y', useOffset=False, style='plain')
+        ax.yaxis.set_major_locator(plt.MaxNLocator(4, prune="both"))
     return ax_first
 
 
 def _draw_latent_structure(axes_list, fig, configs, metrics):
     """Latent structure: participation ratio, manifold dimensionality, anisotropy."""
     items = [
-        ("LSE_participation_ratio",    "Participation\nRatio ↑",   True),
-        ("LSE_manifold_dimensionality","Intrinsic\nDimension ↓",   False),
-        ("LSE_anisotropy_score",        "Anisotropy\n(spread) ↑",  True),
-        ("LSE_overall_quality",         "LSE Overall\nQuality ↑",  True),
+        ("LSE_participation_ratio",    "P.Ratio ↑",    True),
+        ("LSE_manifold_dimensionality","Int.Dim ↓",    False),
+        ("LSE_anisotropy_score",        "Anisotropy ↑", True),
+        ("LSE_overall_quality",         "LSE Qual. ↑",  True),
     ]
     x = np.arange(len(configs))
     colors = [_CONFIG_COLOR[c] for c in configs]
@@ -242,8 +241,9 @@ def _draw_latent_structure(axes_list, fig, configs, metrics):
         # Highlight best
         _highlight_best(ax, bars, vals, higher_better)
         ax.set_xticks(x)
-        ax.set_xticklabels(short, fontsize=FS_TICK, rotation=45, ha="right")
-        ax.set_title(label, fontsize=FS_TITLE, pad=2)
+        ax.set_xticklabels(short, fontsize=FS_SMALL, rotation=90, ha="center")
+        ax.set_xlim(-0.5, len(configs) - 0.5)
+        ax.set_title(label, fontsize=FS_AXIS, pad=1)
         if j == 0:
             ax.set_ylabel("Value", fontsize=FS_AXIS)
         ax.tick_params(labelsize=FS_TICK)
@@ -251,7 +251,7 @@ def _draw_latent_structure(axes_list, fig, configs, metrics):
         valid_vals = [v for v in vals if np.isfinite(v)]
         ymax = max(abs(v) for v in valid_vals) * 1.18 if valid_vals else 1.0
         ax.set_ylim(0, ymax)
-        ax.yaxis.set_major_locator(plt.MaxNLocator(4, prune="upper"))
+        ax.yaxis.set_major_locator(plt.MaxNLocator(4, prune="both"))
     return ax_first
 
 
@@ -273,27 +273,27 @@ def build_figure(rdir: Path, outdir: Path, multiseed_stats=None):
          fig.add_axes([0.680, 0.700, 0.280, 0.120])],
     ]
 
-    # Row B: 3 bar charts — push down, add annotation headroom
+    # Row B: 3 bar charts — wider gap below for rotated xtick labels
     axes_B = [
-        fig.add_axes([0.080, 0.475, 0.253, 0.175]),
-        fig.add_axes([0.393, 0.475, 0.253, 0.175]),
-        fig.add_axes([0.707, 0.475, 0.253, 0.175]),
+        fig.add_axes([0.100, 0.510, 0.253, 0.145]),
+        fig.add_axes([0.393, 0.510, 0.253, 0.145]),
+        fig.add_axes([0.707, 0.510, 0.253, 0.145]),
     ]
 
-    # Row C: 4 neighbourhood quality bars — more headroom
+    # Row C: 4 neighbourhood quality bars — wider gap from B
     axes_C = [
-        fig.add_axes([0.080, 0.265, 0.190, 0.165]),
-        fig.add_axes([0.310, 0.265, 0.190, 0.165]),
-        fig.add_axes([0.540, 0.265, 0.190, 0.165]),
-        fig.add_axes([0.770, 0.265, 0.190, 0.165]),
+        fig.add_axes([0.100, 0.300, 0.180, 0.130]),
+        fig.add_axes([0.310, 0.300, 0.180, 0.130]),
+        fig.add_axes([0.540, 0.300, 0.180, 0.130]),
+        fig.add_axes([0.770, 0.300, 0.180, 0.130]),
     ]
 
-    # Row D: 4 latent structure bars — lift above footer
+    # Row D: 4 latent structure bars — wider gap from C
     axes_D = [
-        fig.add_axes([0.080, 0.070, 0.190, 0.150]),
-        fig.add_axes([0.310, 0.070, 0.190, 0.150]),
-        fig.add_axes([0.540, 0.070, 0.190, 0.150]),
-        fig.add_axes([0.770, 0.070, 0.190, 0.150]),
+        fig.add_axes([0.100, 0.080, 0.180, 0.120]),
+        fig.add_axes([0.310, 0.080, 0.180, 0.120]),
+        fig.add_axes([0.540, 0.080, 0.180, 0.120]),
+        fig.add_axes([0.770, 0.080, 0.180, 0.120]),
     ]
 
     print("  Drawing Panel A (UMAP grid)...")

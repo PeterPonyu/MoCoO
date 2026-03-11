@@ -1209,8 +1209,12 @@ def detect_all_conflicts(
             if len(issues) > 25:
                 print(f"    ... and {len(issues) - 25} more")
         elif n_info > 0:
-            print(f"  ℹ INFO{tag}: 0 warnings, {n_info} info "
-                  f"(likely auto-fixed by bbox_inches='tight')")
+            parts = ", ".join(f"{k}={v}" for k, v in sorted(counts.items()))
+            print(f"  ℹ INFO{tag}: 0 warnings, {n_info} info [{parts}]")
+            for iss in issues[:15]:
+                print(f"    ℹ [{iss['type']}] {iss['detail']}")
+            if len(issues) > 15:
+                print(f"    ... and {len(issues) - 15} more")
         elif label:
             print(f"  ✓ OK{tag}: no conflicts detected (both layers clean)")
 

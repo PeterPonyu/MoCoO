@@ -199,8 +199,8 @@ def _draw_synergy_heatmap(ax, fig, rdir):
     ax.set_xticklabels(beta_labels, fontsize=FS_TICK)
     ax.set_yticks(np.arange(len(metric_labels)))
     ax.set_yticklabels(metric_labels, fontsize=FS_TICK)
-    ax.set_title("ODE \u00d7 MoCo Synergy\n(positive = super-additive)",
-                 fontsize=FS_TITLE, pad=3)
+    ax.set_title("ODE \u00d7 MoCo Synergy",
+                 fontsize=FS_AXIS, pad=3)
 
     cax = ax.inset_axes([1.03, 0.1, 0.03, 0.8])
     cb = fig.colorbar(im, cax=cax)
@@ -229,25 +229,23 @@ def _draw_incremental_gain(axes, fig, configs, metrics, multiseed_stats=None):
             ax_first = ax
         baseline = metrics["VAE"].get(key, 0)
         all_vals = [metrics[c].get(key, 0) for c in configs]
+        vmin, vmax = min(all_vals), max(all_vals)
+        margin = (vmax - vmin) * 0.35 if vmax > vmin else 0.05
+        y_lo = vmin - margin
+        y_hi = vmax + margin
+        ax.set_ylim(y_lo, y_hi)
 
         for k, cfg in enumerate(configs):
             val   = all_vals[k]
             delta = val - baseline
             bar_c = _CONFIG_COLOR[cfg]
-            # Baseline portion
-            ax.bar(k, baseline, color=bar_c, alpha=0.35,
+            # Baseline portion — start from y_lo to keep bars within axes
+            ax.bar(k, baseline - y_lo, bottom=y_lo, color=bar_c, alpha=0.35,
                    edgecolor="black", linewidth=0.4)
             # Delta portion
             delta_c = "#2ca02c" if delta >= 0 else "#d62728"
             ax.bar(k, delta, bottom=baseline, color=delta_c, alpha=0.75,
                    edgecolor="black", linewidth=0.4)
-            # Annotate delta inside the delta bar (above for positive, below baseline for negative)
-            if abs(delta) > 1e-6:
-                sign = "+" if delta >= 0 else ""
-                txt_y = baseline + delta * 0.5  # midpoint of delta bar
-                ax.text(k, txt_y, f"{sign}{delta:.3f}",
-                        ha="center", va="center", fontsize=FS_SMALL,
-                        color=delta_c, zorder=10)
 
             # Error bar from multiseed variance
             if multiseed_stats and cfg in multiseed_stats and key in multiseed_stats[cfg]:
@@ -256,20 +254,16 @@ def _draw_incremental_gain(axes, fig, configs, metrics, multiseed_stats=None):
                             ecolor="black", capsize=2, capthick=0.6, elinewidth=0.6, zorder=10)
 
         ax.axhline(baseline, color="gray", ls="--", lw=0.8, alpha=0.7, zorder=1)
-        ax.yaxis.set_major_locator(plt.MaxNLocator(4, prune="upper"))
+        ax.yaxis.set_major_locator(plt.MaxNLocator(4, prune="both"))
         ax.set_xticks(range(len(configs)))
         ax.set_xticklabels([_SHORT[c] for c in configs],
-                            fontsize=FS_TICK, rotation=35, ha="right")
-        ax.set_title(title, fontsize=FS_TITLE, pad=2)
+                            fontsize=FS_SMALL, rotation=90, ha="center")
+        ax.set_xlim(-0.5, len(configs) - 0.5)
+        ax.set_title(title, fontsize=FS_TITLE, pad=1)
         if j == 0:
             ax.set_ylabel("Score", fontsize=FS_AXIS)
         ax.tick_params(labelsize=FS_TICK)
         ax.grid(alpha=0.22, linestyle="--", linewidth=0.4, axis="y")
-
-        # Set y-limits with padding for annotations
-        vmin, vmax = min(all_vals), max(all_vals)
-        margin = (vmax - vmin) * 0.25 if vmax > vmin else 0.05
-        ax.set_ylim(vmin - margin, vmax + margin)
     return ax_first
 
 
@@ -320,7 +314,7 @@ def _draw_metric_heatmap(ax, fig, configs, metrics):
 
     ax.set_xticks(np.arange(n_cols))
     ax.set_xticklabels([m[1] for m in metric_groups],
-                        fontsize=FS_TICK, rotation=40, ha="right")
+                        fontsize=FS_SMALL, rotation=90, ha="center")
     ax.set_yticks(np.arange(n_rows))
     ax.set_yticklabels([_SHORT[c] for c in configs], fontsize=FS_TICK)
     ax.set_title("Performance Heatmap\n(column-normalised; darker = better)",
@@ -375,11 +369,13 @@ def _draw_perm_boxplots(ax, fig, configs, latents, labels):
 
     ax.set_xticks(range(1, len(configs) + 1))
     ax.set_xticklabels([_SHORT[c] for c in configs],
-                        fontsize=FS_TICK, rotation=30, ha="right")
-    ax.set_ylabel("kNN Accuracy Drop per Dim.", fontsize=FS_AXIS)
+                        fontsize=FS_SMALL, rotation=90, ha="center")
+    ax.set_xlim(0.5, len(configs) + 0.5)
+    ax.set_ylabel("kNN Acc. Drop", fontsize=FS_AXIS)
     ax.set_title("Latent Dimension Importance",
-                 fontsize=FS_TITLE, pad=4)
+                 fontsize=FS_TITLE, pad=1)
     ax.tick_params(labelsize=FS_TICK)
+    ax.yaxis.set_major_locator(plt.MaxNLocator(4, prune="both"))
     ax.grid(alpha=0.22, linestyle="--", linewidth=0.4, axis="y")
     return ax
 
@@ -392,12 +388,12 @@ def build_figure(rdir: Path, outdir: Path, multiseed_stats=None):
     fig = plt.figure(figsize=(FIG_W, FIG_H), dpi=DPI)
 
     # ── absolute geometry (replaces GridSpec) ────────────────────────────
-    L, R, TOP, BOT = 0.12, 0.96, 0.96, 0.08
+    L, R, TOP, BOT = 0.12, 0.96, 0.96, 0.11
     W_all = R - L
     H_all = TOP - BOT
 
     _ratios = np.array([3.4, 2.5, 3.2, 2.5])
-    _hspace = 0.50
+    _hspace = 0.85
     _gap_r  = _hspace * _ratios.mean()
     _unit   = H_all / (_ratios.sum() + 3 * _gap_r)
     row_h   = _ratios * _unit
@@ -450,10 +446,10 @@ def build_figure(rdir: Path, outdir: Path, multiseed_stats=None):
     add_config_legend_footnote(fig, y_pos=0.010)
     add_metric_footnote(fig, ["ARI", "NMI", "ASW", "DAV", "DRE", "DREX", "LSE", "LSEX"], y_pos=0.000)
 
-    panel_label(fig, ax_A, "A")
+    panel_label(fig, ax_A, "A", x_off=-0.07)
     panel_label(fig, ax_B, "B")
     panel_label(fig, ax_C, "C")
-    panel_label(fig, ax_D, "D")
+    panel_label(fig, ax_D, "D", y_off=0.025)
 
     # Force full layout computation so legend handles are positioned before detection
     fig.canvas.draw()

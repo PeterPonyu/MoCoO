@@ -132,7 +132,7 @@ def _draw_umap_panel(fig, umap_axes, configs, latents, labels_arr,
             mask = labels_arr[i] == lbl
             ax.scatter(emb[mask, 0], emb[mask, 1], s=1.2, alpha=0.60,
                        c=[cmap(j / n_types)], label=str(lbl), rasterized=True)
-        ax.set_title(configs[i], fontsize=FONT_PANEL_TITLE)
+        ax.set_title(_s(configs[i]), fontsize=FONT_ANNOT, pad=2)
         ax.set_xticks([]); ax.set_yticks([])
         for sp in ax.spines.values():
             sp.set_visible(False)
@@ -188,17 +188,15 @@ def _draw_training_curves(fig, curve_axes, configs, val_losses, val_scores):
                 if vs_a.shape[0] > 0 and vs_a.shape[1] > src:
                     ax.plot(range(vs_a.shape[0]), vs_a[:, src], color=c,
                             lw=1, label=_s(cfg))
-        ax.set_title(title, fontsize=FONT_PANEL_TITLE)
+        ax.set_title(title, fontsize=FONT_ANNOT, pad=1)
         if src == "loss":
             ax.set_ylabel("Loss", fontsize=FONT_AXIS_LABEL)
-        if has_scores and pidx // 4 == 1:
-            ax.set_xlabel("Epoch", fontsize=FONT_AXIS_LABEL)
-        elif not has_scores:
-            ax.set_xlabel("Epoch", fontsize=FONT_AXIS_LABEL)
-        ax.tick_params(labelsize=FONT_TICK)
-        ax.xaxis.set_major_locator(plt.MaxNLocator(nbins=4, integer=True,
+        if has_scores and pidx // 4 == 0:
+            ax.set_xticklabels([])
+        ax.tick_params(labelsize=FONT_ANNOT)
+        ax.xaxis.set_major_locator(plt.MaxNLocator(nbins=3, integer=True,
                                                      prune='both'))
-        ax.yaxis.set_major_locator(plt.MaxNLocator(nbins=5, prune='both'))
+        ax.yaxis.set_major_locator(plt.MaxNLocator(nbins=3, prune='both'))
         ax.set_xlim(left=0)
         ax.grid(alpha=0.12)
         for sp in ("top", "right"):
@@ -210,6 +208,7 @@ def _draw_training_curves(fig, curve_axes, configs, val_losses, val_scores):
     else:
         ax_leg = curve_axes[1]
     ax_leg.set_axis_off()
+    ax_leg.set_xticks([]); ax_leg.set_yticks([])
     handles, lbls = [], []
     for ax_check in fig.axes:
         if ax_check.get_title() == "Val Loss":
@@ -230,8 +229,8 @@ def _draw_heatmap(ax, configs, mets):
         ("DREX_overall_quality",      "DREX"),
         ("LSE_overall_quality",       "LSE"),
         ("LSEX_overall_quality",      "LSEX"),
-        ("train_time_s",              "Time(s)"),
-        ("peak_mem_gb",               "Mem(GB)"),
+        ("train_time_s",              "Time"),
+        ("peak_mem_gb",               "Mem"),
     ]
     keys, labels = [], []
     for k, lbl in CURATED:
@@ -251,8 +250,8 @@ def _draw_heatmap(ax, configs, mets):
     im = ax.imshow(norm, aspect="auto", cmap="YlOrRd")
     short_c = [_s(c) for c in configs if mets[configs.index(c)] is not None]
     ax.set_xticks(range(len(keys)))
-    ax.set_xticklabels(labels, rotation=45, ha="right",
-                       fontsize=FONT_TICK)
+    ax.set_xticklabels(labels, rotation=90, ha="center",
+                       fontsize=FONT_ANNOT)
     ax.set_yticks(range(len(short_c)))
     ax.set_yticklabels(short_c, fontsize=FONT_TICK)
     for r in range(matrix.shape[0]):
@@ -261,9 +260,10 @@ def _draw_heatmap(ax, configs, mets):
             fmt = f"{v:.2f}" if abs(v) < 100 else f"{v:.0f}"
             clr = "white" if norm[r, c] > 0.45 else "black"
             ax.text(c, r, fmt, ha="center", va="center",
-                    fontsize=FONT_ANNOT, color=clr)
+                    fontsize=FONT_ANNOT - 1, color=clr)
     cb = ax.figure.colorbar(im, ax=ax, shrink=0.55, pad=0.02)
     cb.ax.tick_params(labelsize=FONT_TICK)
+    cb.ax.set_xticks([])
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -297,12 +297,12 @@ def build_composed(data, outpath: Path, cache_dir: Path | None = None):
     # ── Figure with absolute-geometry layout ─────────────────────────────
     fig = plt.figure(figsize=(FIG_W, FIG_H * 0.55), dpi=DPI)
 
-    # Row 0 — UMAP grid (A): 2×3, taller rows for better embedding visibility
+    # Row 0 — UMAP grid (A): 2×3, wider row gap to prevent spillover
     _u_cw = (0.92 - 0.03 * 2) / 3   # ~0.2867
-    _u_rh = 0.14                      # taller than before (was 0.12)
+    _u_rh = 0.12
     umap_axes = [
         [fig.add_axes([0.04 + c * (_u_cw + 0.03),
-                       0.70 + 0.26 - (r + 1) * _u_rh - r * 0.02,
+                       0.68 + 0.26 - (r + 1) * _u_rh - r * 0.06,
                        _u_cw, _u_rh])
          for c in range(3)]
         for r in range(2)
@@ -318,10 +318,11 @@ def build_composed(data, outpath: Path, cache_dir: Path | None = None):
     if has_scores:
         # 2×4 grid of training curve panels — push down slightly
         _tc_cw = (0.86 - 0.05 * 3) / 4   # ~0.1775
-        _tc_rh = (0.24 - 0.05) / 2        # 0.095
+        _tc_rh = 0.08
+        _tc_gap_v = 0.07
         _cg = [
             [fig.add_axes([0.10 + c * (_tc_cw + 0.05),
-                           0.36 + 0.24 - (r + 1) * _tc_rh - r * 0.05,
+                           0.36 + 0.23 - (r + 1) * _tc_rh - r * _tc_gap_v,
                            _tc_cw, _tc_rh])
              for c in range(4)]
             for r in range(2)
@@ -336,8 +337,8 @@ def build_composed(data, outpath: Path, cache_dir: Path | None = None):
         ]
     _draw_training_curves(fig, curve_axes, configs, val_losses, val_scores)
 
-    # Row 2 — Heatmap (C) — lift up from footer
-    ax_hm = fig.add_axes([0.10, 0.08, 0.86, 0.24])
+    # Row 2 — Heatmap (C) — more bottom margin for rotated labels
+    ax_hm = fig.add_axes([0.10, 0.14, 0.86, 0.18])
     _draw_heatmap(ax_hm, configs, mets)
 
     # ── Panel labels (A–C) ──────────────────────────────────────────────
@@ -355,7 +356,11 @@ def build_composed(data, outpath: Path, cache_dir: Path | None = None):
     for letter, ax in panel_axes:
         try:
             pos = ax.get_position()
-            fig.text(pos.x0 - 0.025, pos.y1 + 0.012,
+            x_off = -0.025
+            y_off = 0.012
+            if letter == "C":
+                x_off = -0.06
+            fig.text(pos.x0 + x_off, pos.y1 + y_off,
                      f"({letter})", fontsize=FONT_PANEL_LABEL,
                      fontweight="bold", va="bottom", ha="right")
         except Exception:

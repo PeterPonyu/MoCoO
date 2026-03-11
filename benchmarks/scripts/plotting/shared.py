@@ -26,13 +26,22 @@ _FONT_DIR = Path(__file__).resolve().parent.parent.parent / "fonts"
 
 
 def setup_fonts() -> None:
-    """Register Arial fonts (if available) and set as default sans-serif."""
+    """Register Arial fonts (if bundled) and set best available sans-serif.
+
+    Preference order: Arial > Liberation Sans > Nimbus Sans > DejaVu Sans.
+    Liberation Sans is metrically identical to Arial.
+    """
+    # Try bundled Arial first
     for fp in (_FONT_DIR / "Arial.ttf", _FONT_DIR / "Arial Bold.ttf"):
         if fp.exists():
             fm.fontManager.addfont(str(fp))
-    if (_FONT_DIR / "Arial.ttf").exists():
+    # Pick the best available sans-serif
+    available = {f.name for f in fm.fontManager.ttflist}
+    preferred = [n for n in ("Arial", "Liberation Sans", "Nimbus Sans")
+                 if n in available]
+    if preferred:
         matplotlib.rcParams["font.family"] = "sans-serif"
-        matplotlib.rcParams["font.sans-serif"] = ["Arial"] + list(
+        matplotlib.rcParams["font.sans-serif"] = preferred + list(
             matplotlib.rcParams.get("font.sans-serif", []))
 
 

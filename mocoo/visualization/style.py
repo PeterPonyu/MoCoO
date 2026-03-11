@@ -309,8 +309,13 @@ def apply_style() -> None:
         "figure.figsize": (FIG_WIDTH_IN, FIG_HEIGHT_IN),
         "figure.dpi": DPI,
         "savefig.dpi": DPI,
+        "savefig.bbox": None,          # absolute geometry — never use tight
+        "savefig.pad_inches": 0.0,     # no extra padding
+        "savefig.facecolor": "white",
+        "savefig.edgecolor": "none",
+        "savefig.transparent": False,
 
-        # Font — Arial normal weight throughout
+        # Font — Arial / Liberation Sans, normal weight throughout
         "font.family": "sans-serif",
         "font.size": FS_AXIS,
         "font.weight": "normal",
@@ -319,12 +324,20 @@ def apply_style() -> None:
         # Axes — normal weight titles and labels
         "axes.titlesize": FS_TITLE,
         "axes.titleweight": "normal",
+        "axes.titlepad": 4.0,
         "axes.labelsize": FS_AXIS,
         "axes.labelweight": "normal",
+        "axes.labelpad": 3.0,
         "axes.linewidth": 0.5,
         "axes.grid": True,
         "axes.grid.which": "major",
         "axes.facecolor": "white",
+        "figure.facecolor": "white",
+        "figure.edgecolor": "none",
+
+        # Layout — disabled (we use fig.add_axes exclusively)
+        "figure.autolayout": False,
+        "figure.constrained_layout.use": False,
 
         # Grid
         "grid.alpha": 0.22,
@@ -338,6 +351,8 @@ def apply_style() -> None:
         "ytick.major.width": 0.4,
         "xtick.major.size": 2.5,
         "ytick.major.size": 2.5,
+        "xtick.direction": "out",
+        "ytick.direction": "out",
 
         # Legend
         "legend.fontsize": FS_LEGEND,
@@ -351,14 +366,20 @@ def apply_style() -> None:
 
         # Scatter / patch
         "patch.linewidth": 0.4,
+
+        # Math — use same sans-serif for math text
+        "mathtext.default": "regular",
     }
 
-    # Try to set Arial; fall back gracefully
+    # Set font preference: Arial > Liberation Sans > DejaVu Sans
     try:
         import matplotlib.font_manager as fm
         available = {f.name for f in fm.fontManager.ttflist}
-        if "Arial" in available:
-            params["font.sans-serif"] = ["Arial"] + list(
+        # Liberation Sans is metrically identical to Arial
+        preferred = [n for n in ("Arial", "Liberation Sans", "Nimbus Sans")
+                     if n in available]
+        if preferred:
+            params["font.sans-serif"] = preferred + list(
                 matplotlib.rcParams.get("font.sans-serif", [])
             )
     except Exception:

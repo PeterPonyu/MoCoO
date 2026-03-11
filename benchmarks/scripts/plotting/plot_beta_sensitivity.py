@@ -123,7 +123,8 @@ def build_figure(results_base: Path, outdir: Path):
         else:
             ax.set_xticklabels([])
         ax.tick_params(axis="both", labelsize=FS_TICK)
-        ax.set_title(metric_label, fontsize=FS_TITLE, pad=3)
+        ax.yaxis.set_major_locator(plt.MaxNLocator(nbins=4, prune="both"))
+        ax.set_title(metric_label, fontsize=FS_TITLE, pad=1)
         ax.grid(alpha=0.22, linestyle="--", linewidth=0.4)
         ax.spines["top"].set_visible(False)
         ax.spines["right"].set_visible(False)

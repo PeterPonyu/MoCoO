@@ -95,13 +95,13 @@ def _draw_loss_curves(axes, fig, configs, train_losses, val_losses):
         (ax_train, "Training Loss", "ELBO Loss"),
         (ax_val,   "Validation Loss",  "Val. ELBO Loss"),
     ]:
-        ax.set_title(title, fontsize=FS_TITLE, pad=3)
+        ax.set_title(title, fontsize=FS_TITLE, pad=1)
         ax.set_xlabel("Epoch", fontsize=FS_AXIS)
         ax.set_ylabel(ylabel, fontsize=FS_AXIS)
         ax.tick_params(labelsize=FS_TICK)
         ax.grid(alpha=0.22, linestyle="--", linewidth=0.4)
         ax.set_xlim(0, _max_ep * 1.02)
-        ax.xaxis.set_major_locator(plt.MaxNLocator(nbins=6, integer=True))
+        ax.xaxis.set_major_locator(plt.MaxNLocator(nbins=5, integer=True, prune="both"))
 
     return ax_train
 
@@ -129,15 +129,16 @@ def _draw_val_metric_evolution(axes, fig, configs, val_losses, val_scores):
                 ax.plot(epochs, curve,
                         color=_CONFIG_COLOR[cfg], ls=get_line_style(cfg),
                         lw=get_line_width(cfg), alpha=0.85, label=cfg)
-        ax.set_title(title, fontsize=FS_TITLE, pad=3)
-        ax.set_xlabel("Epoch", fontsize=FS_AXIS)
+        ax.set_title(title, fontsize=FS_AXIS, pad=1)
         if j == 0:
             ax.set_ylabel("Score", fontsize=FS_AXIS)
         ax.tick_params(labelsize=FS_TICK)
         ax.grid(alpha=0.22, linestyle="--", linewidth=0.4)
         ax.set_xlim(0, _max_ep * 1.02)
-        ax.xaxis.set_major_locator(plt.MaxNLocator(nbins=6, integer=True))
-        ax.yaxis.set_major_locator(plt.MaxNLocator(4, prune="upper"))
+        ax.xaxis.set_major_locator(plt.MaxNLocator(nbins=5, integer=True, prune="both"))
+        ax.yaxis.set_major_locator(plt.MaxNLocator(4, prune="both"))
+        ylo, yhi = ax.get_ylim()
+        ax.set_ylim(max(-0.01, ylo), yhi)
     return ax_first
 
 
@@ -209,23 +210,24 @@ def _draw_efficiency(ax, fig, configs, metrics):
             best_ari = ari[idx]
     if len(pareto_x) > 1:
         ax.plot(pareto_x, pareto_y, "k--", lw=0.8, alpha=0.5,
-                label="Pareto frontier", zorder=2)
+                zorder=2)
 
     ax.set_xlabel("Training Time (s)", fontsize=FS_AXIS)
-    ax.set_ylabel("ARI \u2191", fontsize=FS_AXIS)
-    ax.set_title("Efficiency: ARI vs Training Time\n(Bubble size = peak GPU memory)",
-                 fontsize=FS_TITLE, pad=3)
+    ax.set_ylabel("ARI \u2191", fontsize=FS_AXIS, labelpad=1)
+    ax.set_title("Efficiency",
+                 fontsize=FS_AXIS, pad=1)
     ax.tick_params(labelsize=FS_TICK)
     ax.grid(alpha=0.22, linestyle="--", linewidth=0.4)
     ax.margins(0.08)
+    xlo, xhi = ax.get_xlim()
+    ylo, yhi = ax.get_ylim()
+    ax.set_xlim(max(0, xlo), xhi)
+    ax.set_ylim(max(-0.01, ylo), yhi)
+    ax.xaxis.set_major_locator(plt.MaxNLocator(5, prune="both"))
+    ax.yaxis.set_major_locator(plt.MaxNLocator(4, prune="both"))
 
-    # Memory legend
-    for mem_val, label in [(min(mem), f"{min(mem):.2f} GB"), (max(mem), f"{max(mem):.2f} GB")]:
-        sz = ((mem_val - mem.min()) / (mem.max() - mem.min() + 1e-6) + 0.2) * 280
-        ax.scatter([], [], s=sz, c="gray", alpha=0.5, edgecolors="black",
-                   linewidths=0.6, label=f"Mem={label}")
-    ax.legend(fontsize=FS_LEG, frameon=False, loc="upper right",
-              handlelength=1.0, labelspacing=0.2)
+    # Memory legend (minimal)
+    ax.legend([], [], frameon=False)
     return ax
 
 
@@ -239,21 +241,21 @@ def build_figure(rdir: Path, outdir: Path):
     if has_scores:
         # Full layout: loss curves + val metrics + efficiency
         fig = plt.figure(figsize=(FIG_W, FIG_H), dpi=DPI)
-        # Row A: 2 loss panels — push down for legend band at top
+        # Row A: 2 loss panels — wider gap below for labels
         _aw_A = (0.86 - 0.06) / 2  # 0.40
         axes_A = [
-            fig.add_axes([0.10, 0.70, _aw_A, 0.22]),
-            fig.add_axes([0.10 + _aw_A + 0.06, 0.70, _aw_A, 0.22]),
+            fig.add_axes([0.10, 0.72, _aw_A, 0.20]),
+            fig.add_axes([0.10 + _aw_A + 0.06, 0.72, _aw_A, 0.20]),
         ]
-        # Row B: 3 val-metric panels — increased gap from row A
+        # Row B: 3 val-metric panels — wider gap from row A
         _aw_B = (0.86 - 0.05 * 2) / 3  # ~0.2533
         axes_B = [
-            fig.add_axes([0.10, 0.38, _aw_B, 0.24]),
-            fig.add_axes([0.10 + _aw_B + 0.05, 0.38, _aw_B, 0.24]),
-            fig.add_axes([0.10 + 2 * (_aw_B + 0.05), 0.38, _aw_B, 0.24]),
+            fig.add_axes([0.10, 0.40, _aw_B, 0.22]),
+            fig.add_axes([0.10 + _aw_B + 0.05, 0.40, _aw_B, 0.22]),
+            fig.add_axes([0.10 + 2 * (_aw_B + 0.05), 0.40, _aw_B, 0.22]),
         ]
         # Row C: single efficiency panel — lift above footer
-        ax_C = fig.add_axes([0.10, 0.08, 0.86, 0.22])
+        ax_C = fig.add_axes([0.14, 0.08, 0.82, 0.22])
 
         print("  Drawing Panel A (Loss convergence)...")
         ax_A = _draw_loss_curves(axes_A, fig, configs, train_losses, val_losses)
@@ -273,9 +275,9 @@ def build_figure(rdir: Path, outdir: Path):
             borderpad=0.3,
         )
 
-        panel_label(fig, ax_A, "A")
-        panel_label(fig, ax_B, "B")
-        panel_label(fig, ax_C, "C")
+        panel_label(fig, ax_A, "A", x_off=-0.08, y_off=0.036)
+        panel_label(fig, ax_B, "B", x_off=-0.08, y_off=0.036)
+        panel_label(fig, ax_C, "C", x_off=-0.10, y_off=0.040)
 
         sub_panels = [(ax_A, "panelA_train_loss"),
                       (ax_B, "panelB_val_metrics"),
@@ -311,8 +313,8 @@ def build_figure(rdir: Path, outdir: Path):
             borderpad=0.3,
         )
 
-        panel_label(fig, ax_A, "A")
-        panel_label(fig, ax_B, "B")
+        panel_label(fig, ax_A, "A", x_off=-0.08, y_off=0.040)
+        panel_label(fig, ax_B, "B", x_off=-0.08, y_off=0.040)
 
         sub_panels = [(ax_A, "panelA_train_loss"),
                       (ax_B, "panelB_efficiency")]

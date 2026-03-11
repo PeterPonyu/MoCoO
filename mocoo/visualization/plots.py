@@ -117,7 +117,8 @@ def plot_ablation_radar(
     data = _df_to_dict(metrics_df)
 
     if not data:
-        fig, ax = plt.subplots(figsize=(_style.FIG_WIDTH_IN, 3))
+        fig = plt.figure(figsize=(_style.FIG_WIDTH_IN, 3))
+        ax = fig.add_axes([0.1, 0.1, 0.8, 0.8])
         ax.text(0.5, 0.5, "No ablation data available", transform=ax.transAxes,
                 ha="center", va="center", fontsize=_style.FS_LABEL)
         ax.set_axis_off()
@@ -315,7 +316,8 @@ def plot_umap_grid(
     configs = [c for c in configs if c in latents_dict]
     n = len(configs)
     if n == 0:
-        fig, ax = plt.subplots(figsize=(_style.FIG_WIDTH_IN, 3))
+        fig = plt.figure(figsize=(_style.FIG_WIDTH_IN, 3))
+        ax = fig.add_axes([0.1, 0.1, 0.8, 0.8])
         ax.text(0.5, 0.5, "No UMAP data available", transform=ax.transAxes,
                 ha="center", va="center", fontsize=_style.FS_LABEL)
         ax.set_axis_off()
@@ -616,7 +618,8 @@ def plot_pseudotime_markers(
 
     n_genes = len(gene_data)
     if n_genes == 0:
-        fig, ax = plt.subplots(figsize=(_style.FIG_WIDTH_IN, 2))
+        fig = plt.figure(figsize=(_style.FIG_WIDTH_IN, 2))
+        ax = fig.add_axes([0.1, 0.1, 0.8, 0.8])
         ax.text(0.5, 0.5, "No gene data available", ha="center", va="center",
                 transform=ax.transAxes, fontsize=_style.FS_TITLE)
         return _save_and_return(fig, outpath)
@@ -739,7 +742,8 @@ def plot_beta_sensitivity(
     configs = [c for c in configs if c in data]
 
     if not configs:
-        fig, ax = plt.subplots(figsize=(_style.FIG_WIDTH_IN, 3))
+        fig = plt.figure(figsize=(_style.FIG_WIDTH_IN, 3))
+        ax = fig.add_axes([0.1, 0.1, 0.8, 0.8])
         ax.text(0.5, 0.5, "No beta sweep data available", transform=ax.transAxes,
                 ha="center", va="center", fontsize=_style.FS_LABEL)
         ax.set_axis_off()

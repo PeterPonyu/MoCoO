@@ -150,18 +150,18 @@ def make_heatmap(ax, data, panel_name, metrics_spec, configs):
             txt = f"{val:.0f}" if abs(val) > 10 else f"{val:.2f}"
             color = "white" if norm_mat[i, j] > HEATMAP_DARK_THRESHOLD else "black"
             ax.text(j, i, txt, ha="center", va="center",
-                    fontsize=FS_SMALL, fontweight="normal", color=color)
+                    fontsize=FS_SMALL - 2, fontweight="normal", color=color)
 
     ax.set_xticks(range(n_met))
-    ax.set_xticklabels([m[1] for m in metrics_spec], fontsize=FS_TICK, rotation=45, ha="right")
+    ax.set_xticklabels([m[1] for m in metrics_spec], fontsize=FS_SMALL - 1, rotation=90, ha="center")
     ax.set_yticks(range(n_cfg))
     # Append win count to y-labels
-    ylabels = [f"{SHORT_NAMES.get(c, c)} [{wins[i]}W]" for i, c in enumerate(configs)]
-    ax.set_yticklabels(ylabels, fontsize=FS_TICK)
+    ylabels = [SHORT_NAMES.get(c, c) for i, c in enumerate(configs)]
+    ax.set_yticklabels(ylabels, fontsize=FS_SMALL - 1)
     # Extra padding so labels don't overlap with heatmap boundaries
-    ax.tick_params(axis="y", pad=6)
+    ax.tick_params(axis="y", pad=8)
     ax.tick_params(axis="x", pad=4)
-    ax.set_title(panel_name, fontsize=FS_TITLE, pad=4)
+    ax.set_title(panel_name, fontsize=FS_TITLE, pad=2)
     return im, wins
 
 
@@ -201,11 +201,11 @@ def main():
         n_cols = n_panels
         n_rows = 1
         fig = plt.figure(figsize=(FIG_WIDTH_IN * 1.5, FIG_HEIGHT_IN * 0.50))
-        _cw = (0.88 - 0.05 * (n_cols - 1)) / n_cols
-        _rh = 0.72
+        _cw = (0.84 - 0.05 * (n_cols - 1)) / n_cols
+        _rh = 0.68
         axes_list = [
-            fig.add_axes([0.08 + c * (_cw + 0.05),
-                          0.18, _cw, _rh])
+            fig.add_axes([0.14 + c * (_cw + 0.05),
+                          0.20, _cw, _rh])
             for c in range(n_cols)
         ]
 

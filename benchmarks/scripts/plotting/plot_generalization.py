@@ -82,11 +82,24 @@ def _draw_paired_bars(ax, data, metric_key, metric_label, configs, multiseed_sta
         val_vals.append(m.get(metric_key, np.nan))
         test_vals.append(m.get(f"test_ext_{metric_key}", np.nan))
 
-    bars_val = ax.bar(x - width / 2, val_vals, width,
+    # Compute ylim BEFORE drawing bars so bar bottoms stay within axes
+    all_vals = [v for v in val_vals + test_vals if np.isfinite(v)]
+    if all_vals:
+        ymin = min(all_vals)
+        ymax = max(all_vals)
+        margin = (ymax - ymin) * 0.30
+        y_lo = max(0, ymin - margin * 0.5)
+        y_hi = ymax + margin * 3.2
+    else:
+        y_lo, y_hi = 0, 1
+
+    bars_val = ax.bar(x - width / 2, [v - y_lo if np.isfinite(v) else 0 for v in val_vals],
+                       width, bottom=y_lo,
                        color=[_COLORS[c] for c in configs],
                        edgecolor="white", linewidth=0.3,
                        alpha=0.85)
-    bars_test = ax.bar(x + width / 2, test_vals, width,
+    bars_test = ax.bar(x + width / 2, [v - y_lo if np.isfinite(v) else 0 for v in test_vals],
+                        width, bottom=y_lo,
                         color=[_COLORS[c] for c in configs],
                         edgecolor="white", linewidth=0.3,
                         hatch="//", alpha=0.55)
@@ -102,30 +115,13 @@ def _draw_paired_bars(ax, data, metric_key, metric_label, configs, multiseed_sta
         ax.errorbar(x + width / 2, test_vals, yerr=test_yerr, fmt="none",
                     ecolor="black", capsize=2, capthick=0.6, elinewidth=0.6, zorder=5)
 
-    # Annotate val-test gap only if meaningful (>0.01), placed above bars
-    for i in range(n):
-        if np.isfinite(val_vals[i]) and np.isfinite(test_vals[i]):
-            gap = test_vals[i] - val_vals[i]
-            if abs(gap) >= 0.01:   # suppress tiny / noisy gaps
-                sign = "+" if gap >= 0 else ""
-                base_y = max(v for v in [val_vals[i], test_vals[i]]
-                              if np.isfinite(v)) + 0.012
-                ax.text(x[i], base_y, f"{sign}{gap:.2f}",
-                        ha="center", va="bottom", fontsize=max(FS_SMALL - 1, 6),
-                        color="#666666")
-
-    # Zoom y-axis to data range for better readability
-    all_vals = [v for v in val_vals + test_vals if np.isfinite(v)]
-    if all_vals:
-        ymin = min(all_vals)
-        ymax = max(all_vals)
-        margin = (ymax - ymin) * 0.30
-        ax.set_ylim(max(0, ymin - margin * 0.5), ymax + margin * 2.8)
+    ax.set_ylim(y_lo, y_hi)
 
     ax.set_xticks(x)
     ax.set_xticklabels([get_tick_name(c) for c in configs],
-                        fontsize=FS_TICK, rotation=30, ha="right")
-    ax.set_title(metric_label, fontsize=FS_TITLE, pad=3)
+                        fontsize=FS_SMALL, rotation=90, ha="right")
+    ax.set_xlim(-0.5, n - 0.5)
+    ax.set_title(metric_label, fontsize=FS_TITLE, pad=1)
     ax.tick_params(axis="both", labelsize=FS_TICK)
     ax.spines["top"].set_visible(False)
     ax.spines["right"].set_visible(False)
@@ -145,21 +141,21 @@ def build_figure(rdir: Path, outdir: Path, multiseed_stats=None):
 
     fig = plt.figure(figsize=(FIG_WIDTH_IN, FIG_HEIGHT_IN * 0.70))
 
-    # Row 1: 3 clustering panels — leave room for legend band at top
-    _aw1 = (0.86 - 0.06 * 2) / 3  # ~0.2467
+    # Row 1: 3 clustering panels — wider gaps for rotated labels
+    _aw1 = (0.82 - 0.06 * 2) / 3  # ~0.233
     ax_row1 = [
-        fig.add_axes([0.10, 0.56, _aw1, 0.34]),
-        fig.add_axes([0.10 + _aw1 + 0.06, 0.56, _aw1, 0.34]),
-        fig.add_axes([0.10 + 2 * (_aw1 + 0.06), 0.56, _aw1, 0.34]),
+        fig.add_axes([0.10, 0.58, _aw1, 0.30]),
+        fig.add_axes([0.10 + _aw1 + 0.06, 0.58, _aw1, 0.30]),
+        fig.add_axes([0.10 + 2 * (_aw1 + 0.06), 0.58, _aw1, 0.30]),
     ]
 
     # Row 2: 4 quality panels — increased gap from row 1
-    _aw2 = (0.86 - 0.04 * 3) / 4  # 0.185
+    _aw2 = (0.82 - 0.04 * 3) / 4  # 0.175
     ax_row2 = [
-        fig.add_axes([0.10, 0.12, _aw2, 0.34]),
-        fig.add_axes([0.10 + _aw2 + 0.04, 0.12, _aw2, 0.34]),
-        fig.add_axes([0.10 + 2 * (_aw2 + 0.04), 0.12, _aw2, 0.34]),
-        fig.add_axes([0.10 + 3 * (_aw2 + 0.04), 0.12, _aw2, 0.34]),
+        fig.add_axes([0.10, 0.14, _aw2, 0.30]),
+        fig.add_axes([0.10 + _aw2 + 0.04, 0.14, _aw2, 0.30]),
+        fig.add_axes([0.10 + 2 * (_aw2 + 0.04), 0.14, _aw2, 0.30]),
+        fig.add_axes([0.10 + 3 * (_aw2 + 0.04), 0.14, _aw2, 0.30]),
     ]
 
     # Row 1: clustering (3 metrics, now spanning full width)

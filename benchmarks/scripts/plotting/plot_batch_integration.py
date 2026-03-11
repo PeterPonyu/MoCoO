@@ -161,21 +161,15 @@ def _draw_batch_bars(ax, metrics):
             if np.isnan(raw_val):
                 bar_obj.set_hatch("//")
                 bar_obj.set_alpha(0.25)
-            elif bv > 1e-6:
-                ax.text(bar_obj.get_x() + bar_obj.get_width() / 2,
-                        bar_obj.get_height() + 0.005,
-                        f"{bv:.2f}", ha="center", va="bottom",
-                        fontsize=FS_SMALL, rotation=90)
 
     ax.set_xticks(x)
-    ax.set_xticklabels(batch_labels, fontsize=FS_TICK, rotation=0)
+    ax.set_xticklabels(batch_labels, fontsize=FS_SMALL, rotation=0)
     ax.set_ylabel("Score", fontsize=FS_AXIS)
-    ax.set_title("Batch Integration Metrics (IRALL, 8 batches)",
-                 fontsize=FS_TITLE, pad=4)
+    ax.set_title("Batch Metrics",
+                 fontsize=FS_AXIS, pad=1)
     ax.tick_params(axis="both", labelsize=FS_TICK)
     ax.set_ylim(0, 1.25)
-    ax.legend(fontsize=FS_LEG, ncol=3, loc="upper center",
-              bbox_to_anchor=(0.5, -0.12), frameon=False)
+    ax.set_xlim(-0.5, len(batch_keys) - 0.5)
     ax.spines["top"].set_visible(False)
     ax.spines["right"].set_visible(False)
     ax.grid(alpha=0.22, linestyle="--", linewidth=0.4, axis="y")
@@ -198,9 +192,8 @@ def _draw_bio_batch_scatter(ax, metrics):
         if np.isnan(bc) or np.isnan(bio):
             continue
         ax.scatter(bc, bio, s=max(30, overall * 200), c=_CONFIG_COLOR[cfg],
-                   edgecolors="black", linewidths=0.4, zorder=5, alpha=0.85)
-        ax.annotate(_SHORT[cfg], (bc, bio), fontsize=FS_SMALL,
-                    xytext=(3, 3), textcoords="offset points")
+                   edgecolors="black", linewidths=0.4, zorder=5, alpha=0.85,
+                   label=_SHORT[cfg])
         plotted = True
 
     if not plotted:
@@ -210,12 +203,14 @@ def _draw_bio_batch_scatter(ax, metrics):
     # Reference diagonal
     ax.plot([0, 1], [0, 1], "--", color="#cccccc", linewidth=0.5, zorder=1)
 
-    ax.set_xlabel("Batch Correction \u2192", fontsize=FS_AXIS)
+    ax.set_xlabel("Batch Corr.", fontsize=FS_SMALL)
     ax.set_ylabel("Bio Conservation \u2192", fontsize=FS_AXIS)
-    ax.set_title("Integration Trade-off", fontsize=FS_TITLE, pad=4)
+    ax.set_title("Integration Trade-off", fontsize=FS_TITLE, pad=1)
     ax.tick_params(axis="both", labelsize=FS_TICK)
     ax.set_xlim(0.0, 1.0)
     ax.set_ylim(0.0, 1.0)
+    ax.set_xticks([0.0, 0.25, 0.5, 0.75, 1.0])
+    ax.set_yticks([0.0, 0.25, 0.5, 0.75, 1.0])
     ax.spines["top"].set_visible(False)
     ax.spines["right"].set_visible(False)
     ax.grid(alpha=0.22, linestyle="--", linewidth=0.4)
@@ -269,12 +264,12 @@ def _draw_cross_dataset_heatmap(ax, cross_data):
     col_labels = []
     for ds in datasets:
         for mk in metric_keys:
-            col_labels.append(f"{_DS_SHORT.get(ds, ds)}\n{mk}")
+            col_labels.append(f"{mk}")
 
     ax.set_xticks(np.arange(n_cols))
-    ax.set_xticklabels(col_labels, fontsize=FS_TICK, ha="center")
+    ax.set_xticklabels(col_labels, fontsize=FS_SMALL-2, ha="center", rotation=90)
     ax.set_yticks(np.arange(n_rows))
-    ax.set_yticklabels(row_labels, fontsize=FS_TICK)
+    ax.set_yticklabels(row_labels, fontsize=FS_SMALL)
 
     # Annotate cells with raw values
     for i in range(n_rows):
@@ -285,8 +280,8 @@ def _draw_cross_dataset_heatmap(ax, cross_data):
                 ax.text(j, i, f"{v:.3f}", ha="center", va="center",
                         fontsize=FS_SMALL, color=color)
 
-    ax.set_title("Cross-Dataset Performance (normalised)",
-                 fontsize=FS_TITLE, pad=4)
+    ax.set_title("Cross-Dataset Perf.",
+                 fontsize=FS_AXIS, pad=1)
 
     # Vertical separators between datasets
     for sep in range(1, n_ds):
@@ -309,7 +304,7 @@ def _draw_cross_radar(ax, cross_data):
     labels = []
     for ds in datasets:
         for mk in metric_keys:
-            labels.append(f"{_DS_SHORT.get(ds, ds)} {mk}")
+            labels.append(f"{mk}")
 
     n_vars = len(labels)
     angles = np.linspace(0, 2 * np.pi, n_vars, endpoint=False).tolist()
@@ -328,12 +323,13 @@ def _draw_cross_radar(ax, cross_data):
         ax.fill(angles, vals, alpha=0.06, color=_CONFIG_COLOR[cfg])
 
     ax.set_xticks(angles[:-1])
-    ax.set_xticklabels(labels, fontsize=FS_TICK)
+    ax.set_xticklabels(labels, fontsize=FS_SMALL - 1)
     ax.set_ylim(0, 0.7)
+    ax.set_yticks([0.2, 0.5])
     ax.tick_params(axis="y", labelsize=FS_SMALL)
-    ax.set_title("Cross-Dataset Profile", fontsize=FS_TITLE, pad=12)
-    ax.legend(fontsize=FS_LEG, loc="upper right",
-              bbox_to_anchor=(1.3, 1.1), frameon=False)
+    ax.set_title("Cross-Dataset Profile", fontsize=FS_AXIS, pad=18)
+    ax.legend(fontsize=FS_SMALL - 1, loc="upper right",
+              bbox_to_anchor=(1.45, 1.05), frameon=False)
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -375,26 +371,27 @@ def build_figure(results_base: Path, outdir: Path):
         for bar_obj, val in zip(bars, overall):
             ax_B2.text(bar_obj.get_width() + 0.005, bar_obj.get_y() + bar_obj.get_height() / 2,
                        f"{val:.3f}", ha="left", va="center", fontsize=FS_SMALL)
-        ax_B2.set_xlabel("Overall Score (0.4·bio + 0.6·batch)", fontsize=FS_AXIS)
-        ax_B2.set_title("scIB Overall Score", fontsize=FS_TITLE, pad=4)
+        ax_B2.set_xlabel("Overall Score", fontsize=FS_SMALL)
+        ax_B2.set_title("scIB Score", fontsize=FS_AXIS, pad=1)
         ax_B2.tick_params(axis="both", labelsize=FS_TICK)
         ax_B2.set_xlim(0, 1.0)
+        ax_B2.set_xticks([0.0, 0.25, 0.5, 0.75, 1.0])
         ax_B2.spines["top"].set_visible(False)
         ax_B2.spines["right"].set_visible(False)
 
     # Panel C: Cross-dataset heatmap (full width) — lower, with gap from B
-    ax_C = fig.add_axes([0.10, 0.32, 0.86, 0.20])
+    ax_C = fig.add_axes([0.10, 0.38, 0.86, 0.14])
     _draw_cross_dataset_heatmap(ax_C, cross_data)
 
     # Panel D: Cross-dataset radar (polar) — narrower to leave room for legend
-    ax_D = fig.add_axes([0.15, 0.05, 0.52, 0.22], polar=True)
+    ax_D = fig.add_axes([0.15, 0.04, 0.52, 0.19], polar=True)
     _draw_cross_radar(ax_D, cross_data)
     add_config_legend_footnote(fig, y_pos=0.012)
 
-    panel_label(fig, ax_A, "A", x_off=-0.05, y_off=0.010)
-    panel_label(fig, ax_B, "B", x_off=-0.05, y_off=0.010)
-    panel_label(fig, ax_C, "C", x_off=-0.05, y_off=0.010)
-    panel_label(fig, ax_D, "D", x_off=-0.05, y_off=0.010)
+    panel_label(fig, ax_A, "A", x_off=-0.05, y_off=0.020)
+    panel_label(fig, ax_B, "B", x_off=-0.05, y_off=0.020)
+    panel_label(fig, ax_C, "C", x_off=-0.05, y_off=0.020)
+    panel_label(fig, ax_D, "D", x_off=-0.05, y_off=0.020)
 
     fig.canvas.draw()
 

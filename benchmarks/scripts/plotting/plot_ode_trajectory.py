@@ -127,7 +127,6 @@ def _draw_pca_comparison(axes, fig, configs, latents, labels):
                            cmap="plasma", vmin=0, vmax=1, **_SCATTER)
         ax_pt.set_xticks([]); ax_pt.set_yticks([])
         ax_pt.set_title(f"{cfg} (Pseudotime)", fontsize=FS_TITLE, pad=2)
-        ax_pt.set_xlabel("PC 1", fontsize=FS_AXIS)
         if j == 0:
             ax_pt.set_ylabel("PC 2", fontsize=FS_AXIS)
         # Tiny colorbar
@@ -136,15 +135,17 @@ def _draw_pca_comparison(axes, fig, configs, latents, labels):
         cb.ax.tick_params(labelsize=FS_TICK, length=1.5)
         cb.set_label("Pseudotime", fontsize=FS_AXIS, labelpad=2)
 
-    # Legend for cell types in first panel
+    # Shared cell-type legend between Row A and Row B
     uniq = np.unique(labels[0])
     handles = [plt.Line2D([0],[0], marker="o", color="w",
                            markerfacecolor=cm20(k % 20), markersize=2.5)
                for k in range(len(uniq))]
-    ax_first.legend(handles, [str(lb) for lb in uniq],
-                    fontsize=FS_LEG, ncol=2, loc="upper right",
-                    framealpha=0.65, handletextpad=0.1,
-                    borderpad=0.2, markerscale=0.9, columnspacing=0.4)
+    n_leg_cols = min(max(6, len(uniq) // 2), 10)
+    fig.legend(handles, [str(lb) for lb in uniq],
+               fontsize=max(FS_SMALL - 2, 5), ncol=n_leg_cols, loc="upper center",
+               bbox_to_anchor=(0.53, 0.73),
+               frameon=False, handletextpad=0.1,
+               borderpad=0.1, markerscale=0.8, columnspacing=0.4)
     return ax_first
 
 
@@ -179,14 +180,15 @@ def _draw_pseudotime_violins(axes, fig, configs, latents, labels):
 
         ax.set_xticks(range(len(uniq)))
         ax.set_xticklabels([str(lb) for lb in uniq],
-                            fontsize=FS_TICK, rotation=40, ha="right")
-        ax.set_title(f"Pseudotime per Cell Type\n({cfg})",
-                     fontsize=FS_TITLE, pad=3)
+                            fontsize=FS_SMALL, rotation=90, ha="center")
+        ax.set_title(f"PT per Type ({cfg})",
+                     fontsize=FS_TITLE, pad=1)
         if j == 0:
-            ax.set_ylabel("Pseudotime [0,1]", fontsize=FS_AXIS)
+            ax.set_ylabel("Pseudotime", fontsize=FS_AXIS)
         ax.tick_params(labelsize=FS_TICK)
         ax.grid(alpha=0.22, linestyle="--", linewidth=0.4, axis="y")
-        ax.set_ylim(-0.05, 1.1)
+        ax.set_ylim(0.0, 1.05)
+        ax.yaxis.set_major_locator(plt.MaxNLocator(5, prune="both"))
     return ax_first
 
 
@@ -243,12 +245,15 @@ def _draw_gene_pseudotime(ax, fig, configs, latents, labels, adata_path: str):
                     color=cm10(k % 10), label=gene_names[gi])
 
         ax.set_xlabel("Pseudotime (PC1 of ODE latent)", fontsize=FS_AXIS)
-        ax.set_ylabel("Normalised Expression (log1p)", fontsize=FS_AXIS)
-        ax.set_title("Top Marker Gene Expression Along ODE Pseudotime\n"
-                     "(smoothed, top 8 by Pearson r with pseudotime)",
-                     fontsize=FS_TITLE, pad=3)
-        ax.legend(fontsize=FS_LEG, frameon=False, ncol=2,
-                  loc="upper right", handlelength=1.0, labelspacing=0.15)
+        ax.set_ylabel("Norm. Expr.", fontsize=FS_AXIS)
+        ax.set_title("Gene Expr. Along Pseudotime",
+                     fontsize=FS_AXIS, pad=2)
+        handles, lbls = ax.get_legend_handles_labels()
+        fig.legend(handles, lbls, fontsize=FS_SMALL, frameon=False,
+                   ncol=len(lbls), loc="upper center",
+                   bbox_to_anchor=(0.5, 0.28),
+                   handlelength=1.0, labelspacing=0.15,
+                   columnspacing=0.6)
     else:
         # Synthetic: show pseudotime distribution as histogram per config
         for i, cfg_name in enumerate(["VAE", "VAE+ODE", "Full"]):
@@ -260,16 +265,18 @@ def _draw_gene_pseudotime(ax, fig, configs, latents, labels, adata_path: str):
                     color=_CONFIG_COLOR[cfg_name], label=cfg_name)
         ax.set_xlabel("Pseudotime [0,1]", fontsize=FS_AXIS)
         ax.set_ylabel("Density", fontsize=FS_AXIS)
-        ax.set_title("Pseudotime Distribution per Config\n"
-                     "(ODE latent → smoother, more uniform spread)",
-                     fontsize=FS_TITLE, pad=3)
+        ax.set_title("PT Distribution per Config",
+                     fontsize=FS_AXIS, pad=2)
         ax.legend(fontsize=FS_LEG, frameon=False, loc="upper right")
 
     ax.tick_params(labelsize=FS_TICK)
     ax.grid(alpha=0.22, linestyle="--", linewidth=0.4)
     ax.set_xlim(0.0, 1.0)  # pseudotime is [0,1], prevent tick overshoot
+    ylo, yhi = ax.get_ylim()
+    ax.set_ylim(max(0, ylo), yhi)
     from matplotlib.ticker import FixedLocator
     ax.xaxis.set_major_locator(FixedLocator([0, 0.25, 0.5, 0.75, 1.0]))
+    ax.yaxis.set_major_locator(plt.MaxNLocator(4, prune="both"))
     return ax
 
 
@@ -297,7 +304,7 @@ def _draw_trajectory_smoothness(axes, fig, configs, latents, labels):
 
     ax_hist.set_xlabel("Pairwise L2 Distance", fontsize=FS_AXIS)
     ax_hist.set_ylabel("Density", fontsize=FS_AXIS)
-    ax_hist.set_title("Latent Pairwise Distance Distribution", fontsize=FS_TITLE, pad=3)
+    ax_hist.set_title("Pairwise Distance Dist.", fontsize=FS_TITLE, pad=2)
     ax_hist.tick_params(labelsize=FS_TICK)
     ax_hist.grid(alpha=0.22, linestyle="--", linewidth=0.4)
     # Enforce axis limits before locator so ticks stay inside borders
@@ -306,8 +313,6 @@ def _draw_trajectory_smoothness(axes, fig, configs, latents, labels):
     ax_hist.set_xlim(xmin - margin, xmax - margin * 3)
     from matplotlib.ticker import MaxNLocator as _MNL
     ax_hist.xaxis.set_major_locator(_MNL(4, prune="both"))
-    ax_hist.legend(fontsize=FS_LEG, frameon=False, loc="upper right",
-                   handlelength=1.0, labelspacing=0.15)
 
     # NN entropy per config
     entropies = []
@@ -325,28 +330,13 @@ def _draw_trajectory_smoothness(axes, fig, configs, latents, labels):
             bars[k].set_linewidth(1.3)
     ax_ent.set_xticks(x)
     ax_ent.set_xticklabels([get_tick_name(c) for c in configs],
-                            fontsize=FS_TICK, rotation=30, ha="right")
+                            fontsize=FS_SMALL, rotation=90, ha="center")
+    ax_ent.set_xlim(-0.5, len(configs) - 0.5)
     ax_ent.set_ylabel("kNN entropy", fontsize=FS_AXIS)
-    ax_ent.set_title("kNN Entropy", fontsize=FS_TITLE, pad=3)
+    ax_ent.set_title("kNN Entropy", fontsize=FS_TITLE, pad=1)
     ax_ent.tick_params(labelsize=FS_TICK)
     ax_ent.grid(alpha=0.22, linestyle="--", linewidth=0.4, axis="y")
-
-    # Annotate ODE improvement
-    if "VAE" in configs and "VAE+ODE" in configs:
-        vi = configs.index("VAE")
-        oi = configs.index("VAE+ODE")
-        delta_pct = (entropies[oi] - entropies[vi]) / (entropies[vi] + 1e-9) * 100
-        sign = "+" if delta_pct >= 0 else ""
-        ylo, yhi = ax_ent.get_ylim()
-        label_y = yhi + (yhi - ylo) * 0.05
-        ax_ent.annotate(f"{sign}{delta_pct:.1f}% vs VAE",
-                        xy=(oi, entropies[oi]),
-                        xytext=(oi, label_y),
-                        ha="center", va="bottom", fontsize=FS_SMALL,
-                        color="#DD8452",
-                        clip_on=False,
-                        arrowprops=dict(arrowstyle="->", color="#DD8452",
-                                        lw=0.8, shrinkA=3, shrinkB=3))
+    ax_ent.yaxis.set_major_locator(plt.MaxNLocator(4, prune="both"))
 
     return ax_hist
 
@@ -362,7 +352,7 @@ def build_figure(rdir: Path, outdir: Path, adata_path: str):
 
     # A: 2-row × n_cfgs-col PCA grid — shifted down to leave legend band at top
     _a_cw = (0.86 - 0.04 * (n_cfgs - 1)) / n_cfgs  # ~0.26
-    _a_rh = 0.11
+    _a_rh = 0.10
     _a_top = 0.96
     grid_A = [
         [fig.add_axes([0.10 + c * (_a_cw + 0.04),
@@ -372,21 +362,21 @@ def build_figure(rdir: Path, outdir: Path, adata_path: str):
         for r in range(2)
     ]
 
-    # B: 2 violin plots — more vertical room + gap from A
+    # B: 2 violin plots — wider gap from A
     _b_aw = (0.86 - 0.06) / 2  # 0.40
     axes_B = [
-        fig.add_axes([0.10, 0.50, _b_aw, 0.18]),
-        fig.add_axes([0.10 + _b_aw + 0.06, 0.50, _b_aw, 0.18]),
+        fig.add_axes([0.10, 0.50, _b_aw, 0.14]),
+        fig.add_axes([0.10 + _b_aw + 0.06, 0.50, _b_aw, 0.14]),
     ]
 
-    # C: single wide gene expression panel — more room
-    ax_C_single = fig.add_axes([0.10, 0.27, 0.86, 0.18])
+    # C: single wide gene expression panel
+    ax_C_single = fig.add_axes([0.10, 0.28, 0.86, 0.14])
 
-    # D: 2 panels — pairwise dist histogram + NN entropy bars — lifted from bottom
+    # D: 2 panels — pairwise dist histogram + NN entropy bars
     _d_aw = (0.86 - 0.06) / 2  # 0.40
     axes_D = [
-        fig.add_axes([0.10, 0.06, _d_aw, 0.16]),
-        fig.add_axes([0.10 + _d_aw + 0.06, 0.06, _d_aw, 0.16]),
+        fig.add_axes([0.10, 0.07, _d_aw, 0.12]),
+        fig.add_axes([0.10 + _d_aw + 0.06, 0.07, _d_aw, 0.12]),
     ]
 
     print("  Drawing Panel A (PCA pseudotime)...")
@@ -402,10 +392,10 @@ def build_figure(rdir: Path, outdir: Path, adata_path: str):
     ax_D = _draw_trajectory_smoothness(axes_D, fig, configs, latents, labels)
     add_config_legend_footnote(fig, y_pos=0.012)
 
-    panel_label(fig, ax_A, "A", x_off=-0.05, y_off=0.010)
-    panel_label(fig, ax_B, "B", x_off=-0.05, y_off=0.010)
-    panel_label(fig, ax_C, "C", x_off=-0.05, y_off=0.010)
-    panel_label(fig, ax_D, "D", x_off=-0.05, y_off=0.010)
+    panel_label(fig, ax_A, "A", x_off=-0.08, y_off=0.030)
+    panel_label(fig, ax_B, "B", x_off=-0.08, y_off=0.030)
+    panel_label(fig, ax_C, "C", x_off=-0.08, y_off=0.035)
+    panel_label(fig, ax_D, "D", x_off=-0.08, y_off=0.030)
 
     fig.canvas.draw()
     print("\n── Conflict Detection ──")
