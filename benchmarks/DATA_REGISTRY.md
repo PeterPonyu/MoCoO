@@ -54,7 +54,7 @@ All data paths required to regenerate each figure from scratch.
 - **Script**: `benchmarks/scripts/plotting/plot_ode_trajectory.py`
 - **Data**: `benchmarks/results/single_dataset/benchmark_data.npz`
 - **Expression data**: IRALL h5ad file (path from `mocoo/configs/paths.env` or `--adata` argument)
-- **Output**: `benchmarks/figures/supp_ode_trajectory.png` + sub-panels in `fig6_ode_trajectory/`
+- **Output**: `benchmarks/figures/supp_ode_trajectory.png` + sub-panels in `supp_ode_trajectory/`
 - **Regenerate**: `python benchmarks/scripts/plotting/plot_ode_trajectory.py`
 
 ## Figure 7a — Generalization (Val vs Test)
@@ -67,7 +67,7 @@ All data paths required to regenerate each figure from scratch.
 - **Script**: `benchmarks/scripts/plotting/plot_batch_integration.py`
 - **Data**: **NOT YET COMPUTED** — requires `summary_batch.csv` with iLISI, bASW, cLISI, graph_conn, iso_label_ASW
 - **Cross-dataset**: Requires `benchmarks/results/cross_dataset/{IRALL,dentate,endo}/` with per-config JSONs
-- **Output**: `benchmarks/figures/supp_batch_integration.png`
+- **Output**: `benchmarks/figures/supp_batch_integration.png` + sub-panels in `supp_batch_integration/`
 - **Status**: Data absent. Panels will be hidden automatically.
 
 ## Supplementary — Biological Validation
@@ -75,7 +75,7 @@ All data paths required to regenerate each figure from scratch.
 - **Data**: `benchmarks/results/single_dataset/benchmark_data.npz`
 - **Expression data**: IRALL h5ad file
 - **UMAP cache**: `benchmarks/results/bv_umap_cache.npz`
-- **Output**: `benchmarks/figures/supp_biological_validation.png` + sub-panels in `fig3_biological_validation/`
+- **Output**: `benchmarks/figures/supp_biological_validation.png` + sub-panels in `supp_biological_validation/`
 - **Regenerate**: `python -m benchmarks.scripts.plotting.plot_biological_validation`
 
 ## Tables (in paper)

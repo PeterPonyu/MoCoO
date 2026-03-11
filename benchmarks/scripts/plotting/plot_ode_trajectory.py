@@ -404,7 +404,7 @@ def build_figure(rdir: Path, outdir: Path, adata_path: str):
     save_figure(fig, outpath)
 
     # Export individual panel sub-figures
-    sub_dir = outdir / "fig6_ode_trajectory"
+    sub_dir = outdir / "supp_ode_trajectory"
     sub_dir.mkdir(parents=True, exist_ok=True)
     export_subpanels(fig, sub_dir, [(ax_A, "panelA_pca"),
                                      (ax_B, "panelB_pseudotime_violin"),

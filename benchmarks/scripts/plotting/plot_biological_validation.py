@@ -509,7 +509,7 @@ def build_figure(data, adata, outpath: Path):
     save_figure(fig, outpath)
 
     # Export individual panel sub-figures
-    sub_dir = outpath.parent / "fig3_biological_validation"
+    sub_dir = outpath.parent / "supp_biological_validation"
     sub_dir.mkdir(parents=True, exist_ok=True)
     export_subpanels(fig, sub_dir, [(ax_A, "panelA_permutation_importance"),
                                      (ax_B, "panelB_umap_components"),

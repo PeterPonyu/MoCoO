@@ -402,7 +402,7 @@ def build_figure(results_base: Path, outdir: Path):
     save_figure(fig, outpath)
 
     # Export individual panels
-    sub_dir = outdir / "fig7_batch_integration"
+    sub_dir = outdir / "supp_batch_integration"
     sub_dir.mkdir(parents=True, exist_ok=True)
     export_subpanels(fig, sub_dir, [
         (ax_A, "panelA_batch_bars"),
