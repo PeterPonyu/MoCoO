@@ -1,9 +1,9 @@
 #!/usr/bin/env python
 """
-MoCoO Benchmark — Composed Figure
+MoCoO Benchmark — Integrated Figure 5
 
-Streamlined 3-panel figure: UMAP grid, training curves, and key metrics heatmap.
-Integrated visual-conflict detection before export.
+Single Figure 5 artifact combining the benchmark overview panels and the
+subcategory diagnostic heatmaps.
 
 Usage:
     python benchmarks/scripts/plotting/plot_composed.py
@@ -28,7 +28,8 @@ warnings.filterwarnings("ignore", category=UserWarning, module="matplotlib")
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent.parent.parent))
 
 from vcd import detect_all_conflicts
-from benchmarks.scripts.plotting.shared import setup_fonts, load_benchmark_npz, load_config_metrics, add_config_legend_footnote, panel_label
+from benchmarks.scripts.plotting.shared import setup_fonts, load_benchmark_npz, load_config_metrics, export_subpanels, panel_label
+from benchmarks.scripts.plotting.plot_subcategory_heatmap import load_metrics as load_subcategory_metrics, draw_subcategory_block
 from mocoo.visualization.style import (
     FIG_WIDTH_IN, FIG_HEIGHT_IN, DPI,
     FS_LABEL, FS_TITLE, FS_AXIS, FS_TICK, FS_LEGEND, FS_SMALL,
@@ -137,15 +138,13 @@ def _draw_umap_panel(fig, umap_axes, configs, latents, labels_arr,
         for sp in ax.spines.values():
             sp.set_visible(False)
 
-    # shared legend between the UMAP and training curve blocks
     handles, lbls = fig.axes[0].get_legend_handles_labels()
-    # Use more columns for datasets with many cell types to keep legend compact
-    n_cols = min(max(6, len(lbls) // 4), 10)
-    fig.legend(handles, lbls, loc="lower center",
-               bbox_to_anchor=(0.5, 0.655),
-               ncol=len(lbls), markerscale=2.2,
-               fontsize=max(FONT_ANNOT - 2, 5), frameon=False,
-               handlelength=0.8, columnspacing=0.5, labelspacing=0.2)
+    if handles:
+        fig.legend(handles, lbls, loc="upper center",
+               bbox_to_anchor=(0.5, 0.992),
+                   ncol=max(4, min(len(lbls), 10)), markerscale=1.8,
+               fontsize=max(FONT_ANNOT - 3, 5), frameon=False,
+                   handlelength=0.8, columnspacing=0.5, labelspacing=0.2)
 
 
 def _draw_training_curves(fig, curve_axes, configs, val_losses, val_scores):
@@ -261,9 +260,17 @@ def _draw_heatmap(ax, configs, mets):
             clr = "white" if norm[r, c] > 0.45 else "black"
             ax.text(c, r, fmt, ha="center", va="center",
                     fontsize=FONT_ANNOT - 1, color=clr)
-    cb = ax.figure.colorbar(im, ax=ax, shrink=0.55, pad=0.02)
-    cb.ax.tick_params(labelsize=FONT_TICK)
-    cb.ax.set_xticks([])
+    cax = ax.inset_axes([0.90, 0.10, 0.035, 0.34])
+    cb = ax.figure.colorbar(im, cax=cax)
+    cb.ax.tick_params(labelsize=FONT_TICK - 1, length=1.5, pad=0.6)
+    cb.outline.set_linewidth(0.5)
+
+
+def _resolve_subcategory_dir(cache_dir: Path | None) -> Path | None:
+    if cache_dir is None:
+        return None
+    candidate = Path(cache_dir).parent / "beta_ablation" / "beta_0.1"
+    return candidate if candidate.exists() else None
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -273,10 +280,11 @@ def _draw_heatmap(ax, configs, mets):
 def build_composed(data, outpath: Path, cache_dir: Path | None = None):
     """Build the single composed figure and save with conflict detection.
 
-    Streamlined layout (3 rows) showing the most informative panels:
+        Streamlined layout showing the most informative panels:
       Row 0 (A): UMAP grid
       Row 1 (B): Training curves (val loss)
       Row 2 (C): All-metrics heatmap
+            Row 3 (D): Subcategory diagnostic heatmaps
     """
     configs    = data["configs"]
     mets       = data["metrics"]
@@ -284,6 +292,9 @@ def build_composed(data, outpath: Path, cache_dir: Path | None = None):
     labels     = data["labels"]
     val_losses = data["val_losses"]
     val_scores = data["val_scores"]
+
+    subcategory_dir = _resolve_subcategory_dir(cache_dir)
+    subcategory_data = load_subcategory_metrics(subcategory_dir) if subcategory_dir else {}
 
     # Pre-compute UMAPs (outside figure creation for progress visibility)
     print("Pre-computing UMAP embeddings...")
@@ -294,15 +305,14 @@ def build_composed(data, outpath: Path, cache_dir: Path | None = None):
         cache_path = cache_dir / "umap_cache.npz"
     umap_embeddings = _compute_umaps(configs, latents, cache_path)
 
-    # ── Figure with absolute-geometry layout ─────────────────────────────
-    fig = plt.figure(figsize=(FIG_W, FIG_H * 0.55), dpi=DPI)
+    fig = plt.figure(figsize=(FIG_W, FIG_H * 0.92), dpi=DPI)
 
-    # Row 0 — UMAP grid (A): 2×3, wider row gap to prevent spillover
-    _u_cw = (0.92 - 0.03 * 2) / 3   # ~0.2867
-    _u_rh = 0.12
+    # Row 0 — UMAP grid (A)
+    _u_cw = (0.90 - 0.025 * 2) / 3
+    _u_rh = 0.10
     umap_axes = [
-        [fig.add_axes([0.04 + c * (_u_cw + 0.03),
-                       0.68 + 0.26 - (r + 1) * _u_rh - r * 0.06,
+        [fig.add_axes([0.06 + c * (_u_cw + 0.025),
+                       0.74 + 0.20 - (r + 1) * _u_rh - r * 0.05,
                        _u_cw, _u_rh])
          for c in range(3)]
         for r in range(2)
@@ -316,13 +326,12 @@ def build_composed(data, outpath: Path, cache_dir: Path | None = None):
         for vs in val_scores
     )
     if has_scores:
-        # 2×4 grid of training curve panels — push down slightly
-        _tc_cw = (0.86 - 0.05 * 3) / 4   # ~0.1775
-        _tc_rh = 0.08
-        _tc_gap_v = 0.07
+        _tc_cw = (0.84 - 0.04 * 3) / 4
+        _tc_rh = 0.072
+        _tc_gap_v = 0.055
         _cg = [
-            [fig.add_axes([0.10 + c * (_tc_cw + 0.05),
-                           0.36 + 0.23 - (r + 1) * _tc_rh - r * _tc_gap_v,
+            [fig.add_axes([0.12 + c * (_tc_cw + 0.04),
+                           0.49 + 0.17 - (r + 1) * _tc_rh - r * _tc_gap_v,
                            _tc_cw, _tc_rh])
              for c in range(4)]
             for r in range(2)
@@ -332,33 +341,55 @@ def build_composed(data, outpath: Path, cache_dir: Path | None = None):
         # 2 panels in a row
         _tc2_aw = (0.86 - 0.05) / 2  # 0.405
         curve_axes = [
-            fig.add_axes([0.10, 0.36, _tc2_aw, 0.24]),
-            fig.add_axes([0.10 + _tc2_aw + 0.05, 0.36, _tc2_aw, 0.24]),
+            fig.add_axes([0.12, 0.49, _tc2_aw, 0.18]),
+            fig.add_axes([0.12 + _tc2_aw + 0.05, 0.49, _tc2_aw, 0.18]),
         ]
     _draw_training_curves(fig, curve_axes, configs, val_losses, val_scores)
 
-    # Row 2 — Heatmap (C) — more bottom margin for rotated labels
-    ax_hm = fig.add_axes([0.10, 0.14, 0.86, 0.18])
+    # Row 2 — curated heatmap (C)
+    ax_hm = fig.add_axes([0.12, 0.31, 0.80, 0.11])
     _draw_heatmap(ax_hm, configs, mets)
+
+    # Row 3 — subcategory diagnostics (D)
+    d_top_gap = 0.035
+    d_top_w = (0.80 - 2 * d_top_gap) / 3
+    d_bot_gap = 0.05
+    d_bot_w = (0.80 - d_bot_gap) / 2
+    axes_D = [
+        fig.add_axes([0.12, 0.15, d_top_w, 0.095]),
+        fig.add_axes([0.12 + d_top_w + d_top_gap, 0.15, d_top_w, 0.095]),
+        fig.add_axes([0.12 + 2 * (d_top_w + d_top_gap), 0.15, d_top_w, 0.095]),
+        fig.add_axes([0.12, 0.015, d_bot_w, 0.095]),
+        fig.add_axes([0.12 + d_bot_w + d_bot_gap, 0.015, d_bot_w, 0.095]),
+    ]
+    if subcategory_data:
+        draw_subcategory_block(fig, axes_D, subcategory_data, configs=configs)
+    else:
+        for ax in axes_D:
+            ax.set_axis_off()
+        axes_D[0].text(0.5, 0.5, "Subcategory beta sweep data unavailable",
+                       ha="center", va="center", fontsize=FONT_AXIS_LABEL,
+                       transform=axes_D[0].transAxes, color="gray")
 
     # ── Panel labels (A–C) ──────────────────────────────────────────────
     panel_axes = []
-    umap_axes = [a for a in fig.axes
-                 if a.get_title() and a.get_title() in configs]
-    if umap_axes:
-        panel_axes.append(("A", umap_axes[0]))
+    umap_panel_axes = [a for a in fig.axes
+                       if a.get_title() and a.get_title() in configs]
+    if umap_panel_axes:
+        panel_axes.append(("A", umap_panel_axes[0]))
     tc_axes = [a for a in fig.axes
                if a.get_title() in ("Val Loss", "Val ARI", "Val NMI")]
     if tc_axes:
         panel_axes.append(("B", tc_axes[0]))
     panel_axes.append(("C", ax_hm))
+    panel_axes.append(("D", axes_D[0]))
 
     for letter, ax in panel_axes:
         try:
             x_off = -0.025
-            if letter == "C":
+            if letter in ("C", "D"):
                 x_off = -0.06
-            y_off = 0.012 if letter != "B" else 0.020
+            y_off = 0.010 if letter != "B" else 0.016
             panel_label(fig, ax, letter, x_off=x_off, y_off=y_off)
         except Exception:
             pass
@@ -373,11 +404,20 @@ def build_composed(data, outpath: Path, cache_dir: Path | None = None):
 
     from mocoo.visualization.style import save_figure
     save_figure(fig, str(outpath), pad_inches=pad)
+
+    sub_dir = outpath.parent / outpath.stem
+    sub_dir.mkdir(parents=True, exist_ok=True)
+    export_subpanels(fig, sub_dir, [
+        (umap_axes[0][0], "panelA_umap_grid"),
+        (curve_axes[0], "panelB_training_curves"),
+        (ax_hm, "panelC_metric_heatmap"),
+        (axes_D[0], "panelD_subcategory_block"),
+    ])
     plt.close(fig)
 
     n_warn = sum(1 for i in issues if i["severity"] == "warning")
     n_err  = sum(1 for i in issues if i["severity"] == "error")
-    print(f"\nComposed figure saved → {outpath}")
+    print(f"\nIntegrated Figure 5 saved → {outpath}")
     print(f"  Warnings: {n_warn}  |  Errors: {n_err}")
     if n_warn + n_err == 0:
         print("  CLEAN — no conflicts detected")

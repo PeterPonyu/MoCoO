@@ -1,7 +1,8 @@
 """Plot subcategory metric heatmap across configurations.
 
-Generates a single merged Figure 5 subcategory view with five panels
-(Clustering, DRE, DREX, LSE, LSEX) using explicit axes geometry.
+This module primarily provides the subcategory diagnostic block embedded in the
+integrated Figure 5 builder. It can still be run standalone to export just that
+block into the Figure 5 subpanel directory.
 
 Usage:
     python plot_subcategory_heatmap.py [--resultsdir DIR] [--outdir DIR]
@@ -19,7 +20,7 @@ import numpy as np
 
 import sys
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent.parent.parent))
-from benchmarks.scripts.plotting.shared import setup_fonts, panel_label, add_config_legend_footnote, add_metric_footnote
+from benchmarks.scripts.plotting.shared import setup_fonts, panel_label
 from vcd import detect_all_conflicts
 from mocoo.visualization.style import (
     FIG_WIDTH_IN, FIG_HEIGHT_IN, DPI,
@@ -91,7 +92,7 @@ def load_metrics(rdir: Path) -> dict:
     return data
 
 
-def make_heatmap(ax, data, panel_name, metrics_spec, configs):
+def make_heatmap(ax, data, panel_name, metrics_spec, configs, *, show_ylabels=True):
     """Draw a column-normalised heatmap and return per-config win counts."""
     n_cfg = len(configs)
     n_met = len(metrics_spec)
@@ -149,19 +150,38 @@ def make_heatmap(ax, data, panel_name, metrics_spec, configs):
             txt = f"{val:.0f}" if abs(val) > 10 else f"{val:.2f}"
             color = "white" if norm_mat[i, j] > HEATMAP_DARK_THRESHOLD else "black"
             ax.text(j, i, txt, ha="center", va="center",
-                    fontsize=FS_SMALL - 2, fontweight="normal", color=color)
+                    fontsize=FS_SMALL - 3, fontweight="normal", color=color)
 
     ax.set_xticks(range(n_met))
-    ax.set_xticklabels([m[1] for m in metrics_spec], fontsize=FS_SMALL - 1, rotation=90, ha="center")
+    ax.set_xticklabels([m[1] for m in metrics_spec], fontsize=FS_SMALL - 2, rotation=65, ha="right")
     ax.set_yticks(range(n_cfg))
-    # Append win count to y-labels
     ylabels = [SHORT_NAMES.get(c, c) for i, c in enumerate(configs)]
-    ax.set_yticklabels(ylabels, fontsize=FS_SMALL - 1)
+    if show_ylabels:
+        ax.set_yticklabels(ylabels, fontsize=FS_SMALL - 1)
+    else:
+        ax.set_yticklabels([])
     # Extra padding so labels don't overlap with heatmap boundaries
     ax.tick_params(axis="y", pad=8)
     ax.tick_params(axis="x", pad=4)
-    ax.set_title(panel_name, fontsize=FS_TITLE, pad=2)
+    ax.set_title(panel_name, fontsize=FS_TITLE - 1, pad=2)
     return im, wins
+
+
+def draw_subcategory_block(fig, axes_list, data, configs=None):
+    """Draw the 5-panel subcategory diagnostic block on the supplied axes."""
+    active_configs = list(configs or CONFIGS)
+    total_wins = np.zeros(len(active_configs), dtype=int)
+    for idx, (pname, metrics_spec) in enumerate(PANELS.items()):
+        _, wins = make_heatmap(
+            axes_list[idx],
+            data,
+            pname,
+            metrics_spec,
+            active_configs,
+            show_ylabels=(idx in (0, 3)),
+        )
+        total_wins += wins
+    return total_wins
 
 
 def main():
@@ -184,7 +204,6 @@ def main():
         print(f"No JSON files found in {rdir}")
         return
 
-    panels = list(PANELS.items())
     fig = plt.figure(figsize=(FIG_WIDTH_IN * 1.35, FIG_HEIGHT_IN * 0.72), dpi=DPI)
 
     top_gap = 0.04
@@ -199,10 +218,7 @@ def main():
         fig.add_axes([0.12 + bot_w + bot_gap, 0.16, bot_w, 0.24]),
     ]
 
-    total_wins = np.zeros(len(CONFIGS), dtype=int)
-    for idx, (pname, metrics_spec) in enumerate(panels):
-        _, wins = make_heatmap(axes_list[idx], data, pname, metrics_spec, CONFIGS)
-        total_wins += wins
+    total_wins = draw_subcategory_block(fig, axes_list, data, CONFIGS)
 
     print("Win counts per config (merged subcategory heatmap):")
     for i, cfg in enumerate(CONFIGS):
@@ -211,7 +227,8 @@ def main():
     for idx, ax in enumerate(axes_list):
         panel_label(fig, ax, "ABCDE"[idx], x_off=-0.04, y_off=0.028)
 
-    out_path = outdir / "fig5_subcategory_heatmap.png"
+    out_path = outdir / "fig5_composed_benchmark" / "panelD_subcategory_block.png"
+    out_path.parent.mkdir(parents=True, exist_ok=True)
 
     print("\n── Conflict Detection (merged subcategory heatmap) ──")
     issues = detect_all_conflicts(fig, label="subcategory_heatmap", verbose=True)

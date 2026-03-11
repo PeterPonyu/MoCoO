@@ -16,7 +16,6 @@ SCRIPTS = [
     ("benchmarks.scripts.plotting.plot_ablation_summary",    "fig3_ablation_summary"),
     ("benchmarks.scripts.plotting.plot_training_dynamics",   "fig4_training_dynamics"),
     ("benchmarks.scripts.plotting.plot_composed",            "fig5_composed"),
-    ("benchmarks.scripts.plotting.plot_subcategory_heatmap", "fig5_subcategory_heatmap"),
     ("benchmarks.scripts.plotting.plot_beta_sensitivity",    "fig6_beta_sensitivity"),
     ("benchmarks.scripts.plotting.plot_generalization",      "fig7_generalization"),
     ("benchmarks.scripts.plotting.plot_ode_trajectory",      "supp_ode_trajectory"),

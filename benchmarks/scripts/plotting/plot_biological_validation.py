@@ -217,11 +217,11 @@ def _umap_lims(emb: np.ndarray, pad: float = 0.05):
 
 def _inset_cbar(fig, ax, mappable, label: str = ""):
     """Tiny colorbar inside bottom-right of axes (avoids cross-panel leakage)."""
-    cax = ax.inset_axes([0.76, 0.08, 0.025, 0.22])
+    cax = ax.inset_axes([0.82, 0.10, 0.018, 0.18])
     cb = fig.colorbar(mappable, cax=cax)
-    cb.ax.tick_params(labelsize=max(FS_SMALL - 1, 6), length=1.2, pad=0.4)
+    cb.ax.tick_params(labelsize=max(FS_SMALL - 2, 5), length=1.0, pad=0.3)
     if label:
-        cb.ax.set_ylabel(label, fontsize=max(FS_SMALL - 1, 6), labelpad=1)
+        cb.ax.set_ylabel(label, fontsize=max(FS_SMALL - 2, 5), labelpad=0.8)
     return cb
 
 
@@ -241,8 +241,8 @@ def _umap_celltype(ax, emb, labels, title, show_ylabel=True):
                               markerfacecolor=cm20(k % 20), markersize=3)
                    for k in range(len(uniq))]
         ax.legend(handles, [str(lb) for lb in uniq],
-                  fontsize=FS_SMALL-2, ncol=2, loc="upper right",
-                  framealpha=0.65, handletextpad=0.1,
+                  fontsize=FS_SMALL-2, ncol=2, loc="upper center",
+                  bbox_to_anchor=(0.5, 1.00), frameon=False, handletextpad=0.1,
                   borderpad=0.15, markerscale=0.6,
                   columnspacing=0.3)
 
@@ -289,7 +289,7 @@ def _draw_panel_A(ax_a1, ax_a2, fig, configs, latents, labels_all,
     ax_a1.grid(alpha=0.22, linestyle="--", linewidth=0.4)
     # Legend as fig.text to avoid data occlusion
     handles, leg_labels = ax_a1.get_legend_handles_labels()
-    legend_ax = fig.add_axes([0.33, 0.945, 0.60, 0.028])
+    legend_ax = fig.add_axes([0.12, 0.945, 0.83, 0.028])
     legend_ax.set_axis_off()
     legend_ax._is_legend_cell = True
     legend_ax.legend(handles, leg_labels, fontsize=FS_SMALL-1, frameon=False, ncol=6,
@@ -458,22 +458,22 @@ def build_figure(data, adata, outpath: Path):
     ax_a2 = fig.add_axes([0.12, 0.73, 0.83, 0.06])
 
     # Row B: UMAP panels (1 cell-type + 4 component UMAPs) — 5 explicit axes
-    _bw = (0.92 - 0.02 * 4) / 5  # ~0.168
-    axes_b = [fig.add_axes([0.04 + i * (_bw + 0.02), 0.54, _bw, 0.12])
+    _bw = (0.80 - 0.015 * 4) / 5
+    axes_b = [fig.add_axes([0.12 + i * (_bw + 0.015), 0.54, _bw, 0.12])
               for i in range(5)]
 
     # Row C: Gene expression panels (5 scalar UMAPs) — 5 explicit axes
-    _cw_c = (0.92 - 0.02 * 4) / 5  # ~0.168
-    axes_c = [fig.add_axes([0.04 + i * (_cw_c + 0.02), 0.41, _cw_c, 0.09])
+    _cw_c = (0.80 - 0.015 * 4) / 5
+    axes_c = [fig.add_axes([0.12 + i * (_cw_c + 0.015), 0.41, _cw_c, 0.09])
               for i in range(5)]
 
     # Row D: 2×3 grid of per-config Pearson heatmaps
-    _d_cw = (0.80 - 0.05 * 2) / 3  # ~0.233
+    _d_cw = (0.80 - 0.06 * 2) / 3
     _d_rh = 0.11
-    _d_gap_v = 0.05
+    _d_gap_v = 0.06
     _d_top = 0.34  # top of heatmap block
     axes_d = [
-        [fig.add_axes([0.15 + c * (_d_cw + 0.05),
+        [fig.add_axes([0.12 + c * (_d_cw + 0.06),
                        _d_top - (r + 1) * _d_rh - r * _d_gap_v,
                        _d_cw, _d_rh])
          for c in range(3)]

@@ -205,7 +205,7 @@ def _draw_neighbourhood_quality(axes_list, fig, configs, metrics):
         # Highlight best
         _highlight_best(ax, bars, vals, higher_better)
         ax.set_xticks(x)
-        ax.set_xticklabels(short, fontsize=FS_SMALL, rotation=90, ha="center")
+        ax.set_xticklabels(short, fontsize=FS_SMALL, rotation=45, ha="right")
         ax.set_xlim(-0.5, len(configs) - 0.5)
         ax.set_title(label, fontsize=FS_AXIS, pad=1)
         if j == 0:
@@ -310,10 +310,6 @@ def build_figure(rdir: Path, outdir: Path, multiseed_stats=None):
 
     print("  Drawing Panel D (Latent structure)...")
     ax_D = _draw_latent_structure(axes_D, fig, configs, metrics)
-    # D-row: hide xtick labels (configs identified by bar colour + legend)
-    for ax in axes_D:
-        ax.set_xticklabels([])
-
     panel_label(fig, ax_A, "A", x_off=-0.026)
     panel_label(fig, ax_B, "B", x_off=-0.026)
     panel_label(fig, ax_C, "C", x_off=-0.026)

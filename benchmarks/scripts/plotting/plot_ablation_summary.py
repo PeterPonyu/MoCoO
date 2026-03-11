@@ -202,7 +202,7 @@ def _draw_synergy_heatmap(ax, fig, rdir):
     ax.set_title("ODE \u00d7 MoCo Synergy",
                  fontsize=FS_AXIS, pad=3)
 
-    cax = ax.inset_axes([0.986, 0.10, 0.018, 0.80])
+    cax = ax.inset_axes([0.93, 0.10, 0.015, 0.42])
     cb = fig.colorbar(im, cax=cax)
     cb.ax.tick_params(labelsize=max(FS_SMALL - 1, 6), length=1.2, pad=0.4)
     cb.set_label("Interaction term", fontsize=FS_SMALL, labelpad=2)
@@ -428,11 +428,10 @@ def build_figure(rdir: Path, outdir: Path, multiseed_stats=None):
     # Row D: permutation boxplots (full width)
     ax_D = fig.add_axes([L, row_b[3], W_all, row_h[3]])
 
-    print("  Drawing Panel A (Synergy heatmap + summary table)...")
+    print("  Drawing Panel A (Synergy heatmap + summary profile)...")
     _draw_synergy_heatmap(ax_A, fig, rdir)
 
-    # Panel A right: quick summary table of top metric per config
-    _draw_summary_table(ax_A_table, configs, metrics)
+    _draw_summary_stats(ax_A_table, configs, metrics)
 
     print("  Drawing Panel B (Incremental gain)...")
     ax_B = _draw_incremental_gain(axes_B, fig, configs, metrics, multiseed_stats=multiseed_stats)
@@ -474,39 +473,39 @@ def build_figure(rdir: Path, outdir: Path, multiseed_stats=None):
     return issues
 
 
-def _draw_summary_table(ax, configs, metrics):
-    """Mini table: config × {ARI, NMI, ASW, Time, Mem}."""
-    keys   = ["ARI",  "NMI",  "ASW",  "train_time_s", "peak_mem_gb"]
-    hdrs   = ["Config","ARI↑","NMI↑","ASW↑","Time(s)","Mem(GB)"]
-    rows   = []
-    for cfg in configs:
-        row = [_SHORT[cfg]] + [f"{metrics[cfg].get(k,0):.3f}" for k in keys]
-        rows.append(row)
+def _draw_summary_stats(ax, configs, metrics):
+    """Compact normalised metric profile plot replacing the old table."""
+    metric_specs = [
+        ("ARI", "ARI"),
+        ("NMI", "NMI"),
+        ("ASW", "ASW"),
+        ("DREX_overall_quality", "DREX"),
+        ("LSE_overall_quality", "LSE"),
+    ]
+    x = np.arange(len(metric_specs))
+    raw = np.array([
+        [metrics[cfg].get(key, np.nan) for key, _ in metric_specs]
+        for cfg in configs
+    ], dtype=float)
+    col_min = np.nanmin(raw, axis=0)
+    col_max = np.nanmax(raw, axis=0)
+    col_rng = np.where(col_max - col_min < 1e-8, 1.0, col_max - col_min)
+    norm = (raw - col_min) / col_rng
 
-    ax.axis("off")
-    tbl = ax.table(cellText=rows, colLabels=hdrs,
-                   cellLoc="center", loc="center", bbox=[0,0,1,1])
-    tbl.auto_set_font_size(False)
-    tbl.set_fontsize(FS_SMALL)
+    for cfg_idx, cfg in enumerate(configs):
+        ax.plot(x, norm[cfg_idx], marker="o", ms=3.2, lw=1.0,
+                color=_CONFIG_COLOR[cfg], alpha=0.85, label=_SHORT[cfg])
 
-    # Style header
-    for (r, c), cell in tbl.get_celld().items():
-        if r == 0:
-            cell.set_facecolor("#4C72B0")
-            cell.set_text_props(color="white")
-        elif r % 2 == 0:
-            cell.set_facecolor("#f0f4ff")
-        cell.set_edgecolor("#cccccc")
-        cell.set_linewidth(0.3)
-
-    # Highlight best per column (cols 1-3)
-    for mi, key in enumerate(["ARI", "NMI", "ASW"]):
-        vals = [metrics[c].get(key, -np.inf) for c in configs]
-        best = int(np.argmax(vals))
-        tbl[(best + 1, mi + 1)].set_facecolor("#c8e6c9")
-        tbl[(best + 1, mi + 1)].set_text_props()
-
-    ax.set_title("Summary Table", fontsize=FS_TITLE, pad=3)
+    ax.set_xlim(-0.25, len(metric_specs) - 0.75)
+    ax.set_ylim(-0.02, 1.02)
+    ax.set_xticks(x)
+    ax.set_xticklabels([label for _, label in metric_specs], fontsize=FS_SMALL)
+    ax.set_ylabel("Norm. score", fontsize=FS_AXIS)
+    ax.set_title("Metric Profiles", fontsize=FS_TITLE, pad=3)
+    ax.grid(alpha=0.22, linestyle="--", linewidth=0.4, axis="y")
+    ax.tick_params(labelsize=FS_TICK)
+    ax.legend(fontsize=max(FS_SMALL - 1, 6), frameon=False, ncol=2,
+              loc="lower right", handlelength=1.0, columnspacing=0.6)
 
 
 def main():

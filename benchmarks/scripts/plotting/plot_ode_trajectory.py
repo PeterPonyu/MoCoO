@@ -128,8 +128,9 @@ def _draw_pca_comparison(axes, fig, configs, latents, labels):
         ax_pt.set_title(f"{cfg} (Pseudotime)", fontsize=FS_TITLE, pad=2)
         if j == 0:
             ax_pt.set_ylabel("PC 2", fontsize=FS_AXIS)
-        # Tiny colorbar
-        cax = ax_pt.inset_axes([0.78, 0.04, 0.04, 0.30])
+        for spine in ax_pt.spines.values():
+            spine.set_visible(False)
+        cax = ax_pt.inset_axes([0.84, 0.05, 0.03, 0.28])
         cb  = fig.colorbar(sc, cax=cax)
         cb.ax.tick_params(labelsize=6, length=1.2, pad=0.4)
         cb.set_label("Pseudotime", fontsize=6, labelpad=1)
@@ -346,16 +347,16 @@ def _draw_trajectory_smoothness(axes, fig, configs, latents, labels):
 def build_figure(rdir: Path, outdir: Path, adata_path: str):
     configs, latents, labels = _load_data(rdir)
 
-    fig = plt.figure(figsize=(FIG_WIDTH_IN, FIG_HEIGHT_IN * 0.95), dpi=DPI)
+    fig = plt.figure(figsize=(FIG_WIDTH_IN * 1.10, FIG_HEIGHT_IN * 0.90), dpi=DPI)
 
     n_cfgs = 3  # VAE, VAE+ODE, Full
 
     # A: 2-row × n_cfgs-col PCA grid — shifted down to leave legend band at top
-    _a_cw = (0.86 - 0.04 * (n_cfgs - 1)) / n_cfgs  # ~0.26
+    _a_cw = (0.88 - 0.05 * (n_cfgs - 1)) / n_cfgs
     _a_rh = 0.10
     _a_top = 0.96
     grid_A = [
-        [fig.add_axes([0.10 + c * (_a_cw + 0.04),
+        [fig.add_axes([0.08 + c * (_a_cw + 0.05),
                        _a_top - (r + 1) * _a_rh - r * 0.03,
                        _a_cw, _a_rh])
          for c in range(n_cfgs)]
@@ -363,20 +364,20 @@ def build_figure(rdir: Path, outdir: Path, adata_path: str):
     ]
 
     # B: 2 violin plots — wider gap from A
-    _b_aw = (0.86 - 0.06) / 2  # 0.40
+    _b_aw = (0.88 - 0.06) / 2
     axes_B = [
-        fig.add_axes([0.10, 0.50, _b_aw, 0.14]),
-        fig.add_axes([0.10 + _b_aw + 0.06, 0.50, _b_aw, 0.14]),
+        fig.add_axes([0.08, 0.50, _b_aw, 0.14]),
+        fig.add_axes([0.08 + _b_aw + 0.06, 0.50, _b_aw, 0.14]),
     ]
 
     # C: single wide gene expression panel
-    ax_C_single = fig.add_axes([0.10, 0.28, 0.86, 0.14])
+    ax_C_single = fig.add_axes([0.08, 0.28, 0.88, 0.14])
 
     # D: 2 panels — pairwise dist histogram + NN entropy bars
-    _d_aw = (0.86 - 0.10) / 2  # 0.38
+    _d_aw = (0.88 - 0.10) / 2
     axes_D = [
-        fig.add_axes([0.10, 0.07, _d_aw, 0.12]),
-        fig.add_axes([0.10 + _d_aw + 0.10, 0.07, _d_aw, 0.12]),
+        fig.add_axes([0.08, 0.07, _d_aw, 0.12]),
+        fig.add_axes([0.08 + _d_aw + 0.10, 0.07, _d_aw, 0.12]),
     ]
 
     print("  Drawing Panel A (PCA pseudotime)...")
@@ -393,7 +394,7 @@ def build_figure(rdir: Path, outdir: Path, adata_path: str):
     panel_label(fig, ax_A, "A", x_off=-0.08, y_off=0.010)
     panel_label(fig, ax_B, "B", x_off=-0.08, y_off=0.030)
     panel_label(fig, ax_C, "C", x_off=-0.08, y_off=0.035)
-    panel_label(fig, ax_D, "D", x_off=-0.08, y_off=0.030)
+    panel_label(fig, ax_D, "D", x_off=-0.08, y_off=0.010)
 
     fig.canvas.draw()
     print("\n── Conflict Detection ──")

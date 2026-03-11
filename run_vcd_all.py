@@ -6,8 +6,6 @@ from pathlib import Path
 scripts = [
     ("fig6_beta_sensitivity",
      "python benchmarks/scripts/plotting/plot_beta_sensitivity.py --resultsdir benchmarks/results --outdir /tmp/vcd"),
-    ("fig5_subcat_heatmap",
-     "python benchmarks/scripts/plotting/plot_subcategory_heatmap.py --resultsdir benchmarks/results/beta_ablation/beta_0.1 --outdir /tmp/vcd"),
     ("fig4_training_dynamics",
      "python benchmarks/scripts/plotting/plot_training_dynamics.py --resultsdir benchmarks/results/single_dataset --outdir /tmp/vcd"),
     ("fig5_composed",

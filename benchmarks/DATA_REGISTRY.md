@@ -30,18 +30,19 @@ All data paths required to regenerate each figure from scratch.
 - **Output**: `benchmarks/figures/fig4_training_dynamics.png` + sub-panels
 - **Regenerate**: `python benchmarks/scripts/plotting/plot_training_dynamics.py`
 
-## Figure 5a — Composed Benchmark
+## Figure 5 — Integrated Benchmark Overview
 - **Script**: `benchmarks/scripts/plotting/plot_composed.py`
 - **Data**: `benchmarks/results/single_dataset/benchmark_data.npz`
 - **Metrics**: `benchmarks/results/single_dataset/*.json`
 - **UMAP cache**: `benchmarks/results/single_dataset/umap_cache.npz`
-- **Output**: `benchmarks/figures/fig5_composed_benchmark.png`
+- **Beta sweep input**: `benchmarks/results/beta_ablation/beta_0.1/*.json`
+- **Output**: `benchmarks/figures/fig5_composed_benchmark.png` + sub-panels in `fig5_composed_benchmark/`
 - **Regenerate**: `python benchmarks/scripts/plotting/plot_composed.py`
 
-## Figure 5b — Subcategory Heatmap
+### Figure 5 helper block — Subcategory Heatmap
 - **Script**: `benchmarks/scripts/plotting/plot_subcategory_heatmap.py`
-- **Data**: `benchmarks/results/single_dataset/*.json`
-- **Output**: `benchmarks/figures/fig5_subcategory_heatmap.png`
+- **Data**: `benchmarks/results/beta_ablation/beta_0.1/*.json`
+- **Output**: `benchmarks/figures/fig5_composed_benchmark/panelD_subcategory_block.png`
 - **Regenerate**: `python benchmarks/scripts/plotting/plot_subcategory_heatmap.py`
 
 ## Figure 6a — Beta Sensitivity

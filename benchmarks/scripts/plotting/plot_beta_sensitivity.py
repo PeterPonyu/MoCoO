@@ -81,12 +81,12 @@ def build_figure(results_base: Path, outdir: Path):
 
     betas_present = sorted(all_data.keys())
 
-    fig = plt.figure(figsize=(FIG_WIDTH_IN, FIG_HEIGHT_IN * 0.80))
-    # 3×3 grid — wider gutters, lowered top for legend clearance
-    _cw = (0.86 - 0.06 * 2) / 3   # ~0.2467
+    fig = plt.figure(figsize=(FIG_WIDTH_IN * 1.10, FIG_HEIGHT_IN * 0.76))
+    # 3×3 grid — slightly wider overall to reduce cross-panel title crowding
+    _cw = (0.90 - 0.055 * 2) / 3
     _rh = (0.72 - 0.06 * 2) / 3   # ~0.2000
     axes = np.array([
-        [fig.add_axes([0.10 + c * (_cw + 0.06),
+        [fig.add_axes([0.08 + c * (_cw + 0.055),
                        0.16 + 0.72 - (r + 1) * _rh - r * 0.06,
                        _cw, _rh])
          for c in range(3)]

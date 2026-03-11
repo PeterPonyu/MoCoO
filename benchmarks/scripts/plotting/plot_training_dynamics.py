@@ -274,7 +274,7 @@ def build_figure(rdir: Path, outdir: Path):
         )
 
         panel_label(fig, ax_A, "A", x_off=-0.08, y_off=0.036)
-        panel_label(fig, ax_B, "B", x_off=-0.08, y_off=0.036)
+        panel_label(fig, ax_B, "B", x_off=-0.08, y_off=0.010)
         panel_label(fig, ax_C, "C", x_off=-0.10, y_off=0.040)
 
         sub_panels = [(ax_A, "panelA_train_loss"),
@@ -310,7 +310,7 @@ def build_figure(rdir: Path, outdir: Path):
         )
 
         panel_label(fig, ax_A, "A", x_off=-0.08, y_off=0.040)
-        panel_label(fig, ax_B, "B", x_off=-0.08, y_off=0.040)
+        panel_label(fig, ax_B, "B", x_off=-0.08, y_off=0.012)
 
         sub_panels = [(ax_A, "panelA_train_loss"),
                       (ax_B, "panelB_efficiency")]

@@ -12,8 +12,8 @@ import matplotlib.pyplot as plt
 from benchmarks.scripts.plotting.plot_quant_comparison import build_figure as bf_fig2
 from benchmarks.scripts.plotting.plot_ablation_summary import build_figure as bf_fig3
 from benchmarks.scripts.plotting.plot_training_dynamics import build_figure as bf_fig4
-from benchmarks.scripts.plotting.plot_composed import build_figure as bf_fig5
-from benchmarks.scripts.plotting.plot_subcategory_heatmap import build_figure as bf_fig5h
+from benchmarks.scripts.plotting.plot_composed import build_composed as bf_fig5
+from benchmarks.scripts.plotting.plot_composed import load_results as lr_fig5
 from benchmarks.scripts.plotting.plot_beta_sensitivity import build_figure as bf_fig6
 from benchmarks.scripts.plotting.plot_generalization import build_figure as bf_fig7
 from benchmarks.scripts.plotting.plot_ode_trajectory import build_figure as bf_ode
@@ -31,8 +31,7 @@ FIGURES = [
     ("fig2_quant_comparison", lambda: bf_fig2(SD, OUT)),
     ("fig3_ablation_summary", lambda: bf_fig3(SD, OUT)),
     ("fig4_training_dynamics", lambda: bf_fig4(SD, OUT)),
-    ("fig5_composed_benchmark", lambda: bf_fig5(SD, OUT)),
-    ("fig5_subcategory_heatmap", lambda: bf_fig5h(BA, OUT)),
+    ("fig5_composed_benchmark", lambda: bf_fig5(lr_fig5(SD), OUT / "fig5_composed_benchmark.png", cache_dir=SD)),
     ("fig6_beta_sensitivity", lambda: bf_fig6(R, OUT)),
     ("fig7_generalization", lambda: bf_fig7(BA, OUT)),
     ("supp_ode_trajectory", lambda: bf_ode(SD, OUT, DATA)),
