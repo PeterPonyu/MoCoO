@@ -137,10 +137,8 @@ def build_figure(results_base: Path, outdir: Path):
     # Single legend above the grid (outside the matrix)
     handles, labels = axes[0, 0].get_legend_handles_labels()
     fig.legend(handles, labels, fontsize=FS_LEGEND, ncol=6,
-               loc="upper center", bbox_to_anchor=(0.50, 0.995),
+               loc="upper center", bbox_to_anchor=(0.50, 0.955),
                frameon=False, handlelength=1.5, columnspacing=1.0)
-
-    add_config_legend_footnote(fig, y_pos=0.005)
 
     # Panel labels — only on leftmost column, shifted outward
     letters = "ABC"

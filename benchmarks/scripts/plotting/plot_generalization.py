@@ -122,7 +122,9 @@ def _draw_paired_bars(ax, data, metric_key, metric_label, configs, multiseed_sta
                         fontsize=FS_SMALL, rotation=90, ha="right")
     ax.set_xlim(-0.5, n - 0.5)
     ax.set_title(metric_label, fontsize=FS_TITLE, pad=1)
-    ax.tick_params(axis="both", labelsize=FS_TICK)
+    ax.tick_params(axis="x", labelsize=FS_SMALL)
+    ax.tick_params(axis="y", labelsize=max(FS_SMALL - 1, 6))
+    ax.yaxis.set_major_locator(plt.MaxNLocator(nbins=3, prune="both"))
     ax.spines["top"].set_visible(False)
     ax.spines["right"].set_visible(False)
     ax.grid(alpha=0.22, linestyle="--", linewidth=0.4, axis="y")
@@ -142,7 +144,7 @@ def build_figure(rdir: Path, outdir: Path, multiseed_stats=None):
     fig = plt.figure(figsize=(FIG_WIDTH_IN, FIG_HEIGHT_IN * 0.70))
 
     # Row 1: 3 clustering panels — wider gaps for rotated labels
-    _aw1 = (0.82 - 0.06 * 2) / 3  # ~0.233
+    _aw1 = (0.80 - 0.06 * 2) / 3  # ~0.227
     ax_row1 = [
         fig.add_axes([0.10, 0.58, _aw1, 0.30]),
         fig.add_axes([0.10 + _aw1 + 0.06, 0.58, _aw1, 0.30]),
@@ -150,12 +152,12 @@ def build_figure(rdir: Path, outdir: Path, multiseed_stats=None):
     ]
 
     # Row 2: 4 quality panels — increased gap from row 1
-    _aw2 = (0.82 - 0.04 * 3) / 4  # 0.175
+    _aw2 = (0.80 - 0.05 * 3) / 4  # 0.1625
     ax_row2 = [
         fig.add_axes([0.10, 0.14, _aw2, 0.30]),
-        fig.add_axes([0.10 + _aw2 + 0.04, 0.14, _aw2, 0.30]),
-        fig.add_axes([0.10 + 2 * (_aw2 + 0.04), 0.14, _aw2, 0.30]),
-        fig.add_axes([0.10 + 3 * (_aw2 + 0.04), 0.14, _aw2, 0.30]),
+        fig.add_axes([0.10 + _aw2 + 0.05, 0.14, _aw2, 0.30]),
+        fig.add_axes([0.10 + 2 * (_aw2 + 0.05), 0.14, _aw2, 0.30]),
+        fig.add_axes([0.10 + 3 * (_aw2 + 0.05), 0.14, _aw2, 0.30]),
     ]
 
     # Row 1: clustering (3 metrics, now spanning full width)
@@ -174,16 +176,13 @@ def build_figure(rdir: Path, outdir: Path, multiseed_stats=None):
     import matplotlib.patches as mpatches
     val_patch = mpatches.Patch(facecolor="#888888", edgecolor="white", alpha=0.85, label="Val (train split)")
     test_patch = mpatches.Patch(facecolor="#888888", edgecolor="white", alpha=0.55, hatch="//", label="Test (held-out)")
-    fig.legend(handles=[val_patch, test_patch], fontsize=FS_LEGEND, ncol=2,
-               loc="upper center", bbox_to_anchor=(0.50, 0.98),
-               frameon=True, framealpha=0.65)
+    ax_row1[0].text(0.98, 0.97, "Val\nTest",
+                    transform=ax_row1[0].transAxes,
+                    fontsize=max(FS_SMALL - 1, 6), ha="right", va="top")
 
     # Panel labels
     panel_label(fig, ax_row1[0], "A", x_off=-0.06, y_off=0.020)
     panel_label(fig, ax_row2[0], "B", x_off=-0.06, y_off=0.020)
-
-    add_config_legend_footnote(fig, y_pos=0.005)
-    add_metric_footnote(fig, ["ARI", "NMI", "ASW", "DRE", "DREX", "LSE"], y_pos=0.022)
 
     outpath = outdir / "fig7_generalization.png"
 

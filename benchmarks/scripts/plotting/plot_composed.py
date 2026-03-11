@@ -141,10 +141,10 @@ def _draw_umap_panel(fig, umap_axes, configs, latents, labels_arr,
     handles, lbls = fig.axes[0].get_legend_handles_labels()
     # Use more columns for datasets with many cell types to keep legend compact
     n_cols = min(max(6, len(lbls) // 4), 10)
-    fig.legend(handles, lbls, loc="upper center",
-               bbox_to_anchor=(0.5, 0.70),
-               ncol=n_cols, markerscale=2.5,
-               fontsize=FONT_ANNOT, frameon=False,
+    fig.legend(handles, lbls, loc="lower center",
+               bbox_to_anchor=(0.5, 0.655),
+               ncol=len(lbls), markerscale=2.2,
+               fontsize=max(FONT_ANNOT - 2, 5), frameon=False,
                handlelength=0.8, columnspacing=0.5, labelspacing=0.2)
 
 
@@ -358,12 +358,12 @@ def build_composed(data, outpath: Path, cache_dir: Path | None = None):
             x_off = -0.025
             if letter == "C":
                 x_off = -0.06
-            panel_label(fig, ax, letter, x_off=x_off, y_off=0.012)
+            y_off = 0.012 if letter != "B" else 0.020
+            panel_label(fig, ax, letter, x_off=x_off, y_off=y_off)
         except Exception:
             pass
 
     # ── Conflict detection ──────────────────────────────────────────────
-    add_config_legend_footnote(fig, y_pos=0.012)
     print("\n── Conflict Detection on Composed Figure ──")
     issues = detect_all_conflicts(fig, label="composed", verbose=True)
 

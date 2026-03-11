@@ -329,7 +329,7 @@ def _draw_cross_radar(ax, cross_data):
     ax.tick_params(axis="y", labelsize=FS_SMALL)
     ax.set_title("Cross-Dataset Profile", fontsize=FS_AXIS, pad=18)
     ax.legend(fontsize=FS_SMALL - 1, loc="upper right",
-              bbox_to_anchor=(1.45, 1.05), frameon=False)
+              bbox_to_anchor=(1.32, 1.02), frameon=False)
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -384,9 +384,8 @@ def build_figure(results_base: Path, outdir: Path):
     _draw_cross_dataset_heatmap(ax_C, cross_data)
 
     # Panel D: Cross-dataset radar (polar) — narrower to leave room for legend
-    ax_D = fig.add_axes([0.15, 0.04, 0.52, 0.19], polar=True)
+    ax_D = fig.add_axes([0.10, 0.08, 0.48, 0.22], polar=True)
     _draw_cross_radar(ax_D, cross_data)
-    add_config_legend_footnote(fig, y_pos=0.012)
 
     panel_label(fig, ax_A, "A", x_off=-0.05, y_off=0.020)
     panel_label(fig, ax_B, "B", x_off=-0.05, y_off=0.020)

@@ -217,11 +217,11 @@ def _umap_lims(emb: np.ndarray, pad: float = 0.05):
 
 def _inset_cbar(fig, ax, mappable, label: str = ""):
     """Tiny colorbar inside bottom-right of axes (avoids cross-panel leakage)."""
-    cax = ax.inset_axes([0.78, 0.04, 0.03, 0.26])
+    cax = ax.inset_axes([0.76, 0.08, 0.025, 0.22])
     cb = fig.colorbar(mappable, cax=cax)
-    cb.ax.tick_params(labelsize=FS_SMALL, length=1.5, pad=0.5)
+    cb.ax.tick_params(labelsize=max(FS_SMALL - 1, 6), length=1.2, pad=0.4)
     if label:
-        cb.ax.set_ylabel(label, fontsize=FS_SMALL, labelpad=1)
+        cb.ax.set_ylabel(label, fontsize=max(FS_SMALL - 1, 6), labelpad=1)
     return cb
 
 
@@ -280,8 +280,6 @@ def _draw_panel_A(ax_a1, ax_a2, fig, configs, latents, labels_all,
         ax_a1.fill_between(NOISE_SCALES,
                            np.clip(mu - sd, 0, 1), np.clip(mu + sd, 0, 1),
                            color=cm10(i % 10), alpha=0.12)
-    ax_a1.set_title("Noise Robustness",
-                    fontsize=FS_TITLE, pad=2)
     ax_a1.set_ylabel("kNN Acc.", fontsize=FS_AXIS)
     ax_a1.set_xlim(-0.3, NOISE_SCALES[-1] + 0.3)
     ax_a1.set_xticks(NOISE_SCALES)
@@ -291,9 +289,12 @@ def _draw_panel_A(ax_a1, ax_a2, fig, configs, latents, labels_all,
     ax_a1.grid(alpha=0.22, linestyle="--", linewidth=0.4)
     # Legend as fig.text to avoid data occlusion
     handles, leg_labels = ax_a1.get_legend_handles_labels()
-    fig.legend(handles, leg_labels, fontsize=FS_SMALL-1, frameon=False, ncol=6,
-               loc="upper center", bbox_to_anchor=(0.54, 0.975),
-               handlelength=0.8, labelspacing=0.1, columnspacing=0.3)
+    legend_ax = fig.add_axes([0.33, 0.945, 0.60, 0.028])
+    legend_ax.set_axis_off()
+    legend_ax._is_legend_cell = True
+    legend_ax.legend(handles, leg_labels, fontsize=FS_SMALL-1, frameon=False, ncol=6,
+                     loc="center", handlelength=0.8,
+                     labelspacing=0.1, columnspacing=0.3)
 
     # A-bot: per-component sensitivity bar chart (Full config)
     
@@ -401,10 +402,10 @@ def _draw_panel_D(axes_d, fig, configs, latents, X_raw, n_cells, gene_names):
         ax_dj.set_title(get_tick_name(cfg), fontsize=FS_AXIS, pad=1)
 
         # Inset colorbar (right edge inside the axes)
-        cax = ax_dj.inset_axes([1.03, 0.08, 0.035, 0.84])
+        cax = ax_dj.inset_axes([0.985, 0.10, 0.022, 0.78])
         cb = fig.colorbar(im, cax=cax)
-        cb.ax.tick_params(labelsize=FS_TICK, length=1.5)
-        cb.set_label("r", fontsize=FS_AXIS, labelpad=2)
+        cb.ax.tick_params(labelsize=max(FS_SMALL - 1, 6), length=1.2, pad=0.4)
+        cb.set_label("r", fontsize=max(FS_SMALL - 1, 6), labelpad=1)
 
     return ax_d0
 
@@ -453,26 +454,26 @@ def build_figure(data, adata, outpath: Path):
     fig = plt.figure(figsize=(FIG_WIDTH_IN, FIG_HEIGHT_IN * 1.15), dpi=DPI)
 
     # Row A: 2 sub-rows (perturbation robustness + importance bars)
-    ax_a1 = fig.add_axes([0.12, 0.87, 0.83, 0.07])
-    ax_a2 = fig.add_axes([0.12, 0.76, 0.83, 0.06])
+    ax_a1 = fig.add_axes([0.12, 0.84, 0.83, 0.07])
+    ax_a2 = fig.add_axes([0.12, 0.73, 0.83, 0.06])
 
     # Row B: UMAP panels (1 cell-type + 4 component UMAPs) — 5 explicit axes
     _bw = (0.92 - 0.02 * 4) / 5  # ~0.168
-    axes_b = [fig.add_axes([0.04 + i * (_bw + 0.02), 0.57, _bw, 0.12])
+    axes_b = [fig.add_axes([0.04 + i * (_bw + 0.02), 0.54, _bw, 0.12])
               for i in range(5)]
 
     # Row C: Gene expression panels (5 scalar UMAPs) — 5 explicit axes
     _cw_c = (0.92 - 0.02 * 4) / 5  # ~0.168
-    axes_c = [fig.add_axes([0.04 + i * (_cw_c + 0.02), 0.44, _cw_c, 0.09])
+    axes_c = [fig.add_axes([0.04 + i * (_cw_c + 0.02), 0.41, _cw_c, 0.09])
               for i in range(5)]
 
     # Row D: 2×3 grid of per-config Pearson heatmaps
-    _d_cw = (0.86 - 0.06 * 2) / 3  # ~0.247
+    _d_cw = (0.80 - 0.05 * 2) / 3  # ~0.233
     _d_rh = 0.11
     _d_gap_v = 0.05
-    _d_top = 0.37  # top of heatmap block
+    _d_top = 0.34  # top of heatmap block
     axes_d = [
-        [fig.add_axes([0.11 + c * (_d_cw + 0.06),
+        [fig.add_axes([0.15 + c * (_d_cw + 0.05),
                        _d_top - (r + 1) * _d_rh - r * _d_gap_v,
                        _d_cw, _d_rh])
          for c in range(3)]
@@ -493,13 +494,11 @@ def build_figure(data, adata, outpath: Path):
     ax_D = _draw_panel_D(axes_d, fig, configs, latents, X_raw, n_cells, gene_names)
 
     # ── 8. Panel letters & legend ─────────────────────────────────────────
-    add_config_legend_footnote(fig, y_pos=0.012)
-
     # ── 9. Panel letters ─────────────────────────────────────────────────
-    panel_label(fig, ax_A, "A", x_off=-0.04, y_off=0.025)
-    panel_label(fig, ax_B, "B", x_off=-0.04, y_off=0.025)
-    panel_label(fig, ax_C, "C", x_off=-0.04, y_off=0.025)
-    panel_label(fig, axes_d[0][0], "D", x_off=-0.04, y_off=0.025)
+    panel_label(fig, ax_A, "A", x_off=-0.055, y_off=0.030)
+    panel_label(fig, ax_B, "B", x_off=-0.055, y_off=0.030)
+    panel_label(fig, ax_C, "C", x_off=-0.055, y_off=0.030)
+    panel_label(fig, axes_d[0][0], "D", x_off=-0.055, y_off=0.030)
 
     # ── 10. Conflict detection (all 13 passes) ────────────────────────────
     print("\n── Conflict Detection ──")
@@ -549,7 +548,21 @@ def main():
     print("Loading benchmark data ...")
     data = _load_benchmark(rdir)
     print("Loading / preprocessing expression data ...")
-    adata = _load_expression(args.data, max_cells=3000, hvg=3000)
+    data_candidates = [
+        args.data,
+        os.path.join(_data_base, "Desktop/datasets/IRALL.h5ad"),
+        os.path.join(_data_base, "LAB/scRL/IRALL.h5ad"),
+    ]
+    resolved_data = next((p for p in data_candidates if Path(p).exists()), None)
+    if resolved_data is not None:
+        adata = _load_expression(resolved_data, max_cells=3000, hvg=3000)
+    else:
+        print("  Warning: no IRALL.h5ad found; using synthetic expression proxy for layout validation.")
+        full_idx = data["configs"].index("Full") if "Full" in data["configs"] else len(data["configs"]) - 1
+        proxy = np.abs(np.asarray(data["latents"][full_idx], dtype=np.float32))
+        proxy = proxy[:, :min(proxy.shape[1], 32)]
+        adata = sc.AnnData(X=proxy)
+        adata.var_names = np.array([f"G{i+1}" for i in range(proxy.shape[1])])
     print("Building figure ...")
     return build_figure(data, adata, outdir / "supp_biological_validation.png")
 

@@ -202,9 +202,9 @@ def _draw_synergy_heatmap(ax, fig, rdir):
     ax.set_title("ODE \u00d7 MoCo Synergy",
                  fontsize=FS_AXIS, pad=3)
 
-    cax = ax.inset_axes([1.03, 0.1, 0.03, 0.8])
+    cax = ax.inset_axes([0.986, 0.10, 0.018, 0.80])
     cb = fig.colorbar(im, cax=cax)
-    cb.ax.tick_params(labelsize=FS_TICK, length=1.5)
+    cb.ax.tick_params(labelsize=max(FS_SMALL - 1, 6), length=1.2, pad=0.4)
     cb.set_label("Interaction term", fontsize=FS_SMALL, labelpad=2)
     return ax
 
@@ -320,9 +320,9 @@ def _draw_metric_heatmap(ax, fig, configs, metrics):
     ax.set_title("Performance Heatmap\n(column-normalised; darker = better)",
                  fontsize=FS_TITLE, pad=3)
 
-    cax = ax.inset_axes([1.01, 0.1, 0.02, 0.8])
+    cax = ax.inset_axes([0.986, 0.10, 0.018, 0.80])
     cb  = fig.colorbar(im, cax=cax)
-    cb.ax.tick_params(labelsize=FS_TICK, length=1.5)
+    cb.ax.tick_params(labelsize=max(FS_SMALL - 1, 6), length=1.2, pad=0.4)
     cb.set_label("Norm. score", fontsize=FS_SMALL, labelpad=2)
     return ax
 
@@ -442,9 +442,6 @@ def build_figure(rdir: Path, outdir: Path, multiseed_stats=None):
 
     print("  Drawing Panel D (Permutation box plots)...")
     _draw_perm_boxplots(ax_D, fig, configs, latents, labels)
-
-    add_config_legend_footnote(fig, y_pos=0.005)
-    add_metric_footnote(fig, ["ARI", "NMI", "ASW", "DAV", "DRE", "DREX", "LSE", "LSEX"], y_pos=0.022)
 
     panel_label(fig, ax_A, "A", x_off=-0.07)
     panel_label(fig, ax_B, "B")

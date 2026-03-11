@@ -113,8 +113,8 @@ def _draw_umap_grid(axes_grid, fig, configs, latents, labels, cache_dir):
                for k in range(len(uniq))]
     n_cols = min(max(6, len(uniq) // 2), 10)
     fig.legend(handles, [str(lb) for lb in uniq],
-               fontsize=max(FS_SMALL - 1, 5), ncol=n_cols, loc="lower center",
-               bbox_to_anchor=(0.50, 0.695),
+               fontsize=max(FS_SMALL - 2, 4), ncol=len(uniq), loc="lower center",
+               bbox_to_anchor=(0.50, 0.675),
                frameon=False, handletextpad=0.15,
                borderpad=0.15, markerscale=1.0, columnspacing=0.6)
     return ax_first
@@ -150,13 +150,14 @@ def _draw_clustering_bars(axes_list, fig, configs, metrics, multiseed_stats=None
         _highlight_best(ax, bars1, vals, higher_better)
         ax.set_xticks(x)
         short = [_XSHORT[c] for c in configs]
-        ax.set_xticklabels(short, fontsize=FS_SMALL, rotation=90, ha="center")
+        ax.set_xticklabels(short, fontsize=max(FS_SMALL - 1, 6), rotation=45, ha="right")
         ax.set_xlim(-0.5, len(configs) - 0.5)
         ax.set_title(f"{label} {'↑' if higher_better else '↓'}",
                      fontsize=FS_TITLE, pad=1)
         if j == 0:
             ax.set_ylabel("Score", fontsize=FS_AXIS)
-        ax.tick_params(labelsize=FS_TICK)
+        ax.tick_params(axis="x", labelsize=max(FS_SMALL - 1, 6))
+        ax.tick_params(axis="y", labelsize=FS_TICK)
         ax.grid(alpha=0.22, linestyle="--", linewidth=0.4, axis="y")
         ax.set_ylim(0, max(max(vals), max(tvals)) * 1.25)
         ax.yaxis.set_major_locator(plt.MaxNLocator(4, prune="both"))
@@ -209,7 +210,8 @@ def _draw_neighbourhood_quality(axes_list, fig, configs, metrics):
         ax.set_title(label, fontsize=FS_AXIS, pad=1)
         if j == 0:
             ax.set_ylabel("Score", fontsize=FS_AXIS)
-        ax.tick_params(labelsize=FS_TICK)
+        ax.tick_params(axis="x", labelsize=max(FS_SMALL - 1, 6))
+        ax.tick_params(axis="y", labelsize=max(FS_SMALL - 1, 6))
         ax.grid(alpha=0.22, linestyle="--", linewidth=0.4, axis="y")
         ax.set_ylim(ylo, yhi)
         if ylo > 0:
@@ -246,7 +248,8 @@ def _draw_latent_structure(axes_list, fig, configs, metrics):
         ax.set_title(label, fontsize=FS_AXIS, pad=1)
         if j == 0:
             ax.set_ylabel("Value", fontsize=FS_AXIS)
-        ax.tick_params(labelsize=FS_TICK)
+        ax.tick_params(axis="x", labelsize=max(FS_SMALL - 1, 6))
+        ax.tick_params(axis="y", labelsize=max(FS_SMALL - 1, 6))
         ax.grid(alpha=0.22, linestyle="--", linewidth=0.4, axis="y")
         valid_vals = [v for v in vals if np.isfinite(v)]
         ymax = max(abs(v) for v in valid_vals) * 1.18 if valid_vals else 1.0
@@ -280,20 +283,20 @@ def build_figure(rdir: Path, outdir: Path, multiseed_stats=None):
         fig.add_axes([0.707, 0.510, 0.253, 0.145]),
     ]
 
-    # Row C: 4 neighbourhood quality bars — lowered for gap from B rotated xticks
+    # Row C: 4 neighbourhood quality bars — explicit wider gutters for y-ticks
     axes_C = [
-        fig.add_axes([0.100, 0.290, 0.180, 0.130]),
-        fig.add_axes([0.310, 0.290, 0.180, 0.130]),
-        fig.add_axes([0.540, 0.290, 0.180, 0.130]),
-        fig.add_axes([0.770, 0.290, 0.180, 0.130]),
+        fig.add_axes([0.090, 0.295, 0.162, 0.125]),
+        fig.add_axes([0.310, 0.295, 0.162, 0.125]),
+        fig.add_axes([0.530, 0.295, 0.162, 0.125]),
+        fig.add_axes([0.750, 0.295, 0.162, 0.125]),
     ]
 
-    # Row D: 4 latent structure bars
+    # Row D: 4 latent structure bars — explicit wider gutters for y-ticks
     axes_D = [
-        fig.add_axes([0.100, 0.090, 0.180, 0.120]),
-        fig.add_axes([0.310, 0.090, 0.180, 0.120]),
-        fig.add_axes([0.540, 0.090, 0.180, 0.120]),
-        fig.add_axes([0.770, 0.090, 0.180, 0.120]),
+        fig.add_axes([0.090, 0.085, 0.162, 0.120]),
+        fig.add_axes([0.310, 0.085, 0.162, 0.120]),
+        fig.add_axes([0.530, 0.085, 0.162, 0.120]),
+        fig.add_axes([0.750, 0.085, 0.162, 0.120]),
     ]
 
     print("  Drawing Panel A (UMAP grid)...")
@@ -310,9 +313,6 @@ def build_figure(rdir: Path, outdir: Path, multiseed_stats=None):
     # D-row: hide xtick labels (configs identified by bar colour + legend)
     for ax in axes_D:
         ax.set_xticklabels([])
-
-    add_config_legend_footnote(fig, y_pos=0.001)
-    add_metric_footnote(fig, ["ARI", "NMI", "ASW", "DRE", "DREX", "LSE"], y_pos=0.012)
 
     panel_label(fig, ax_A, "A", x_off=-0.026)
     panel_label(fig, ax_B, "B", x_off=-0.026)

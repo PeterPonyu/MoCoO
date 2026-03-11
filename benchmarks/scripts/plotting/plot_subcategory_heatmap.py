@@ -1,8 +1,7 @@
 """Plot subcategory metric heatmap across configurations.
 
-Generates a multi-panel heatmap showing individual subcategory scores
-for all metric families (Clustering, DRE, DREX, LSE, LSEX) across
-6 configurations. Column-normalised with best-in-column highlighting.
+Generates a single merged Figure 5 subcategory view with five panels
+(Clustering, DRE, DREX, LSE, LSEX) using explicit axes geometry.
 
 Usage:
     python plot_subcategory_heatmap.py [--resultsdir DIR] [--outdir DIR]
@@ -185,68 +184,46 @@ def main():
         print(f"No JSON files found in {rdir}")
         return
 
-    # Split into two figures for better readability:
-    #   Figure 1 (5a): Clustering + DRE + DREX (3 panels)
-    #   Figure 2 (5b): LSE + LSEX (2 panels)
-    all_panels = list(PANELS.items())
-    fig1_panels = all_panels[:3]   # Clustering, DRE, DREX
-    fig2_panels = all_panels[3:]   # LSE, LSEX
+    panels = list(PANELS.items())
+    fig = plt.figure(figsize=(FIG_WIDTH_IN * 1.35, FIG_HEIGHT_IN * 0.72), dpi=DPI)
 
-    all_issues = []
-    for fig_idx, (panels_subset, suffix) in enumerate([
-        (fig1_panels, "fig5_subcategory_heatmap_a.png"),
-        (fig2_panels, "fig5_subcategory_heatmap_b.png"),
-    ]):
-        n_panels = len(panels_subset)
-        # Single row layout for each sub-figure
-        n_cols = n_panels
-        n_rows = 1
-        fig = plt.figure(figsize=(FIG_WIDTH_IN * 1.5, FIG_HEIGHT_IN * 0.50))
-        _cw = (0.84 - 0.05 * (n_cols - 1)) / n_cols
-        _rh = 0.68
-        axes_list = [
-            fig.add_axes([0.14 + c * (_cw + 0.05),
-                          0.20, _cw, _rh])
-            for c in range(n_cols)
-        ]
+    top_gap = 0.04
+    top_w = (0.82 - 2 * top_gap) / 3
+    bot_gap = 0.05
+    bot_w = (0.82 - bot_gap) / 2
+    axes_list = [
+        fig.add_axes([0.12, 0.58, top_w, 0.24]),
+        fig.add_axes([0.12 + top_w + top_gap, 0.58, top_w, 0.24]),
+        fig.add_axes([0.12 + 2 * (top_w + top_gap), 0.58, top_w, 0.24]),
+        fig.add_axes([0.12, 0.16, bot_w, 0.24]),
+        fig.add_axes([0.12 + bot_w + bot_gap, 0.16, bot_w, 0.24]),
+    ]
 
-        letters = "ABCDE" if fig_idx == 0 else "DE"
-        if fig_idx == 1:
-            letters = "AB"  # restart lettering for second figure
-        total_wins = np.zeros(len(CONFIGS), dtype=int)
-        last_im = None
-        for idx, (pname, metrics_spec) in enumerate(panels_subset):
-            ax = axes_list[idx]
-            im, wins = make_heatmap(ax, data, pname, metrics_spec, CONFIGS)
-            last_im = im
-            total_wins += wins
+    total_wins = np.zeros(len(CONFIGS), dtype=int)
+    for idx, (pname, metrics_spec) in enumerate(panels):
+        _, wins = make_heatmap(axes_list[idx], data, pname, metrics_spec, CONFIGS)
+        total_wins += wins
 
-        # Print win summary
-        label = "Clustering/DRE/DREX" if fig_idx == 0 else "LSE/LSEX"
-        print(f"Win counts per config ({label}):")
-        for i, cfg in enumerate(CONFIGS):
-            print(f"  {cfg}: {total_wins[i]} wins")
+    print("Win counts per config (merged subcategory heatmap):")
+    for i, cfg in enumerate(CONFIGS):
+        print(f"  {cfg}: {total_wins[i]} wins")
 
-        add_config_legend_footnote(fig, y_pos=0.010)
+    for idx, ax in enumerate(axes_list):
+        panel_label(fig, ax, "ABCDE"[idx], x_off=-0.04, y_off=0.028)
 
-        for idx in range(n_panels):
-            ax = axes_list[idx]
-            panel_label(fig, ax, letters[idx], x_off=-0.04, y_off=0.025)
+    out_path = outdir / "fig5_subcategory_heatmap.png"
 
-        out_path = outdir / suffix
+    print("\n── Conflict Detection (merged subcategory heatmap) ──")
+    issues = detect_all_conflicts(fig, label="subcategory_heatmap", verbose=True)
+    n_warn = sum(1 for i in issues if i["severity"] == "warning")
+    n_err = sum(1 for i in issues if i["severity"] == "error")
 
-        print(f"\n── Conflict Detection ({label}) ──")
-        issues = detect_all_conflicts(fig, label=f"subcategory_heatmap_{fig_idx}", verbose=True)
-        all_issues.extend(issues)
-        n_warn = sum(1 for i in issues if i["severity"] == "warning")
-        n_err = sum(1 for i in issues if i["severity"] == "error")
-
-        from mocoo.visualization.style import save_figure
-        save_figure(fig, out_path, facecolor="white")
-        plt.close(fig)
-        print(f"Saved: {out_path}")
-        print(f"{n_warn} warnings | {n_err} errors")
-    return all_issues
+    from mocoo.visualization.style import save_figure
+    save_figure(fig, out_path, facecolor="white")
+    plt.close(fig)
+    print(f"Saved: {out_path}")
+    print(f"{n_warn} warnings | {n_err} errors")
+    return issues
 
 
 if __name__ == "__main__":

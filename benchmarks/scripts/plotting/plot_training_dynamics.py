@@ -264,8 +264,6 @@ def build_figure(rdir: Path, outdir: Path):
         print("  Drawing Panel C (Efficiency)...")
         ax_C = _draw_efficiency(ax_C, fig, configs, metrics)
 
-        add_config_legend_footnote(fig, y_pos=0.005)
-
         handles, labels = ax_A.get_legend_handles_labels()
         fig.legend(
             handles, labels,
@@ -301,8 +299,6 @@ def build_figure(rdir: Path, outdir: Path):
 
         print("  Drawing Panel B (Efficiency)...")
         ax_B = _draw_efficiency(ax_B, fig, configs, metrics)
-
-        add_config_legend_footnote(fig, y_pos=0.005)
 
         handles, labels = ax_A.get_legend_handles_labels()
         fig.legend(

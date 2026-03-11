@@ -131,18 +131,18 @@ def _draw_pca_comparison(axes, fig, configs, latents, labels):
         # Tiny colorbar
         cax = ax_pt.inset_axes([0.78, 0.04, 0.04, 0.30])
         cb  = fig.colorbar(sc, cax=cax)
-        cb.ax.tick_params(labelsize=FS_TICK, length=1.5)
-        cb.set_label("Pseudotime", fontsize=FS_AXIS, labelpad=2)
+        cb.ax.tick_params(labelsize=6, length=1.2, pad=0.4)
+        cb.set_label("Pseudotime", fontsize=6, labelpad=1)
 
     # Shared cell-type legend between Row A and Row B
     uniq = np.unique(labels[0])
     handles = [plt.Line2D([0],[0], marker="o", color="w",
                            markerfacecolor=cm20(k % 20), markersize=2.5)
                for k in range(len(uniq))]
-    n_leg_cols = min(max(6, len(uniq) // 2), 10)
+    n_leg_cols = len(uniq)
     fig.legend(handles, [str(lb) for lb in uniq],
-               fontsize=max(FS_SMALL - 2, 5), ncol=n_leg_cols, loc="lower center",
-               bbox_to_anchor=(0.53, 0.66),
+               fontsize=max(FS_SMALL - 2, 6), ncol=n_leg_cols, loc="lower center",
+               bbox_to_anchor=(0.53, 0.690),
                frameon=False, handletextpad=0.1,
                borderpad=0.1, markerscale=0.8, columnspacing=0.4)
     return ax_first
@@ -373,10 +373,10 @@ def build_figure(rdir: Path, outdir: Path, adata_path: str):
     ax_C_single = fig.add_axes([0.10, 0.28, 0.86, 0.14])
 
     # D: 2 panels — pairwise dist histogram + NN entropy bars
-    _d_aw = (0.86 - 0.06) / 2  # 0.40
+    _d_aw = (0.86 - 0.10) / 2  # 0.38
     axes_D = [
         fig.add_axes([0.10, 0.07, _d_aw, 0.12]),
-        fig.add_axes([0.10 + _d_aw + 0.06, 0.07, _d_aw, 0.12]),
+        fig.add_axes([0.10 + _d_aw + 0.10, 0.07, _d_aw, 0.12]),
     ]
 
     print("  Drawing Panel A (PCA pseudotime)...")
@@ -390,8 +390,6 @@ def build_figure(rdir: Path, outdir: Path, adata_path: str):
 
     print("  Drawing Panel D (Trajectory smoothness)...")
     ax_D = _draw_trajectory_smoothness(axes_D, fig, configs, latents, labels)
-    add_config_legend_footnote(fig, y_pos=0.005)
-
     panel_label(fig, ax_A, "A", x_off=-0.08, y_off=0.010)
     panel_label(fig, ax_B, "B", x_off=-0.08, y_off=0.030)
     panel_label(fig, ax_C, "C", x_off=-0.08, y_off=0.035)

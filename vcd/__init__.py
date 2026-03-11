@@ -118,6 +118,7 @@ def detect_all_conflicts(
     fig,
     label: str = "",
     verbose: bool = True,
+    mode: str = "balanced",
     text_overlap_tol_px: float = 2.5,
     border_tol_px: float = 2.0,
     artist_overlap_min_px2: float = 200.0,
@@ -138,6 +139,9 @@ def detect_all_conflicts(
         Descriptive label for log messages.
     verbose : bool
         Print diagnostic summary to stdout.
+    mode : str
+        Detection preset. One of ``"loose"``, ``"balanced"``,
+        ``"strict"``, or ``"mocoo"``.
     text_overlap_tol_px : float
         Shrink text bboxes by this many pixels before overlap test.
     border_tol_px : float
@@ -157,6 +161,39 @@ def detect_all_conflicts(
         renderer = fig.canvas.get_renderer()
     except Exception:
         return []
+
+    mode_key = str(mode or "balanced").lower()
+    mode_presets = {
+        "loose": dict(
+            text_overlap_tol_px=4.0,
+            border_tol_px=4.0,
+            artist_overlap_min_px2=320.0,
+            text_artist_overlap_min_px2=240.0,
+        ),
+        "balanced": dict(
+            text_overlap_tol_px=2.5,
+            border_tol_px=2.0,
+            artist_overlap_min_px2=200.0,
+            text_artist_overlap_min_px2=150.0,
+        ),
+        "strict": dict(
+            text_overlap_tol_px=1.0,
+            border_tol_px=1.0,
+            artist_overlap_min_px2=80.0,
+            text_artist_overlap_min_px2=60.0,
+        ),
+        "mocoo": dict(
+            text_overlap_tol_px=1.5,
+            border_tol_px=1.2,
+            artist_overlap_min_px2=110.0,
+            text_artist_overlap_min_px2=80.0,
+        ),
+    }
+    preset = mode_presets.get(mode_key, mode_presets["balanced"])
+    text_overlap_tol_px = preset["text_overlap_tol_px"]
+    border_tol_px = preset["border_tol_px"]
+    artist_overlap_min_px2 = preset["artist_overlap_min_px2"]
+    text_artist_overlap_min_px2 = preset["text_artist_overlap_min_px2"]
 
     fig_bb = _fig_bbox(fig)
     infos = _collect_artists(fig, renderer)
