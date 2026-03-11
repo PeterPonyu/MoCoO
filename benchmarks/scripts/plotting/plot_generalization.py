@@ -29,7 +29,7 @@ warnings.filterwarnings("ignore", category=UserWarning, module="matplotlib")
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent.parent.parent))
 
 from benchmarks.scripts.plotting.shared import setup_fonts, panel_label, add_config_legend_footnote, load_multiseed_stats, add_metric_footnote
-from benchmarks.scripts.pipeline.visual_conflict_detector import detect_all_conflicts
+from vcd import detect_all_conflicts
 from mocoo.visualization.style import (
     FIG_WIDTH_IN, FIG_HEIGHT_IN, DPI,
     FS_LABEL, FS_TITLE, FS_AXIS, FS_TICK, FS_LEGEND, FS_SMALL,
@@ -179,11 +179,11 @@ def build_figure(rdir: Path, outdir: Path, multiseed_stats=None):
                frameon=True, framealpha=0.65)
 
     # Panel labels
-    panel_label(fig, ax_row1[0], "A", x_off=-0.06, y_off=0.010)
-    panel_label(fig, ax_row2[0], "B", x_off=-0.06, y_off=0.010)
+    panel_label(fig, ax_row1[0], "A", x_off=-0.06, y_off=0.020)
+    panel_label(fig, ax_row2[0], "B", x_off=-0.06, y_off=0.020)
 
-    add_config_legend_footnote(fig, y_pos=0.015)
-    add_metric_footnote(fig, ["ARI", "NMI", "ASW", "DRE", "DREX", "LSE"], y_pos=0.003)
+    add_config_legend_footnote(fig, y_pos=0.005)
+    add_metric_footnote(fig, ["ARI", "NMI", "ASW", "DRE", "DREX", "LSE"], y_pos=0.022)
 
     outpath = outdir / "fig7_generalization.png"
 
@@ -212,7 +212,7 @@ def main():
     outdir = Path(args.outdir)
     outdir.mkdir(parents=True, exist_ok=True)
     ms = load_multiseed_stats(Path(args.multiseed_csv)) if args.multiseed_csv else None
-    build_figure(Path(args.resultsdir), outdir, multiseed_stats=ms)
+    return build_figure(Path(args.resultsdir), outdir, multiseed_stats=ms)
 
 
 if __name__ == "__main__":

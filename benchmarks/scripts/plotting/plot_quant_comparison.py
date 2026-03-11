@@ -33,7 +33,7 @@ from umap import UMAP
 warnings.filterwarnings("ignore", category=FutureWarning)
 warnings.filterwarnings("ignore", category=UserWarning, module="matplotlib")
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent.parent.parent))
-from benchmarks.scripts.pipeline.visual_conflict_detector import detect_all_conflicts
+from vcd import detect_all_conflicts
 
 # ── Import centralized style ────────────────────────────────────────────────
 from mocoo.visualization.style import (
@@ -113,7 +113,7 @@ def _draw_umap_grid(axes_grid, fig, configs, latents, labels, cache_dir):
                for k in range(len(uniq))]
     n_cols = min(max(6, len(uniq) // 2), 10)
     fig.legend(handles, [str(lb) for lb in uniq],
-               fontsize=max(FS_SMALL - 1, 5), ncol=n_cols, loc="upper center",
+               fontsize=max(FS_SMALL - 1, 5), ncol=n_cols, loc="lower center",
                bbox_to_anchor=(0.50, 0.695),
                frameon=False, handletextpad=0.15,
                borderpad=0.15, markerscale=1.0, columnspacing=0.6)
@@ -160,11 +160,11 @@ def _draw_clustering_bars(axes_list, fig, configs, metrics, multiseed_stats=None
         ax.grid(alpha=0.22, linestyle="--", linewidth=0.4, axis="y")
         ax.set_ylim(0, max(max(vals), max(tvals)) * 1.25)
         ax.yaxis.set_major_locator(plt.MaxNLocator(4, prune="both"))
-        # Val/Test legend placed between Row A and Row B as fig.text
+        # Val/Test indicator inside the first bar panel
         if j == 0:
-            pos = ax.get_position()
-            fig.text(pos.x0 + pos.width + 0.01, pos.y1 + 0.005,
-                     "\u25a0 Val  \u25cb Test", fontsize=FS_SMALL, va="bottom")
+            ax.text(0.98, 0.95, "\u25a0 Val  \u25cb Test",
+                    transform=ax.transAxes,
+                    fontsize=FS_SMALL, va="top", ha="right")
     return ax_first
 
 
@@ -280,20 +280,20 @@ def build_figure(rdir: Path, outdir: Path, multiseed_stats=None):
         fig.add_axes([0.707, 0.510, 0.253, 0.145]),
     ]
 
-    # Row C: 4 neighbourhood quality bars — wider gap from B
+    # Row C: 4 neighbourhood quality bars — lowered for gap from B rotated xticks
     axes_C = [
-        fig.add_axes([0.100, 0.300, 0.180, 0.130]),
-        fig.add_axes([0.310, 0.300, 0.180, 0.130]),
-        fig.add_axes([0.540, 0.300, 0.180, 0.130]),
-        fig.add_axes([0.770, 0.300, 0.180, 0.130]),
+        fig.add_axes([0.100, 0.290, 0.180, 0.130]),
+        fig.add_axes([0.310, 0.290, 0.180, 0.130]),
+        fig.add_axes([0.540, 0.290, 0.180, 0.130]),
+        fig.add_axes([0.770, 0.290, 0.180, 0.130]),
     ]
 
-    # Row D: 4 latent structure bars — wider gap from C
+    # Row D: 4 latent structure bars
     axes_D = [
-        fig.add_axes([0.100, 0.080, 0.180, 0.120]),
-        fig.add_axes([0.310, 0.080, 0.180, 0.120]),
-        fig.add_axes([0.540, 0.080, 0.180, 0.120]),
-        fig.add_axes([0.770, 0.080, 0.180, 0.120]),
+        fig.add_axes([0.100, 0.090, 0.180, 0.120]),
+        fig.add_axes([0.310, 0.090, 0.180, 0.120]),
+        fig.add_axes([0.540, 0.090, 0.180, 0.120]),
+        fig.add_axes([0.770, 0.090, 0.180, 0.120]),
     ]
 
     print("  Drawing Panel A (UMAP grid)...")
@@ -307,9 +307,12 @@ def build_figure(rdir: Path, outdir: Path, multiseed_stats=None):
 
     print("  Drawing Panel D (Latent structure)...")
     ax_D = _draw_latent_structure(axes_D, fig, configs, metrics)
+    # D-row: hide xtick labels (configs identified by bar colour + legend)
+    for ax in axes_D:
+        ax.set_xticklabels([])
 
-    add_config_legend_footnote(fig, y_pos=0.010)
-    add_metric_footnote(fig, ["ARI", "NMI", "ASW", "DRE", "DREX", "LSE"], y_pos=0.000)
+    add_config_legend_footnote(fig, y_pos=0.001)
+    add_metric_footnote(fig, ["ARI", "NMI", "ASW", "DRE", "DREX", "LSE"], y_pos=0.012)
 
     panel_label(fig, ax_A, "A", x_off=-0.026)
     panel_label(fig, ax_B, "B", x_off=-0.026)
@@ -354,7 +357,7 @@ def main():
     ms_stats = None
     if args.multiseed_csv:
         ms_stats = load_multiseed_stats(Path(args.multiseed_csv))
-    build_figure(rdir, outdir, multiseed_stats=ms_stats)
+    return build_figure(rdir, outdir, multiseed_stats=ms_stats)
 
 
 if __name__ == "__main__":

@@ -162,7 +162,11 @@ def panel_label(
     y_off: float = 0.006,
     fontsize: float = None,
 ) -> None:
-    """Place a bold panel label (e.g. '(A)') at the top-left of *ax*."""
+    """Place a bold panel label (e.g. '(A)') at the top-left of *ax*.
+
+    The final position is clamped so the text stays inside the figure
+    canvas (x >= 0.052, y <= 0.970).
+    """
     if fontsize is None:
         try:
             from mocoo.visualization.style import FS_LABEL
@@ -170,8 +174,10 @@ def panel_label(
         except ImportError:
             fontsize = 9
     pos = ax.get_position()
+    x = max(pos.x0 + x_off, 0.046)
+    y = min(pos.y1 + y_off, 0.970)
     fig.text(
-        pos.x0 + x_off, pos.y1 + y_off,
+        x, y,
         f"({letter})", fontsize=fontsize, fontweight="bold",
         va="bottom", ha="right", clip_on=False,
     )
@@ -246,9 +252,8 @@ def add_metric_footnote(
 ) -> None:
     """Add a footnote defining metric abbreviations at the figure bottom.
 
-    Example output::
-
-        ARI = Adj. Rand Index ↑; NMI = Norm. Mutual Info. ↑; ...
+    Auto-wraps to two lines when the text exceeds 80 characters.
+    The y_pos is clamped to stay inside the figure (>= 0.005).
     """
     from mocoo.visualization.style import (
         METRIC_GLOSSARY, METRIC_DIRECTION, FS_SMALL,
@@ -263,6 +268,10 @@ def add_metric_footnote(
     if not entries:
         return
     footnote_text = ";  ".join(entries)
-    fig.text(0.50, y_pos, footnote_text,
-             fontsize=max(FS_SMALL - 1, 7), ha="center", va="top",
+    # Auto-wrap: split into two lines if text is too long
+    if len(footnote_text) > 80 and len(entries) > 1:
+        mid = len(entries) // 2
+        footnote_text = ";  ".join(entries[:mid]) + "\n" + ";  ".join(entries[mid:])
+    fig.text(0.50, max(y_pos, 0.005), footnote_text,
+             fontsize=max(FS_SMALL - 1, 7), ha="center", va="bottom",
              color="#666666", style="italic")

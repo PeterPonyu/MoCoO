@@ -26,7 +26,7 @@ warnings.filterwarnings("ignore", category=UserWarning, module="matplotlib")
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent.parent.parent))
 
 from benchmarks.scripts.plotting.shared import setup_fonts, panel_label, add_config_legend_footnote
-from benchmarks.scripts.pipeline.visual_conflict_detector import detect_all_conflicts
+from vcd import detect_all_conflicts
 from mocoo.visualization.style import (
     FIG_WIDTH_IN, FIG_HEIGHT_IN, DPI,
     FS_LABEL, FS_TITLE, FS_AXIS, FS_TICK, FS_LEGEND, FS_SMALL,
@@ -82,12 +82,12 @@ def build_figure(results_base: Path, outdir: Path):
     betas_present = sorted(all_data.keys())
 
     fig = plt.figure(figsize=(FIG_WIDTH_IN, FIG_HEIGHT_IN * 0.80))
-    # 3×3 grid — wider gutters, more footer room
+    # 3×3 grid — wider gutters, lowered top for legend clearance
     _cw = (0.86 - 0.06 * 2) / 3   # ~0.2467
-    _rh = (0.78 - 0.06 * 2) / 3   # ~0.2200
+    _rh = (0.72 - 0.06 * 2) / 3   # ~0.2000
     axes = np.array([
         [fig.add_axes([0.10 + c * (_cw + 0.06),
-                       0.16 + 0.78 - (r + 1) * _rh - r * 0.06,
+                       0.16 + 0.72 - (r + 1) * _rh - r * 0.06,
                        _cw, _rh])
          for c in range(3)]
         for r in range(3)
@@ -137,10 +137,10 @@ def build_figure(results_base: Path, outdir: Path):
     # Single legend above the grid (outside the matrix)
     handles, labels = axes[0, 0].get_legend_handles_labels()
     fig.legend(handles, labels, fontsize=FS_LEGEND, ncol=6,
-               loc="upper center", bbox_to_anchor=(0.50, 0.98),
+               loc="upper center", bbox_to_anchor=(0.50, 0.995),
                frameon=False, handlelength=1.5, columnspacing=1.0)
 
-    add_config_legend_footnote(fig, y_pos=0.012)
+    add_config_legend_footnote(fig, y_pos=0.005)
 
     # Panel labels — only on leftmost column, shifted outward
     letters = "ABC"
@@ -172,7 +172,7 @@ def main():
     args = p.parse_args()
     outdir = Path(args.outdir)
     outdir.mkdir(parents=True, exist_ok=True)
-    build_figure(Path(args.resultsdir), outdir)
+    return build_figure(Path(args.resultsdir), outdir)
 
 
 if __name__ == "__main__":

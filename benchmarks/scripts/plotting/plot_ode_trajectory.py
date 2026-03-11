@@ -43,7 +43,7 @@ from scipy.ndimage import gaussian_filter1d
 warnings.filterwarnings("ignore", category=FutureWarning)
 warnings.filterwarnings("ignore", category=UserWarning, module="matplotlib")
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent.parent.parent))
-from benchmarks.scripts.pipeline.visual_conflict_detector import detect_all_conflicts
+from vcd import detect_all_conflicts
 from benchmarks.scripts.plotting.shared import setup_fonts, load_benchmark_npz, export_subpanels, panel_label, add_config_legend_footnote
 from mocoo.visualization.style import (
     FIG_WIDTH_IN, FIG_HEIGHT_IN, DPI,
@@ -114,8 +114,7 @@ def _draw_pca_comparison(axes, fig, configs, latents, labels):
             ax_ct.scatter(emb[m, 0], emb[m, 1], color=cm20(k % 20), **_SCATTER)
 
         ax_ct.set_xticks([]); ax_ct.set_yticks([])
-        ax_ct.set_title(f"{cfg} (Cell type)", fontsize=FS_TITLE, pad=2,
-                        color=_CONFIG_COLOR.get(cfg, "black"))
+        ax_ct.set_title(f"{cfg} (Cell type)", fontsize=FS_TITLE, pad=2)
         # No xlabel on top row to avoid overlap with row-below titles
         if j == 0:
             ax_ct.set_ylabel("PC 2", fontsize=FS_AXIS)
@@ -142,8 +141,8 @@ def _draw_pca_comparison(axes, fig, configs, latents, labels):
                for k in range(len(uniq))]
     n_leg_cols = min(max(6, len(uniq) // 2), 10)
     fig.legend(handles, [str(lb) for lb in uniq],
-               fontsize=max(FS_SMALL - 2, 5), ncol=n_leg_cols, loc="upper center",
-               bbox_to_anchor=(0.53, 0.73),
+               fontsize=max(FS_SMALL - 2, 5), ncol=n_leg_cols, loc="lower center",
+               bbox_to_anchor=(0.53, 0.66),
                frameon=False, handletextpad=0.1,
                borderpad=0.1, markerscale=0.8, columnspacing=0.4)
     return ax_first
@@ -251,7 +250,7 @@ def _draw_gene_pseudotime(ax, fig, configs, latents, labels, adata_path: str):
         handles, lbls = ax.get_legend_handles_labels()
         fig.legend(handles, lbls, fontsize=FS_SMALL, frameon=False,
                    ncol=len(lbls), loc="upper center",
-                   bbox_to_anchor=(0.5, 0.28),
+                   bbox_to_anchor=(0.5, 0.24),
                    handlelength=1.0, labelspacing=0.15,
                    columnspacing=0.6)
     else:
@@ -267,7 +266,8 @@ def _draw_gene_pseudotime(ax, fig, configs, latents, labels, adata_path: str):
         ax.set_ylabel("Density", fontsize=FS_AXIS)
         ax.set_title("PT Distribution per Config",
                      fontsize=FS_AXIS, pad=2)
-        ax.legend(fontsize=FS_LEG, frameon=False, loc="upper right")
+        ax.legend(fontsize=FS_LEG, frameon=False, loc="lower left",
+                  bbox_to_anchor=(0.0, 1.10), ncol=3)
 
     ax.tick_params(labelsize=FS_TICK)
     ax.grid(alpha=0.22, linestyle="--", linewidth=0.4)
@@ -330,7 +330,7 @@ def _draw_trajectory_smoothness(axes, fig, configs, latents, labels):
             bars[k].set_linewidth(1.3)
     ax_ent.set_xticks(x)
     ax_ent.set_xticklabels([get_tick_name(c) for c in configs],
-                            fontsize=FS_SMALL, rotation=90, ha="center")
+                            fontsize=FS_SMALL, rotation=0, ha="center")
     ax_ent.set_xlim(-0.5, len(configs) - 0.5)
     ax_ent.set_ylabel("kNN entropy", fontsize=FS_AXIS)
     ax_ent.set_title("kNN Entropy", fontsize=FS_TITLE, pad=1)
@@ -390,9 +390,9 @@ def build_figure(rdir: Path, outdir: Path, adata_path: str):
 
     print("  Drawing Panel D (Trajectory smoothness)...")
     ax_D = _draw_trajectory_smoothness(axes_D, fig, configs, latents, labels)
-    add_config_legend_footnote(fig, y_pos=0.012)
+    add_config_legend_footnote(fig, y_pos=0.005)
 
-    panel_label(fig, ax_A, "A", x_off=-0.08, y_off=0.030)
+    panel_label(fig, ax_A, "A", x_off=-0.08, y_off=0.010)
     panel_label(fig, ax_B, "B", x_off=-0.08, y_off=0.030)
     panel_label(fig, ax_C, "C", x_off=-0.08, y_off=0.035)
     panel_label(fig, ax_D, "D", x_off=-0.08, y_off=0.030)
@@ -435,7 +435,7 @@ def main():
     rdir   = Path(args.resultsdir)
     outdir = Path(args.outdir)
     outdir.mkdir(parents=True, exist_ok=True)
-    build_figure(rdir, outdir, args.data)
+    return build_figure(rdir, outdir, args.data)
 
 
 if __name__ == "__main__":

@@ -35,7 +35,7 @@ from sklearn.neighbors import NearestNeighbors
 warnings.filterwarnings("ignore", category=FutureWarning)
 warnings.filterwarnings("ignore", category=UserWarning, module="matplotlib")
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent.parent.parent))
-from benchmarks.scripts.pipeline.visual_conflict_detector import detect_all_conflicts
+from vcd import detect_all_conflicts
 from benchmarks.scripts.plotting.shared import (
     setup_fonts, unify_metric_keys, load_benchmark_npz, load_config_metrics,
     export_subpanels, panel_label,
@@ -443,8 +443,8 @@ def build_figure(rdir: Path, outdir: Path, multiseed_stats=None):
     print("  Drawing Panel D (Permutation box plots)...")
     _draw_perm_boxplots(ax_D, fig, configs, latents, labels)
 
-    add_config_legend_footnote(fig, y_pos=0.010)
-    add_metric_footnote(fig, ["ARI", "NMI", "ASW", "DAV", "DRE", "DREX", "LSE", "LSEX"], y_pos=0.000)
+    add_config_legend_footnote(fig, y_pos=0.005)
+    add_metric_footnote(fig, ["ARI", "NMI", "ASW", "DAV", "DRE", "DREX", "LSE", "LSEX"], y_pos=0.022)
 
     panel_label(fig, ax_A, "A", x_off=-0.07)
     panel_label(fig, ax_B, "B")
@@ -527,7 +527,7 @@ def main():
     multiseed_stats = None
     if args.multiseed_csv:
         multiseed_stats = load_multiseed_stats(Path(args.multiseed_csv))
-    build_figure(rdir, outdir, multiseed_stats=multiseed_stats)
+    return build_figure(rdir, outdir, multiseed_stats=multiseed_stats)
 
 
 if __name__ == "__main__":

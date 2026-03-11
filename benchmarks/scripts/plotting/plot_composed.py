@@ -27,8 +27,8 @@ warnings.filterwarnings("ignore", category=FutureWarning)
 warnings.filterwarnings("ignore", category=UserWarning, module="matplotlib")
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent.parent.parent))
 
-from benchmarks.scripts.pipeline.visual_conflict_detector import detect_all_conflicts
-from benchmarks.scripts.plotting.shared import setup_fonts, load_benchmark_npz, load_config_metrics, add_config_legend_footnote
+from vcd import detect_all_conflicts
+from benchmarks.scripts.plotting.shared import setup_fonts, load_benchmark_npz, load_config_metrics, add_config_legend_footnote, panel_label
 from mocoo.visualization.style import (
     FIG_WIDTH_IN, FIG_HEIGHT_IN, DPI,
     FS_LABEL, FS_TITLE, FS_AXIS, FS_TICK, FS_LEGEND, FS_SMALL,
@@ -253,7 +253,7 @@ def _draw_heatmap(ax, configs, mets):
     ax.set_xticklabels(labels, rotation=90, ha="center",
                        fontsize=FONT_ANNOT)
     ax.set_yticks(range(len(short_c)))
-    ax.set_yticklabels(short_c, fontsize=FONT_TICK)
+    ax.set_yticklabels(short_c, fontsize=FONT_TICK - 1)
     for r in range(matrix.shape[0]):
         for c in range(matrix.shape[1]):
             v = matrix[r, c]
@@ -355,14 +355,10 @@ def build_composed(data, outpath: Path, cache_dir: Path | None = None):
 
     for letter, ax in panel_axes:
         try:
-            pos = ax.get_position()
             x_off = -0.025
-            y_off = 0.012
             if letter == "C":
                 x_off = -0.06
-            fig.text(pos.x0 + x_off, pos.y1 + y_off,
-                     f"({letter})", fontsize=FONT_PANEL_LABEL,
-                     fontweight="bold", va="bottom", ha="right")
+            panel_label(fig, ax, letter, x_off=x_off, y_off=0.012)
         except Exception:
             pass
 
@@ -408,7 +404,7 @@ def main():
     data = load_results(rdir)
     print(f"Loaded {len(data['configs'])} configs: {data['configs']}")
 
-    build_composed(data, odir / "fig5_composed_benchmark.png", cache_dir=rdir)
+    return build_composed(data, odir / "fig5_composed_benchmark.png", cache_dir=rdir)
 
 
 if __name__ == "__main__":

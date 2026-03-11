@@ -21,7 +21,7 @@ import numpy as np
 import sys
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent.parent.parent))
 from benchmarks.scripts.plotting.shared import setup_fonts, panel_label, add_config_legend_footnote, add_metric_footnote
-from benchmarks.scripts.pipeline.visual_conflict_detector import detect_all_conflicts
+from vcd import detect_all_conflicts
 from mocoo.visualization.style import (
     FIG_WIDTH_IN, FIG_HEIGHT_IN, DPI,
     FS_LABEL, FS_TITLE, FS_AXIS, FS_TICK, FS_LEGEND, FS_SMALL,
@@ -192,6 +192,7 @@ def main():
     fig1_panels = all_panels[:3]   # Clustering, DRE, DREX
     fig2_panels = all_panels[3:]   # LSE, LSEX
 
+    all_issues = []
     for fig_idx, (panels_subset, suffix) in enumerate([
         (fig1_panels, "fig5_subcategory_heatmap_a.png"),
         (fig2_panels, "fig5_subcategory_heatmap_b.png"),
@@ -236,6 +237,7 @@ def main():
 
         print(f"\n── Conflict Detection ({label}) ──")
         issues = detect_all_conflicts(fig, label=f"subcategory_heatmap_{fig_idx}", verbose=True)
+        all_issues.extend(issues)
         n_warn = sum(1 for i in issues if i["severity"] == "warning")
         n_err = sum(1 for i in issues if i["severity"] == "error")
 
@@ -244,6 +246,7 @@ def main():
         plt.close(fig)
         print(f"Saved: {out_path}")
         print(f"{n_warn} warnings | {n_err} errors")
+    return all_issues
 
 
 if __name__ == "__main__":

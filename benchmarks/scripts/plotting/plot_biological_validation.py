@@ -37,7 +37,7 @@ from sklearn.ensemble import RandomForestRegressor
 import sys
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent.parent.parent))
 
-from benchmarks.scripts.pipeline.visual_conflict_detector import detect_all_conflicts
+from vcd import detect_all_conflicts
 from benchmarks.scripts.plotting.shared import setup_fonts, load_benchmark_npz, export_subpanels, panel_label, add_config_legend_footnote
 from mocoo.visualization.style import (
     FIG_WIDTH_IN, FIG_HEIGHT_IN, DPI,
@@ -292,7 +292,7 @@ def _draw_panel_A(ax_a1, ax_a2, fig, configs, latents, labels_all,
     # Legend as fig.text to avoid data occlusion
     handles, leg_labels = ax_a1.get_legend_handles_labels()
     fig.legend(handles, leg_labels, fontsize=FS_SMALL-1, frameon=False, ncol=6,
-               loc="upper center", bbox_to_anchor=(0.54, 0.985),
+               loc="upper center", bbox_to_anchor=(0.54, 0.975),
                handlelength=0.8, labelspacing=0.1, columnspacing=0.3)
 
     # A-bot: per-component sensitivity bar chart (Full config)
@@ -453,8 +453,8 @@ def build_figure(data, adata, outpath: Path):
     fig = plt.figure(figsize=(FIG_WIDTH_IN, FIG_HEIGHT_IN * 1.15), dpi=DPI)
 
     # Row A: 2 sub-rows (perturbation robustness + importance bars)
-    ax_a1 = fig.add_axes([0.12, 0.89, 0.83, 0.07])
-    ax_a2 = fig.add_axes([0.12, 0.78, 0.83, 0.06])
+    ax_a1 = fig.add_axes([0.12, 0.87, 0.83, 0.07])
+    ax_a2 = fig.add_axes([0.12, 0.76, 0.83, 0.06])
 
     # Row B: UMAP panels (1 cell-type + 4 component UMAPs) — 5 explicit axes
     _bw = (0.92 - 0.02 * 4) / 5  # ~0.168
@@ -551,7 +551,7 @@ def main():
     print("Loading / preprocessing expression data ...")
     adata = _load_expression(args.data, max_cells=3000, hvg=3000)
     print("Building figure ...")
-    build_figure(data, adata, outdir / "supp_biological_validation.png")
+    return build_figure(data, adata, outdir / "supp_biological_validation.png")
 
 
 if __name__ == "__main__":

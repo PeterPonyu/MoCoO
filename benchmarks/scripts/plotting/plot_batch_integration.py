@@ -32,7 +32,7 @@ import numpy as np
 warnings.filterwarnings("ignore", category=FutureWarning)
 warnings.filterwarnings("ignore", category=UserWarning, module="matplotlib")
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent.parent.parent))
-from benchmarks.scripts.pipeline.visual_conflict_detector import detect_all_conflicts
+from vcd import detect_all_conflicts
 from benchmarks.scripts.plotting.shared import setup_fonts, load_benchmark_npz, load_config_metrics, export_subpanels, panel_label, add_config_legend_footnote
 from mocoo.visualization.style import (
     FIG_WIDTH_IN, FIG_HEIGHT_IN, DPI,
@@ -432,7 +432,7 @@ def main():
     rdir   = Path(args.resultsdir)
     outdir = Path(args.outdir)
     outdir.mkdir(parents=True, exist_ok=True)
-    build_figure(rdir, outdir)
+    return build_figure(rdir, outdir)
 
 
 if __name__ == "__main__":

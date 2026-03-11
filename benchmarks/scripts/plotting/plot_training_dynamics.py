@@ -31,7 +31,7 @@ import numpy as np
 warnings.filterwarnings("ignore", category=FutureWarning)
 warnings.filterwarnings("ignore", category=UserWarning, module="matplotlib")
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent.parent.parent))
-from benchmarks.scripts.pipeline.visual_conflict_detector import detect_all_conflicts
+from vcd import detect_all_conflicts
 from benchmarks.scripts.plotting.shared import setup_fonts, load_benchmark_npz, load_config_metrics, export_subpanels, panel_label, add_config_legend_footnote
 
 # ── Import centralized style ────────────────────────────────────────────────
@@ -194,7 +194,7 @@ def _draw_efficiency(ax, fig, configs, metrics):
 
         ax.annotate(short, (t, a),
                     textcoords="offset points", xytext=(dx, dy),
-                    fontsize=FS_SMALL, color=col,
+                    fontsize=FS_SMALL, color="black",
                     arrowprops=dict(arrowstyle="-", color=col, lw=0.4, alpha=0.5)
                     if abs(dx) > 5 or abs(dy) > 10 else None)
         placed.append((t, a))
@@ -241,11 +241,11 @@ def build_figure(rdir: Path, outdir: Path):
     if has_scores:
         # Full layout: loss curves + val metrics + efficiency
         fig = plt.figure(figsize=(FIG_W, FIG_H), dpi=DPI)
-        # Row A: 2 loss panels — wider gap below for labels
-        _aw_A = (0.86 - 0.06) / 2  # 0.40
+        # Row A: 2 loss panels — wider gap for tick label clearance
+        _aw_A = (0.86 - 0.12) / 2  # 0.37
         axes_A = [
             fig.add_axes([0.10, 0.72, _aw_A, 0.20]),
-            fig.add_axes([0.10 + _aw_A + 0.06, 0.72, _aw_A, 0.20]),
+            fig.add_axes([0.10 + _aw_A + 0.12, 0.72, _aw_A, 0.20]),
         ]
         # Row B: 3 val-metric panels — wider gap from row A
         _aw_B = (0.86 - 0.05 * 2) / 3  # ~0.2533
@@ -264,13 +264,13 @@ def build_figure(rdir: Path, outdir: Path):
         print("  Drawing Panel C (Efficiency)...")
         ax_C = _draw_efficiency(ax_C, fig, configs, metrics)
 
-        add_config_legend_footnote(fig, y_pos=0.012)
+        add_config_legend_footnote(fig, y_pos=0.005)
 
         handles, labels = ax_A.get_legend_handles_labels()
         fig.legend(
             handles, labels,
             fontsize=FS_LEG, frameon=False, ncol=len(handles),
-            loc="upper center", bbox_to_anchor=(0.5, 0.98),
+            loc="upper center", bbox_to_anchor=(0.5, 0.995),
             handlelength=1.0, labelspacing=0.2, columnspacing=0.6,
             borderpad=0.3,
         )
@@ -288,10 +288,10 @@ def build_figure(rdir: Path, outdir: Path):
         fig_h = FIG_W * 1.0  # balanced 2-panel layout
         fig = plt.figure(figsize=(FIG_W, fig_h), dpi=DPI)
         # Row A: 2 loss panels — explicit per-subplot geometry
-        _aw_A2 = (0.86 - 0.06) / 2  # 0.40
+        _aw_A2 = (0.86 - 0.10) / 2  # 0.38
         axes_A = [
             fig.add_axes([0.10, 0.54, _aw_A2, 0.38]),
-            fig.add_axes([0.10 + _aw_A2 + 0.06, 0.54, _aw_A2, 0.38]),
+            fig.add_axes([0.10 + _aw_A2 + 0.10, 0.54, _aw_A2, 0.38]),
         ]
         # Row B: single efficiency panel
         ax_B = fig.add_axes([0.10, 0.08, 0.86, 0.38])
@@ -302,13 +302,13 @@ def build_figure(rdir: Path, outdir: Path):
         print("  Drawing Panel B (Efficiency)...")
         ax_B = _draw_efficiency(ax_B, fig, configs, metrics)
 
-        add_config_legend_footnote(fig, y_pos=0.012)
+        add_config_legend_footnote(fig, y_pos=0.005)
 
         handles, labels = ax_A.get_legend_handles_labels()
         fig.legend(
             handles, labels,
             fontsize=FS_LEG, frameon=False, ncol=len(handles),
-            loc="upper center", bbox_to_anchor=(0.5, 0.98),
+            loc="upper center", bbox_to_anchor=(0.5, 0.995),
             handlelength=1.0, labelspacing=0.2, columnspacing=0.6,
             borderpad=0.3,
         )
@@ -350,7 +350,7 @@ def main():
     rdir   = Path(args.resultsdir)
     outdir = Path(args.outdir)
     outdir.mkdir(parents=True, exist_ok=True)
-    build_figure(rdir, outdir)
+    return build_figure(rdir, outdir)
 
 
 if __name__ == "__main__":
