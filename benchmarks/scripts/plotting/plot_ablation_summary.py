@@ -1,11 +1,12 @@
 #!/usr/bin/env python
 """
-MoCoO Figure 5 — Ablation Study & Component Contribution Analysis
+MoCoO Figure 3 — Ablation Study & Component Contribution Analysis
 =================================================================
 Layout (17 × 21 cm):
-  Row 0 (A): Radar chart — all 6 configs, 6 key metrics.
-             Clearly shows which components contribute to which quality axis.
-  Row 1 (B): Incremental gain chart — stacked waterfall/step chart showing
+    Row 0 (A): Two-part component-effect summary.
+                         Left: ODE×MoCo synergy heatmap across metrics and β values.
+                         Right: Normalized metric profiles across configurations.
+    Row 1 (B): Incremental gain chart — stacked waterfall/step chart showing
              the marginal gain from adding ODE / MoCo / Proto to baseline VAE.
              Plotted for ARI, NMI, ASW simultaneously.
   Row 2 (C): Comprehensive metric heatmap — normalised scores across all
@@ -165,7 +166,7 @@ def _compute_synergy(beta_metrics: dict) -> tuple:
     return mat, metric_labels, beta_labels
 
 
-def _draw_synergy_heatmap(ax, fig, rdir):
+def _draw_synergy_heatmap(ax, fig, rdir, cbar_rect=None):
     """ODE × MoCo synergy heatmap across metrics and beta values."""
     beta_metrics = _load_beta_metrics(rdir)
     if not beta_metrics:
@@ -199,13 +200,18 @@ def _draw_synergy_heatmap(ax, fig, rdir):
     ax.set_xticklabels(beta_labels, fontsize=FS_TICK)
     ax.set_yticks(np.arange(len(metric_labels)))
     ax.set_yticklabels(metric_labels, fontsize=FS_TICK)
-    ax.set_title("ODE \u00d7 MoCo Synergy",
+    ax.set_title("A1  ODE \u00d7 MoCo Synergy",
                  fontsize=FS_AXIS, pad=3)
 
-    cax = ax.inset_axes([0.93, 0.10, 0.015, 0.42])
+    if cbar_rect is None:
+        pos = ax.get_position()
+        cbar_rect = [pos.x1 + 0.010, pos.y0 + pos.height * 0.08,
+                     0.012, pos.height * 0.24]
+    cax = fig.add_axes(cbar_rect)
     cb = fig.colorbar(im, cax=cax)
     cb.ax.tick_params(labelsize=max(FS_SMALL - 1, 6), length=1.2, pad=0.4)
-    cb.set_label("Interaction term", fontsize=FS_SMALL, labelpad=2)
+    cb.ax.yaxis.set_ticks_position("right")
+    cb.ax.set_title("Int.", fontsize=max(FS_SMALL - 1, 6), pad=1.5, y=1.06)
     return ax
 
 
@@ -269,7 +275,7 @@ def _draw_incremental_gain(axes, fig, configs, metrics, multiseed_stats=None):
 
 # ── Panel C: Comprehensive metric heatmap ─────────────────────────────────
 
-def _draw_metric_heatmap(ax, fig, configs, metrics):
+def _draw_metric_heatmap(ax, fig, configs, metrics, cbar_rect=None):
     """Rows = configs, Cols = key metrics, colour = normalised score.
 
     Uses a focused set of 8 metrics for readability at journal column width.
@@ -320,10 +326,16 @@ def _draw_metric_heatmap(ax, fig, configs, metrics):
     ax.set_title("Performance Heatmap\n(column-normalised; darker = better)",
                  fontsize=FS_TITLE, pad=3)
 
-    cax = ax.inset_axes([0.986, 0.10, 0.018, 0.80])
+    if cbar_rect is None:
+        pos = ax.get_position()
+        cbar_rect = [min(pos.x1 + 0.008, 0.972), pos.y0 + pos.height * 0.08,
+                     0.012, pos.height * 0.22]
+    cax = fig.add_axes(cbar_rect)
     cb  = fig.colorbar(im, cax=cax)
     cb.ax.tick_params(labelsize=max(FS_SMALL - 1, 6), length=1.2, pad=0.4)
-    cb.set_label("Norm. score", fontsize=FS_SMALL, labelpad=2)
+    cb.ax.yaxis.set_ticks_position("right")
+    cb.ax.set_title("Norm.", fontsize=max(FS_SMALL - 1, 6), pad=1.5, y=1.08)
+    cb.set_ticks([0.0, 0.5, 1.0])
     return ax
 
 
@@ -408,7 +420,7 @@ def build_figure(rdir: Path, outdir: Path, multiseed_stats=None):
             _y -= gap
 
     # Row A: two panels (synergy heatmap + summary table), wspace~0.22
-    _gapA = 0.22 * (W_all / 2)
+    _gapA = 0.34 * (W_all / 2)
     _cwA  = (W_all - _gapA) / 2
     ax_A       = fig.add_axes([L,                  row_b[0], _cwA, row_h[0]])
     ax_A_table = fig.add_axes([L + _cwA + _gapA,   row_b[0], _cwA, row_h[0]])
@@ -428,16 +440,33 @@ def build_figure(rdir: Path, outdir: Path, multiseed_stats=None):
     # Row D: permutation boxplots (full width)
     ax_D = fig.add_axes([L, row_b[3], W_all, row_h[3]])
 
+    pos_A = ax_A.get_position()
+    pos_A_table = ax_A_table.get_position()
+    gap_A = pos_A_table.x0 - pos_A.x1
+    synergy_cbar_rect = [
+        pos_A.x1 + gap_A * 0.54,
+        pos_A.y0 + pos_A.height * 0.08,
+        min(gap_A * 0.11, 0.010),
+        pos_A.height * 0.24,
+    ]
+
     print("  Drawing Panel A (Synergy heatmap + summary profile)...")
-    _draw_synergy_heatmap(ax_A, fig, rdir)
+    _draw_synergy_heatmap(ax_A, fig, rdir, cbar_rect=synergy_cbar_rect)
 
     _draw_summary_stats(ax_A_table, configs, metrics)
 
     print("  Drawing Panel B (Incremental gain)...")
     ax_B = _draw_incremental_gain(axes_B, fig, configs, metrics, multiseed_stats=multiseed_stats)
 
+    pos_C = ax_C.get_position()
+    metric_cbar_rect = [
+        min(pos_C.x1 + 0.006, 0.968),
+        pos_C.y0 + pos_C.height * 0.08,
+        0.010,
+        pos_C.height * 0.22,
+    ]
     print("  Drawing Panel C (Metric heatmap)...")
-    _draw_metric_heatmap(ax_C, fig, configs, metrics)
+    _draw_metric_heatmap(ax_C, fig, configs, metrics, cbar_rect=metric_cbar_rect)
 
     print("  Drawing Panel D (Permutation box plots)...")
     _draw_perm_boxplots(ax_D, fig, configs, latents, labels)
@@ -500,12 +529,18 @@ def _draw_summary_stats(ax, configs, metrics):
     ax.set_ylim(-0.02, 1.02)
     ax.set_xticks(x)
     ax.set_xticklabels([label for _, label in metric_specs], fontsize=FS_SMALL)
-    ax.set_ylabel("Norm. score", fontsize=FS_AXIS)
-    ax.set_title("Metric Profiles", fontsize=FS_TITLE, pad=3)
+    ax.set_ylabel("")
+    ax.yaxis.set_label_position("right")
+    ax.yaxis.tick_right()
+    ax.tick_params(axis="y", pad=-5)
+    ax.text(0.965, 0.5, "Norm. score", transform=ax.transAxes,
+            rotation=90, va="center", ha="right", fontsize=FS_AXIS)
+    ax.set_title("A2  Metric Profiles", fontsize=FS_TITLE, pad=3)
     ax.grid(alpha=0.22, linestyle="--", linewidth=0.4, axis="y")
     ax.tick_params(labelsize=FS_TICK)
-    ax.legend(fontsize=max(FS_SMALL - 1, 6), frameon=False, ncol=2,
-              loc="lower right", handlelength=1.0, columnspacing=0.6)
+    ax.legend(fontsize=max(FS_SMALL - 1, 6), frameon=False, ncol=3,
+              loc="upper center", bbox_to_anchor=(0.5, -0.18),
+              handlelength=1.0, columnspacing=0.6)
 
 
 def main():

@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 """
-MoCoO Figure 6 — ODE-Driven Pseudotime & Cellular Trajectory Analysis
+MoCoO Supplementary Figure — ODE-Driven Pseudotime & Cellular Trajectory Analysis
 ======================================================================
 The key differentiator of MoCoO vs. plain VAE is the Neural ODE component.
 This figure demonstrates that the ODE latent space captures *continuous*

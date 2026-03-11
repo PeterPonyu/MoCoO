@@ -437,7 +437,7 @@ ODE is the dominant component at full training scale, consistently improving DB 
 \begin{figure*}[!t]
     \centering
     \includegraphics[width=\textwidth,height=0.42\textheight,keepaspectratio]{fig3_ablation_summary}
-    \caption{Component contribution analysis (IRALL, $\beta{=}0.1$). \textbf{(A)}~ODE$\times$MoCo interaction heatmap across metrics and $\beta$ values; warm tones indicate super-additive effects. \textbf{(B)}~Incremental-gain waterfall for ARI, NMI, and ASW: each bar shows the marginal $\Delta$ from the VAE baseline. \textbf{(C)}~Column-normalised performance heatmap across eight metrics. \textbf{(D)}~Permutation-based kNN accuracy drop per latent dimension ($d{=}32$), showing representation concentration per model.}
+    \caption{Component contribution analysis (IRALL, $\beta{=}0.1$). \textbf{(A)}~Two-part summary panel: \textbf{A1} ODE$\times$MoCo interaction heatmap across metrics and $\beta$ values, and \textbf{A2} normalized metric profiles across configurations. \textbf{(B)}~Incremental-gain waterfall for ARI, NMI, and ASW: each bar shows the marginal $\Delta$ from the VAE baseline. \textbf{(C)}~Column-normalised performance heatmap across eight metrics. \textbf{(D)}~Permutation-based kNN accuracy drop per latent dimension ($d{=}32$), showing representation concentration per model.}
     \label{fig:ablation_summary}
 \end{figure*}
 
@@ -817,7 +817,7 @@ Table~\ref{tab:component_summary} summarises each component's primary effect, be
 \begin{figure*}[!t]
     \centering
     \includegraphics[width=\textwidth,height=0.70\textheight,keepaspectratio]{fig5_composed_benchmark}
-    \caption{Comprehensive benchmark overview of \MoCoO ($\beta{=}0.1$, IRALL). \textbf{(A)}~UMAP embeddings coloured by cell type for all six configurations, illustrating progressive clustering refinement. \textbf{(B)}~Validation loss convergence curves (200 epochs). \textbf{(C)}~Column-normalised metric heatmap across all evaluation families. Additional panels (radar chart, vector field, latent diagnostics) are available in the supplementary figures.}
+    \caption{Comprehensive benchmark overview of \MoCoO ($\beta{=}0.1$, IRALL). \textbf{(A)}~UMAP embeddings coloured by cell type for all six configurations, illustrating progressive clustering refinement. \textbf{(B)}~Validation loss convergence curves (200 epochs). \textbf{(C)}~Column-normalised metric heatmap across all evaluation families. \textbf{(D)}~Subcategory diagnostic heatmaps grouped by metric family, showing which configurations dominate clustering, DRE, DREX, LSE, and LSEX submetrics.}
     \label{fig:composed_benchmark}
 \end{figure*}
 

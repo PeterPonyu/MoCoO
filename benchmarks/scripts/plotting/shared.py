@@ -22,7 +22,11 @@ import numpy as np
 # Font setup
 # ---------------------------------------------------------------------------
 
-_FONT_DIR = Path(__file__).resolve().parent.parent.parent / "fonts"
+_ROOT_DIR = Path(__file__).resolve().parent.parent.parent
+_FONT_DIRS = [
+    _ROOT_DIR / "vcd" / "fonts",
+    _ROOT_DIR / "fonts",
+]
 
 
 def setup_fonts() -> None:
@@ -31,10 +35,11 @@ def setup_fonts() -> None:
     Preference order: Arial > Liberation Sans > Nimbus Sans > DejaVu Sans.
     Liberation Sans is metrically identical to Arial.
     """
-    # Try bundled Arial first
-    for fp in (_FONT_DIR / "Arial.ttf", _FONT_DIR / "Arial Bold.ttf"):
-        if fp.exists():
-            fm.fontManager.addfont(str(fp))
+    # Try bundled Arial first (prefer vcd/fonts when available).
+    for font_dir in _FONT_DIRS:
+        for fp in (font_dir / "Arial.ttf", font_dir / "Arial Bold.ttf"):
+            if fp.exists():
+                fm.fontManager.addfont(str(fp))
     # Pick the best available sans-serif
     available = {f.name for f in fm.fontManager.ttflist}
     preferred = [n for n in ("Arial", "Liberation Sans", "Nimbus Sans")

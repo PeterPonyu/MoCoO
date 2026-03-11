@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 """
-MoCoO Figure 7 — Batch Integration & Cross-Dataset Generalization
+MoCoO Supplementary Figure — Batch Integration & Cross-Dataset Generalization
 =================================================================
 Layout (17 × 21 cm):
   Row 0 (A): Grouped bar chart — iLISI, bASW, cLISI across all 6 configs

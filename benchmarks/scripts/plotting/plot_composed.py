@@ -220,7 +220,7 @@ def _draw_training_curves(fig, curve_axes, configs, val_losses, val_scores):
         ax_leg._is_legend_cell = True
 
 
-def _draw_heatmap(ax, configs, mets):
+def _draw_heatmap(ax, configs, mets, *, cbar_rect=None):
     """Curated metrics heatmap with column-normalised colours."""
     CURATED = [
         ("ARI",  "ARI"),  ("NMI",  "NMI"),  ("ASW",  "ASW"),
@@ -253,7 +253,11 @@ def _draw_heatmap(ax, configs, mets):
                        fontsize=FONT_ANNOT)
     ax.set_yticks(range(len(short_c)))
     ax.set_yticklabels(short_c, fontsize=FONT_TICK - 1)
-    cax = ax.inset_axes([0.90, 0.10, 0.035, 0.34])
+    if cbar_rect is None:
+        pos = ax.get_position()
+        cbar_rect = [min(pos.x1 + 0.008, 0.972), pos.y0 + pos.height * 0.08,
+                     0.012, pos.height * 0.28]
+    cax = ax.figure.add_axes(cbar_rect)
     cb = ax.figure.colorbar(im, cax=cax)
     cb.ax.tick_params(labelsize=max(FONT_TICK, 6), length=1.5, pad=0.6)
     cb.outline.set_linewidth(0.5)
@@ -341,7 +345,14 @@ def build_composed(data, outpath: Path, cache_dir: Path | None = None):
 
     # Row 2 — curated heatmap (C)
     ax_hm = fig.add_axes([0.12, 0.38, 0.80, 0.10])
-    _draw_heatmap(ax_hm, configs, mets)
+    hm_pos = ax_hm.get_position()
+    heatmap_cbar_rect = [
+        min(hm_pos.x1 + 0.010, 0.973),
+        hm_pos.y0 + hm_pos.height * 0.08,
+        0.012,
+        hm_pos.height * 0.28,
+    ]
+    _draw_heatmap(ax_hm, configs, mets, cbar_rect=heatmap_cbar_rect)
 
     # Row 3 — subcategory diagnostics (D)
     d_top_gap = 0.035
@@ -380,7 +391,7 @@ def build_composed(data, outpath: Path, cache_dir: Path | None = None):
     for letter, ax in panel_axes:
         try:
             x_off = -0.06
-            y_off = 0.010 if letter != "B" else 0.016
+            y_off = {"A": 0.010, "B": 0.008, "C": 0.004, "D": 0.004}.get(letter, 0.006)
             panel_label(fig, ax, letter, x_off=x_off, y_off=y_off)
         except Exception:
             pass

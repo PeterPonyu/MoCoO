@@ -360,6 +360,7 @@ def _draw_panel_D(axes_d, fig, configs, latents, X_raw, n_cells, gene_names):
     """Panel D — per-config component-grouped Pearson heatmaps (2x3 grid)."""
     k = GENES_PER_COMP
     ax_d0 = None
+    shared_im = None
     
     for j, cfg in enumerate(HEATMAP_CONFIGS):
         r, c = divmod(j, 3)
@@ -383,7 +384,8 @@ def _draw_panel_D(axes_d, fig, configs, latents, X_raw, n_cells, gene_names):
         vmax = max(vmax, 0.15)
 
         im = ax_dj.imshow(mat, aspect="auto", cmap="RdBu_r",
-                          vmin=-vmax, vmax=vmax, interpolation="nearest")
+                  vmin=-vmax, vmax=vmax, interpolation="nearest")
+        shared_im = im
         # X: component labels
         ax_dj.set_xticks(np.arange(TOP_COMPS))
         ax_dj.set_xticklabels([f"Z{ci+1}" for ci in comp_indices],
@@ -398,6 +400,9 @@ def _draw_panel_D(axes_d, fig, configs, latents, X_raw, n_cells, gene_names):
             ax_dj.set_ylabel("Top gene", fontsize=FS_AXIS)
         else:
             ax_dj.set_ylabel("")
+        if c == 2:
+            ax_dj.yaxis.tick_right()
+            ax_dj.tick_params(axis="y", labelright=True, labelleft=False, pad=2)
 
         # White dividers between groups
         for gi in range(1, TOP_COMPS):
@@ -405,9 +410,20 @@ def _draw_panel_D(axes_d, fig, configs, latents, X_raw, n_cells, gene_names):
 
         ax_dj.set_title(get_tick_name(cfg), fontsize=FS_AXIS, pad=1)
 
-        # Inset colorbar (bottom-right to avoid masking adjacent yticklabels)
-        cax = ax_dj.inset_axes([1.04, 0.05, 0.025, 0.30])
-        cb = fig.colorbar(im, cax=cax)
+    if shared_im is not None:
+        pos_mid = axes_d[0][1].get_position()
+        pos_right = axes_d[0][2].get_position()
+        pos_bottom = axes_d[1][1].get_position()
+        gap_x0 = pos_mid.x1
+        gap_w = pos_right.x0 - pos_mid.x1
+        cbar_rect = [
+            gap_x0 + gap_w * 0.38,
+            pos_bottom.y0 + pos_bottom.height * 0.12,
+            min(gap_w * 0.16, 0.012),
+            (pos_mid.y1 - pos_bottom.y0) * 0.34,
+        ]
+        cax = fig.add_axes(cbar_rect)
+        cb = fig.colorbar(shared_im, cax=cax)
         cb.ax.tick_params(labelsize=max(FS_SMALL - 1, 6), length=1.2, pad=0.4)
         cb.set_label("r", fontsize=max(FS_SMALL - 1, 6), labelpad=1)
 
@@ -463,19 +479,19 @@ def build_figure(data, adata, outpath: Path):
 
     # Row B: UMAP panels (1 cell-type + 4 component UMAPs) — 5 explicit axes
     _bw = (0.80 - 0.015 * 4) / 5
-    axes_b = [fig.add_axes([0.12 + i * (_bw + 0.015), 0.57, _bw, 0.10])
+    axes_b = [fig.add_axes([0.12 + i * (_bw + 0.015), 0.56, _bw, 0.10])
               for i in range(5)]
 
     # Row C: Gene expression panels (5 scalar UMAPs) — 5 explicit axes
     _cw_c = (0.80 - 0.015 * 4) / 5
-    axes_c = [fig.add_axes([0.12 + i * (_cw_c + 0.015), 0.38, _cw_c, 0.09])
+    axes_c = [fig.add_axes([0.12 + i * (_cw_c + 0.015), 0.40, _cw_c, 0.09])
               for i in range(5)]
 
     # Row D: 2×3 grid of per-config Pearson heatmaps
     _d_cw = (0.80 - 0.06 * 2) / 3
     _d_rh = 0.11
     _d_gap_v = 0.06
-    _d_top = 0.36  # top of heatmap block (closer to C)
+    _d_top = 0.37  # top of heatmap block (closer to C)
     axes_d = [
         [fig.add_axes([0.12 + c * (_d_cw + 0.06),
                        _d_top - (r + 1) * _d_rh - r * _d_gap_v,
@@ -507,13 +523,13 @@ def build_figure(data, adata, outpath: Path):
                  for k in range(len(uniq_b))]
     fig.legend(b_handles, [str(lb) for lb in uniq_b],
                fontsize=FS_SMALL-2, ncol=len(uniq_b), loc="upper center",
-               bbox_to_anchor=(0.52, 0.555),
+               bbox_to_anchor=(0.52, 0.535),
                frameon=False, handletextpad=0.1,
                columnspacing=0.3, markerscale=0.8)
 
     panel_label(fig, ax_A, "A", x_off=-0.055, y_off=0.030)
-    panel_label(fig, ax_B, "B", x_off=-0.055, y_off=0.015)
-    panel_label(fig, ax_C, "C", x_off=-0.055, y_off=0.030)
+    panel_label(fig, ax_B, "B", x_off=-0.055, y_off=0.012)
+    panel_label(fig, ax_C, "C", x_off=-0.055, y_off=0.022)
     panel_label(fig, axes_d[0][0], "D", x_off=-0.055, y_off=0.030)
 
     # ── 10. Conflict detection (all 13 passes) ────────────────────────────

@@ -85,6 +85,8 @@ def _actions_text_overlap(issue: dict) -> list[Action]:
             action_type="reduce_annotations",
             target="annotations",
             params={
+                "requires_user_approval": True,
+                "preferred_first": ["reposition", "resize", "increase_spacing"],
                 "strategy": "tiered",
                 # Drop order: remove redundant/duplicate labels first, then
                 # secondary labels, only remove primary labels as last resort.
@@ -96,9 +98,11 @@ def _actions_text_overlap(issue: dict) -> list[Action]:
             },
             priority=1,
             description=(
-                "Reduce annotation density to prevent overlapping text. "
-                "Remove redundant duplicates first, then secondary labels; "
-                "preserve at least 12 chars and leading sign/arrow prefixes."
+                "Reduce annotation density only after layout, spacing, and "
+                "repositioning options are exhausted. Remove redundant "
+                "duplicates first, then secondary labels, and only with "
+                "explicit user approval; preserve at least 12 chars and "
+                "leading sign/arrow prefixes."
             ),
         ))
     elif "title" in joined or "suptitle" in joined:
@@ -326,11 +330,16 @@ def _actions_legend_text_crowding(issue: dict) -> list[Action]:
         Action(
             action_type="reduce_legend_entries",
             target="legend",
-            params={"strategy": "top_n", "max_entries": 8},
+            params={
+                "requires_user_approval": True,
+                "strategy": "top_n",
+                "max_entries": 8,
+            },
             priority=2,
             description=(
-                "Reduce the number of legend entries to the most important "
-                "ones and rely on the caption for the rest."
+                "Reduce legend entries only with explicit user approval. "
+                "Prefer repositioning, compaction, or multi-column legends "
+                "before trimming entries."
             ),
         ),
     ]
@@ -721,18 +730,20 @@ def _actions_panel_complexity_excess(issue: dict) -> list[Action]:
         action_type="drop_secondary_bar_labels",
         target="annotations",
         params={
+            "requires_user_approval": True,
             "strategy": "keep_top_bottom_n",
             "n": 3,
             "semantic_note": (
-                "Keep only the 3 highest and 3 lowest value labels for "
-                "reference; remove the rest to reduce visual density."
+                "Keep only the 3 highest and 3 lowest value labels if the "
+                "user explicitly approves label reduction; otherwise keep "
+                "all labels and adjust layout instead."
             ),
         },
         priority=2,
         description=(
-            "Remove per-bar/per-point numeric labels, keeping only the "
-            "top and bottom 3 for reference.  Reduces visual noise without "
-            "losing the comparative trend."
+            "Remove per-bar/per-point numeric labels only with explicit "
+            "user approval; otherwise preserve all artists and solve the "
+            "issue through layout changes."
         ),
     ))
 
@@ -742,17 +753,20 @@ def _actions_panel_complexity_excess(issue: dict) -> list[Action]:
             action_type="reduce_legend_entries",
             target="legend",
             params={
+                "requires_user_approval": True,
                 "strategy": "top_n",
                 "max_entries": 8,
                 "semantic_note": (
-                    "Keep the 8 most important series; note in the caption "
-                    "that remaining series are omitted from the legend."
+                    "Keep the 8 most important series only if the user "
+                    "explicitly approves legend trimming; otherwise prefer "
+                    "repositioning or legend compaction."
                 ),
             },
             priority=2,
             description=(
-                f"Trim legend from {n_legend} to ≤8 entries. "
-                "Move the full list to the figure caption."
+                f"Trim legend from {n_legend} to ≤8 entries only with "
+                "explicit user approval. Prefer repositioning, compaction, "
+                "or multi-column legends first."
             ),
         ))
 

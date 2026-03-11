@@ -315,10 +315,7 @@ def build_figure(rdir: Path, outdir: Path):
         )
 
         panel_label(fig, ax_A, "A", x_off=-0.08, y_off=0.040)
-        pos_B = ax_B.get_position()
-        fig.text(pos_B.x0 + 0.012, min(pos_B.y1 + 0.018, 0.970),
-             "(B)", fontsize=FS_LABEL, fontweight="bold",
-             va="bottom", ha="left")
+        panel_label(fig, ax_B, "B", x_off=-0.05, y_off=0.008)
 
         sub_panels = [(ax_A, "panelA_train_loss"),
                       (ax_B, "panelB_efficiency")]
