@@ -48,6 +48,25 @@ data/
 outputs/
 checkpoints/
 
+# LaTeX auxiliary files
+*.aux
+*.bbl
+*.blg
+*.fdb_latexmk
+*.fls
+*.log
+*.out
+*.synctex.gz
+
+# Generated figures (reproducible from code)
+benchmarks/figures/*.png
+benchmarks/figures/*.pdf
+benchmarks/figures/*/
+
+# Benchmark caches
+benchmarks/results/**/umap_cache.npz
+benchmarks/results/bv_umap_cache.npz
+
 # Logs
 *.log
 logs/

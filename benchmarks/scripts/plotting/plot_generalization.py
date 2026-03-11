@@ -144,15 +144,15 @@ def build_figure(rdir: Path, outdir: Path, multiseed_stats=None):
     fig = plt.figure(figsize=(FIG_WIDTH_IN, FIG_HEIGHT_IN * 0.60))
 
     # Row 1: 3 clustering panels — wider gaps for rotated labels
-    _aw1 = (0.80 - 0.06 * 2) / 3  # ~0.227
+    _aw1 = (0.84 - 0.06 * 2) / 3  # ~0.240
     ax_row1 = [
-        fig.add_axes([0.10, 0.54, _aw1, 0.26]),
-        fig.add_axes([0.10 + _aw1 + 0.06, 0.54, _aw1, 0.26]),
-        fig.add_axes([0.10 + 2 * (_aw1 + 0.06), 0.54, _aw1, 0.26]),
+        fig.add_axes([0.10, 0.54, _aw1, 0.28]),
+        fig.add_axes([0.10 + _aw1 + 0.06, 0.54, _aw1, 0.28]),
+        fig.add_axes([0.10 + 2 * (_aw1 + 0.06), 0.54, _aw1, 0.28]),
     ]
 
     # Row 2: 4 quality panels — increased gap from row 1
-    _aw2 = (0.80 - 0.05 * 3) / 4  # 0.1625
+    _aw2 = (0.84 - 0.05 * 3) / 4  # 0.1725
     ax_row2 = [
         fig.add_axes([0.10, 0.16, _aw2, 0.24]),
         fig.add_axes([0.10 + _aw2 + 0.05, 0.16, _aw2, 0.24]),

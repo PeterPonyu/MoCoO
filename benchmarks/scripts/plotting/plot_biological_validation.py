@@ -217,7 +217,7 @@ def _umap_lims(emb: np.ndarray, pad: float = 0.05):
 
 def _inset_cbar(fig, ax, mappable, label: str = ""):
     """Tiny colorbar inside bottom-right of axes (avoids cross-panel leakage)."""
-    cax = ax.inset_axes([0.82, 0.10, 0.018, 0.18])
+    cax = ax.inset_axes([0.88, 0.08, 0.025, 0.22])
     cb = fig.colorbar(mappable, cax=cax)
     cb.ax.tick_params(labelsize=max(FS_SMALL - 2, 5), length=1.0, pad=0.3)
     if label:
@@ -225,7 +225,7 @@ def _inset_cbar(fig, ax, mappable, label: str = ""):
     return cb
 
 
-def _umap_celltype(ax, emb, labels, title, show_ylabel=True):
+def _umap_celltype(ax, emb, labels, title, show_ylabel=True, show_legend=True):
     uniq = np.unique(labels)
     cm20 = plt.colormaps.get_cmap("tab20")
     for k, lb in enumerate(uniq):
@@ -236,7 +236,9 @@ def _umap_celltype(ax, emb, labels, title, show_ylabel=True):
     ax.set_xlim(xl, xh); ax.set_ylim(yl, yh)
     ax.set_title(title, fontsize=FS_AXIS, pad=2)
     ax.set_xticks([]); ax.set_yticks([])
-    if len(uniq) <= 12:
+    for sp in ax.spines.values():
+        sp.set_visible(False)
+    if show_legend and len(uniq) <= 12:
         handles = [plt.Line2D([0], [0], marker="o", color="w",
                               markerfacecolor=cm20(k % 20), markersize=3)
                    for k in range(len(uniq))]
@@ -258,6 +260,8 @@ def _umap_scalar(ax, emb, values, title, cmap_name, cbar_label, fig, show_ylabel
     ax.set_xlim(xl, xh); ax.set_ylim(yl, yh)
     ax.set_title(title, fontsize=FS_AXIS, pad=2)
     ax.set_xticks([]); ax.set_yticks([])
+    for sp in ax.spines.values():
+        sp.set_visible(False)
     _inset_cbar(fig, ax, sc, label=cbar_label)
 
 
@@ -289,7 +293,7 @@ def _draw_panel_A(ax_a1, ax_a2, fig, configs, latents, labels_all,
     ax_a1.grid(alpha=0.22, linestyle="--", linewidth=0.4)
     # Legend as fig.text to avoid data occlusion
     handles, leg_labels = ax_a1.get_legend_handles_labels()
-    legend_ax = fig.add_axes([0.12, 0.945, 0.83, 0.028])
+    legend_ax = fig.add_axes([0.12, 0.925, 0.83, 0.028])
     legend_ax.set_axis_off()
     legend_ax._is_legend_cell = True
     legend_ax.legend(handles, leg_labels, fontsize=FS_SMALL-1, frameon=False, ncol=6,
@@ -323,7 +327,7 @@ def _draw_panel_B(axes_b, fig, emb, Z_full, labels_f, n_cells,
     """Panel B — UMAP: cell-type + TOP_COMPS component-intensity UMAPs."""
     ax_b0 = axes_b[0]
     _umap_celltype(ax_b0, emb, labels_f,
-                   title="CT (Full)", show_ylabel=True)
+                   title="CT (Full)", show_ylabel=True, show_legend=False)
     for j, ci in enumerate(umap_comp_indices):
         ax_bj = axes_b[j + 1]
         _umap_scalar(ax_bj, emb, Z_full[:n_cells, ci],
@@ -339,7 +343,7 @@ def _draw_panel_C(axes_c, fig, emb, X_raw, labels_f,
     """Panel C — UMAP: cell-type reference + top-gene expression UMAPs (RF importance)."""
     ax_c0 = axes_c[0]
     _umap_celltype(ax_c0, emb, labels_f,
-                   title="CT (ref.)", show_ylabel=True)
+                   title="CT (ref.)", show_ylabel=True, show_legend=False)
     for j, ci in enumerate(umap_comp_indices):
         ax_cj = axes_c[j + 1]
         g_idx = rf_gene_idx_table[j][0]
@@ -401,8 +405,8 @@ def _draw_panel_D(axes_d, fig, configs, latents, X_raw, n_cells, gene_names):
 
         ax_dj.set_title(get_tick_name(cfg), fontsize=FS_AXIS, pad=1)
 
-        # Inset colorbar (right edge inside the axes)
-        cax = ax_dj.inset_axes([0.985, 0.10, 0.022, 0.78])
+        # Inset colorbar (bottom-right to avoid masking adjacent yticklabels)
+        cax = ax_dj.inset_axes([1.04, 0.05, 0.025, 0.30])
         cb = fig.colorbar(im, cax=cax)
         cb.ax.tick_params(labelsize=max(FS_SMALL - 1, 6), length=1.2, pad=0.4)
         cb.set_label("r", fontsize=max(FS_SMALL - 1, 6), labelpad=1)
@@ -459,19 +463,19 @@ def build_figure(data, adata, outpath: Path):
 
     # Row B: UMAP panels (1 cell-type + 4 component UMAPs) — 5 explicit axes
     _bw = (0.80 - 0.015 * 4) / 5
-    axes_b = [fig.add_axes([0.12 + i * (_bw + 0.015), 0.54, _bw, 0.12])
+    axes_b = [fig.add_axes([0.12 + i * (_bw + 0.015), 0.57, _bw, 0.10])
               for i in range(5)]
 
     # Row C: Gene expression panels (5 scalar UMAPs) — 5 explicit axes
     _cw_c = (0.80 - 0.015 * 4) / 5
-    axes_c = [fig.add_axes([0.12 + i * (_cw_c + 0.015), 0.41, _cw_c, 0.09])
+    axes_c = [fig.add_axes([0.12 + i * (_cw_c + 0.015), 0.38, _cw_c, 0.09])
               for i in range(5)]
 
     # Row D: 2×3 grid of per-config Pearson heatmaps
     _d_cw = (0.80 - 0.06 * 2) / 3
     _d_rh = 0.11
     _d_gap_v = 0.06
-    _d_top = 0.34  # top of heatmap block
+    _d_top = 0.36  # top of heatmap block (closer to C)
     axes_d = [
         [fig.add_axes([0.12 + c * (_d_cw + 0.06),
                        _d_top - (r + 1) * _d_rh - r * _d_gap_v,
@@ -495,8 +499,20 @@ def build_figure(data, adata, outpath: Path):
 
     # ── 8. Panel letters & legend ─────────────────────────────────────────
     # ── 9. Panel letters ─────────────────────────────────────────────────
+    # Row B cell-type legend (horizontal, between B and C rows — shared for both)
+    uniq_b = np.unique(labels_f)
+    cm20 = plt.colormaps.get_cmap("tab20")
+    b_handles = [plt.Line2D([0], [0], marker="o", color="w",
+                             markerfacecolor=cm20(k % 20), markersize=3)
+                 for k in range(len(uniq_b))]
+    fig.legend(b_handles, [str(lb) for lb in uniq_b],
+               fontsize=FS_SMALL-2, ncol=len(uniq_b), loc="upper center",
+               bbox_to_anchor=(0.52, 0.555),
+               frameon=False, handletextpad=0.1,
+               columnspacing=0.3, markerscale=0.8)
+
     panel_label(fig, ax_A, "A", x_off=-0.055, y_off=0.030)
-    panel_label(fig, ax_B, "B", x_off=-0.055, y_off=0.030)
+    panel_label(fig, ax_B, "B", x_off=-0.055, y_off=0.015)
     panel_label(fig, ax_C, "C", x_off=-0.055, y_off=0.030)
     panel_label(fig, axes_d[0][0], "D", x_off=-0.055, y_off=0.030)
 

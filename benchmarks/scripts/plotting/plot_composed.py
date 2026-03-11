@@ -142,7 +142,7 @@ def _draw_umap_panel(fig, umap_axes, configs, latents, labels_arr,
     if handles:
         fig.legend(handles, lbls, loc="upper center",
                bbox_to_anchor=(0.5, 0.992),
-                   ncol=max(4, min(len(lbls), 10)), markerscale=1.8,
+                   ncol=len(lbls), markerscale=1.8,
                fontsize=max(FONT_ANNOT - 3, 5), frameon=False,
                    handlelength=0.8, columnspacing=0.5, labelspacing=0.2)
 
@@ -347,7 +347,7 @@ def build_composed(data, outpath: Path, cache_dir: Path | None = None):
     _draw_training_curves(fig, curve_axes, configs, val_losses, val_scores)
 
     # Row 2 — curated heatmap (C)
-    ax_hm = fig.add_axes([0.12, 0.31, 0.80, 0.11])
+    ax_hm = fig.add_axes([0.12, 0.33, 0.80, 0.11])
     _draw_heatmap(ax_hm, configs, mets)
 
     # Row 3 — subcategory diagnostics (D)
@@ -356,11 +356,11 @@ def build_composed(data, outpath: Path, cache_dir: Path | None = None):
     d_bot_gap = 0.05
     d_bot_w = (0.80 - d_bot_gap) / 2
     axes_D = [
-        fig.add_axes([0.12, 0.15, d_top_w, 0.095]),
-        fig.add_axes([0.12 + d_top_w + d_top_gap, 0.15, d_top_w, 0.095]),
-        fig.add_axes([0.12 + 2 * (d_top_w + d_top_gap), 0.15, d_top_w, 0.095]),
-        fig.add_axes([0.12, 0.015, d_bot_w, 0.095]),
-        fig.add_axes([0.12 + d_bot_w + d_bot_gap, 0.015, d_bot_w, 0.095]),
+        fig.add_axes([0.12, 0.14, d_top_w, 0.085]),
+        fig.add_axes([0.12 + d_top_w + d_top_gap, 0.14, d_top_w, 0.085]),
+        fig.add_axes([0.12 + 2 * (d_top_w + d_top_gap), 0.14, d_top_w, 0.085]),
+        fig.add_axes([0.12, 0.02, d_bot_w, 0.085]),
+        fig.add_axes([0.12 + d_bot_w + d_bot_gap, 0.02, d_bot_w, 0.085]),
     ]
     if subcategory_data:
         draw_subcategory_block(fig, axes_D, subcategory_data, configs=configs)
@@ -386,9 +386,7 @@ def build_composed(data, outpath: Path, cache_dir: Path | None = None):
 
     for letter, ax in panel_axes:
         try:
-            x_off = -0.025
-            if letter in ("C", "D"):
-                x_off = -0.06
+            x_off = -0.06
             y_off = 0.010 if letter != "B" else 0.016
             panel_label(fig, ax, letter, x_off=x_off, y_off=y_off)
         except Exception:

@@ -130,7 +130,7 @@ def _draw_pca_comparison(axes, fig, configs, latents, labels):
             ax_pt.set_ylabel("PC 2", fontsize=FS_AXIS)
         for spine in ax_pt.spines.values():
             spine.set_visible(False)
-        cax = ax_pt.inset_axes([0.84, 0.05, 0.03, 0.28])
+        cax = ax_pt.inset_axes([0.90, 0.05, 0.03, 0.28])
         cb  = fig.colorbar(sc, cax=cax)
         cb.ax.tick_params(labelsize=6, length=1.2, pad=0.4)
         cb.set_label("Pseudotime", fontsize=6, labelpad=1)
@@ -138,7 +138,7 @@ def _draw_pca_comparison(axes, fig, configs, latents, labels):
     # Shared cell-type legend between Row A and Row B
     uniq = np.unique(labels[0])
     handles = [plt.Line2D([0],[0], marker="o", color="w",
-                           markerfacecolor=cm20(k % 20), markersize=2.5)
+                           markerfacecolor=cm20(k % 20), markersize=3.5)
                for k in range(len(uniq))]
     n_leg_cols = len(uniq)
     fig.legend(handles, [str(lb) for lb in uniq],

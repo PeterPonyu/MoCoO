@@ -82,12 +82,12 @@ def build_figure(results_base: Path, outdir: Path):
     betas_present = sorted(all_data.keys())
 
     fig = plt.figure(figsize=(FIG_WIDTH_IN * 1.10, FIG_HEIGHT_IN * 0.76))
-    # 3×3 grid — slightly wider overall to reduce cross-panel title crowding
-    _cw = (0.90 - 0.055 * 2) / 3
-    _rh = (0.72 - 0.06 * 2) / 3   # ~0.2000
+    # 3×3 grid — reduced top/bottom borders, wider column gaps
+    _cw = (0.88 - 0.07 * 2) / 3
+    _rh = (0.82 - 0.06 * 2) / 3   # ~0.2333
     axes = np.array([
-        [fig.add_axes([0.08 + c * (_cw + 0.055),
-                       0.16 + 0.72 - (r + 1) * _rh - r * 0.06,
+        [fig.add_axes([0.08 + c * (_cw + 0.07),
+                       0.08 + 0.82 - (r + 1) * _rh - r * 0.06,
                        _cw, _rh])
          for c in range(3)]
         for r in range(3)
@@ -137,7 +137,7 @@ def build_figure(results_base: Path, outdir: Path):
     # Single legend above the grid (outside the matrix)
     handles, labels = axes[0, 0].get_legend_handles_labels()
     fig.legend(handles, labels, fontsize=FS_LEGEND, ncol=6,
-               loc="upper center", bbox_to_anchor=(0.50, 0.955),
+               loc="upper center", bbox_to_anchor=(0.50, 0.99),
                frameon=False, handlelength=1.5, columnspacing=1.0)
 
     # Panel labels — only on leftmost column, shifted outward
