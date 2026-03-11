@@ -356,36 +356,37 @@ def _draw_trajectory_smoothness(axes, fig, configs, latents, labels):
 def build_figure(rdir: Path, outdir: Path, adata_path: str):
     configs, latents, labels = _load_data(rdir)
 
-    fig = plt.figure(figsize=(FIG_WIDTH_IN, FIG_HEIGHT_IN * 0.92), dpi=DPI)
+    fig = plt.figure(figsize=(FIG_WIDTH_IN, FIG_HEIGHT_IN * 0.95), dpi=DPI)
 
     n_cfgs = 3  # VAE, VAE+ODE, Full
 
-    # A: 2-row × n_cfgs-col PCA grid — explicit per-subplot geometry
-    _a_cw = (0.88 - 0.03 * (n_cfgs - 1)) / n_cfgs  # ~0.2733
-    _a_rh = (0.27 - 0.03) / 2                        # 0.12
+    # A: 2-row × n_cfgs-col PCA grid — shifted down to leave legend band at top
+    _a_cw = (0.86 - 0.04 * (n_cfgs - 1)) / n_cfgs  # ~0.26
+    _a_rh = 0.11
+    _a_top = 0.96
     grid_A = [
-        [fig.add_axes([0.08 + c * (_a_cw + 0.03),
-                       0.70 + 0.27 - (r + 1) * _a_rh - r * 0.03,
+        [fig.add_axes([0.10 + c * (_a_cw + 0.04),
+                       _a_top - (r + 1) * _a_rh - r * 0.03,
                        _a_cw, _a_rh])
          for c in range(n_cfgs)]
         for r in range(2)
     ]
 
-    # B: 2 violin plots — explicit per-subplot geometry
+    # B: 2 violin plots — more vertical room + gap from A
     _b_aw = (0.86 - 0.06) / 2  # 0.40
     axes_B = [
-        fig.add_axes([0.10, 0.47, _b_aw, 0.18]),
-        fig.add_axes([0.10 + _b_aw + 0.06, 0.47, _b_aw, 0.18]),
+        fig.add_axes([0.10, 0.50, _b_aw, 0.18]),
+        fig.add_axes([0.10 + _b_aw + 0.06, 0.50, _b_aw, 0.18]),
     ]
 
-    # C: single wide gene expression panel
-    ax_C_single = fig.add_axes([0.10, 0.25, 0.86, 0.18])
+    # C: single wide gene expression panel — more room
+    ax_C_single = fig.add_axes([0.10, 0.27, 0.86, 0.18])
 
-    # D: 2 panels — pairwise dist histogram + NN entropy bars
+    # D: 2 panels — pairwise dist histogram + NN entropy bars — lifted from bottom
     _d_aw = (0.86 - 0.06) / 2  # 0.40
     axes_D = [
-        fig.add_axes([0.10, 0.04, _d_aw, 0.17]),
-        fig.add_axes([0.10 + _d_aw + 0.06, 0.04, _d_aw, 0.17]),
+        fig.add_axes([0.10, 0.06, _d_aw, 0.16]),
+        fig.add_axes([0.10 + _d_aw + 0.06, 0.06, _d_aw, 0.16]),
     ]
 
     print("  Drawing Panel A (PCA pseudotime)...")
@@ -399,12 +400,12 @@ def build_figure(rdir: Path, outdir: Path, adata_path: str):
 
     print("  Drawing Panel D (Trajectory smoothness)...")
     ax_D = _draw_trajectory_smoothness(axes_D, fig, configs, latents, labels)
-    add_config_legend_footnote(fig, y_pos=0.005)
+    add_config_legend_footnote(fig, y_pos=0.012)
 
-    panel_label(fig, ax_A, "A")
-    panel_label(fig, ax_B, "B")
-    panel_label(fig, ax_C, "C")
-    panel_label(fig, ax_D, "D")
+    panel_label(fig, ax_A, "A", x_off=-0.05, y_off=0.010)
+    panel_label(fig, ax_B, "B", x_off=-0.05, y_off=0.010)
+    panel_label(fig, ax_C, "C", x_off=-0.05, y_off=0.010)
+    panel_label(fig, ax_D, "D", x_off=-0.05, y_off=0.010)
 
     fig.canvas.draw()
     print("\n── Conflict Detection ──")

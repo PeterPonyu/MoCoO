@@ -450,28 +450,30 @@ def build_figure(data, adata, outpath: Path):
         X_raw, Z_full[:n_cells], umap_comp_indices, gene_names, top_k=1)
 
     # ── 6. Figure skeleton ────────────────────────────────────────────────
-    fig = plt.figure(figsize=(FIG_WIDTH_IN, FIG_HEIGHT_IN), dpi=DPI)
+    fig = plt.figure(figsize=(FIG_WIDTH_IN, FIG_HEIGHT_IN * 1.15), dpi=DPI)
 
-    # Row A: 2 sub-rows (perturbation robustness + importance bars)
-    ax_a1 = fig.add_axes([0.10, 0.85, 0.86, 0.12])
-    ax_a2 = fig.add_axes([0.10, 0.72, 0.86, 0.10])
+    # Row A: 2 sub-rows (perturbation robustness + importance bars) — more room
+    ax_a1 = fig.add_axes([0.10, 0.87, 0.86, 0.10])
+    ax_a2 = fig.add_axes([0.10, 0.76, 0.86, 0.08])
 
     # Row B: UMAP panels (1 cell-type + 4 component UMAPs) — 5 explicit axes
     _bw = (0.92 - 0.02 * 4) / 5  # ~0.168
-    axes_b = [fig.add_axes([0.04 + i * (_bw + 0.02), 0.54, _bw, 0.14])
+    axes_b = [fig.add_axes([0.04 + i * (_bw + 0.02), 0.58, _bw, 0.14])
               for i in range(5)]
 
     # Row C: Gene expression panels (5 scalar UMAPs) — 5 explicit axes
     _cw_c = (0.92 - 0.02 * 4) / 5  # ~0.168
-    axes_c = [fig.add_axes([0.04 + i * (_cw_c + 0.02), 0.38, _cw_c, 0.12])
+    axes_c = [fig.add_axes([0.04 + i * (_cw_c + 0.02), 0.42, _cw_c, 0.12])
               for i in range(5)]
 
-    # Row D: 2×3 grid of per-config Pearson heatmaps — explicit per-subplot geometry
-    _d_cw = (0.90 - 0.06 * 2) / 3  # 0.26
-    _d_rh = (0.30 - 0.04) / 2      # 0.13
+    # Row D: 2×3 grid of per-config Pearson heatmaps — more spacing
+    _d_cw = (0.88 - 0.06 * 2) / 3  # ~0.253
+    _d_rh = 0.13
+    _d_gap_v = 0.04
+    _d_top = 0.36  # top of heatmap block
     axes_d = [
-        [fig.add_axes([0.06 + c * (_d_cw + 0.06),
-                       0.04 + 0.30 - (r + 1) * _d_rh - r * 0.04,
+        [fig.add_axes([0.07 + c * (_d_cw + 0.06),
+                       _d_top - (r + 1) * _d_rh - r * _d_gap_v,
                        _d_cw, _d_rh])
          for c in range(3)]
         for r in range(2)
@@ -491,13 +493,13 @@ def build_figure(data, adata, outpath: Path):
     ax_D = _draw_panel_D(axes_d, fig, configs, latents, X_raw, n_cells, gene_names)
 
     # ── 8. Panel letters & legend ─────────────────────────────────────────
-    add_config_legend_footnote(fig, y_pos=0.005)
+    add_config_legend_footnote(fig, y_pos=0.012)
 
     # ── 9. Panel letters ─────────────────────────────────────────────────
-    panel_label(fig, ax_A, "A", x_off=-0.018)
-    panel_label(fig, ax_B, "B", x_off=-0.018)
-    panel_label(fig, ax_C, "C", x_off=-0.018)
-    panel_label(fig, axes_d[0][0], "D", x_off=-0.018)
+    panel_label(fig, ax_A, "A", x_off=-0.04, y_off=0.010)
+    panel_label(fig, ax_B, "B", x_off=-0.04, y_off=0.010)
+    panel_label(fig, ax_C, "C", x_off=-0.04, y_off=0.010)
+    panel_label(fig, axes_d[0][0], "D", x_off=-0.04, y_off=0.010)
 
     # ── 10. Conflict detection (all 13 passes) ────────────────────────────
     print("\n── Conflict Detection ──")

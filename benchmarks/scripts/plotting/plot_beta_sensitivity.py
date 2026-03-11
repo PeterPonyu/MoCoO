@@ -81,13 +81,13 @@ def build_figure(results_base: Path, outdir: Path):
 
     betas_present = sorted(all_data.keys())
 
-    fig = plt.figure(figsize=(FIG_WIDTH_IN, FIG_HEIGHT_IN * 0.75))
-    # 3×3 grid — explicit per-subplot geometry
-    _cw = (0.88 - 0.06 * 2) / 3   # ~0.2533
-    _rh = (0.82 - 0.06 * 2) / 3   # ~0.2333
+    fig = plt.figure(figsize=(FIG_WIDTH_IN, FIG_HEIGHT_IN * 0.80))
+    # 3×3 grid — wider gutters, more footer room
+    _cw = (0.86 - 0.06 * 2) / 3   # ~0.2467
+    _rh = (0.78 - 0.06 * 2) / 3   # ~0.2200
     axes = np.array([
-        [fig.add_axes([0.08 + c * (_cw + 0.06),
-                       0.12 + 0.82 - (r + 1) * _rh - r * 0.06,
+        [fig.add_axes([0.10 + c * (_cw + 0.06),
+                       0.16 + 0.78 - (r + 1) * _rh - r * 0.06,
                        _cw, _rh])
          for c in range(3)]
         for r in range(3)
@@ -117,7 +117,11 @@ def build_figure(results_base: Path, outdir: Path):
 
         ax.set_xscale("log")
         ax.set_xticks(_BETAS)
-        ax.set_xticklabels([str(b) for b in _BETAS], fontsize=FS_TICK)
+        # Only show x-tick labels on the bottom row to reduce clutter
+        if row == 2:
+            ax.set_xticklabels([str(b) for b in _BETAS], fontsize=FS_TICK)
+        else:
+            ax.set_xticklabels([])
         ax.tick_params(axis="both", labelsize=FS_TICK)
         ax.set_title(metric_label, fontsize=FS_TITLE, pad=3)
         ax.grid(alpha=0.22, linestyle="--", linewidth=0.4)
@@ -129,21 +133,20 @@ def build_figure(results_base: Path, outdir: Path):
         if row == 2:
             ax.set_xlabel("β", fontsize=FS_AXIS)
 
-    # Single legend at bottom, adjacent to axes
+    # Single legend above the grid (outside the matrix)
     handles, labels = axes[0, 0].get_legend_handles_labels()
     fig.legend(handles, labels, fontsize=FS_LEGEND, ncol=6,
-               loc="lower center", bbox_to_anchor=(0.50, 0.04),
+               loc="upper center", bbox_to_anchor=(0.50, 0.98),
                frameon=False, handlelength=1.5, columnspacing=1.0)
 
-    add_config_legend_footnote(fig, y_pos=0.02)
+    add_config_legend_footnote(fig, y_pos=0.012)
 
-    # Panel labels
-    letters = "ABCDEFGHI"
-    for idx in range(len(_METRICS)):
-        row, col = divmod(idx, 3)
-        if col == 0:
-            panel_label(fig, axes[row, col], letters[row],
-                       x_off=-0.06, y_off=0.008)
+    # Panel labels — only on leftmost column, shifted outward
+    letters = "ABC"
+    for idx in range(min(3, len(_METRICS))):
+        row = idx
+        panel_label(fig, axes[row, 0], letters[row],
+                   x_off=-0.07, y_off=0.012)
 
     outpath = outdir / "fig6_beta_sensitivity.png"
 

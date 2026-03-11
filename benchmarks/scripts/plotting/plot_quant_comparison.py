@@ -112,15 +112,17 @@ def _draw_umap_grid(axes_grid, fig, configs, latents, labels, cache_dir):
         ax.set_title(cfg, fontsize=FS_TITLE, pad=2)
         for spine in ax.spines.values():
             spine.set_visible(False)
-    # Shared legend in first panel
+    # Shared cell-type legend as a full-width strip between rows A and B
     uniq = np.unique(labels[0])
     handles = [plt.Line2D([0],[0], marker="o", color="w",
                            markerfacecolor=cm20(k % 20), markersize=3)
                for k in range(len(uniq))]
-    ax_first.legend(handles, [str(lb) for lb in uniq],
-                    fontsize=FS_LEG, ncol=2, loc="lower left",
-                    framealpha=0.70, handletextpad=0.1,
-                    borderpad=0.2, markerscale=1.5, columnspacing=0.4)
+    n_cols = min(max(6, len(uniq) // 2), 10)
+    fig.legend(handles, [str(lb) for lb in uniq],
+               fontsize=FS_LEG, ncol=n_cols, loc="upper center",
+               bbox_to_anchor=(0.50, 0.695),
+               frameon=False, handletextpad=0.1,
+               borderpad=0.2, markerscale=1.5, columnspacing=0.5)
     return ax_first
 
 
@@ -261,37 +263,37 @@ def build_figure(rdir: Path, outdir: Path, multiseed_stats=None):
 
     fig = plt.figure(figsize=(FIG_W, FIG_H), dpi=DPI)
 
-    # Row A: UMAP grid (2×3) — explicit per-subplot geometry
+    # Row A: UMAP grid (2×3) — taller rows, more vertical room for legend
     axes_A = [
-        [fig.add_axes([0.060, 0.860, 0.280, 0.100]),
-         fig.add_axes([0.370, 0.860, 0.280, 0.100]),
-         fig.add_axes([0.680, 0.860, 0.280, 0.100])],
-        [fig.add_axes([0.060, 0.720, 0.280, 0.100]),
-         fig.add_axes([0.370, 0.720, 0.280, 0.100]),
-         fig.add_axes([0.680, 0.720, 0.280, 0.100])],
+        [fig.add_axes([0.060, 0.855, 0.280, 0.120]),
+         fig.add_axes([0.370, 0.855, 0.280, 0.120]),
+         fig.add_axes([0.680, 0.855, 0.280, 0.120])],
+        [fig.add_axes([0.060, 0.700, 0.280, 0.120]),
+         fig.add_axes([0.370, 0.700, 0.280, 0.120]),
+         fig.add_axes([0.680, 0.700, 0.280, 0.120])],
     ]
 
-    # Row B: 3 bar charts — explicit per-subplot geometry
+    # Row B: 3 bar charts — push down, add annotation headroom
     axes_B = [
-        fig.add_axes([0.080, 0.480, 0.253, 0.180]),
-        fig.add_axes([0.393, 0.480, 0.253, 0.180]),
-        fig.add_axes([0.707, 0.480, 0.253, 0.180]),
+        fig.add_axes([0.080, 0.475, 0.253, 0.175]),
+        fig.add_axes([0.393, 0.475, 0.253, 0.175]),
+        fig.add_axes([0.707, 0.475, 0.253, 0.175]),
     ]
 
-    # Row C: 4 neighbourhood quality bars — explicit per-subplot geometry
+    # Row C: 4 neighbourhood quality bars — more headroom
     axes_C = [
-        fig.add_axes([0.080, 0.270, 0.190, 0.160]),
-        fig.add_axes([0.310, 0.270, 0.190, 0.160]),
-        fig.add_axes([0.540, 0.270, 0.190, 0.160]),
-        fig.add_axes([0.770, 0.270, 0.190, 0.160]),
+        fig.add_axes([0.080, 0.265, 0.190, 0.165]),
+        fig.add_axes([0.310, 0.265, 0.190, 0.165]),
+        fig.add_axes([0.540, 0.265, 0.190, 0.165]),
+        fig.add_axes([0.770, 0.265, 0.190, 0.165]),
     ]
 
-    # Row D: 4 latent structure bars — explicit per-subplot geometry
+    # Row D: 4 latent structure bars — lift above footer
     axes_D = [
-        fig.add_axes([0.080, 0.060, 0.190, 0.160]),
-        fig.add_axes([0.310, 0.060, 0.190, 0.160]),
-        fig.add_axes([0.540, 0.060, 0.190, 0.160]),
-        fig.add_axes([0.770, 0.060, 0.190, 0.160]),
+        fig.add_axes([0.080, 0.070, 0.190, 0.150]),
+        fig.add_axes([0.310, 0.070, 0.190, 0.150]),
+        fig.add_axes([0.540, 0.070, 0.190, 0.150]),
+        fig.add_axes([0.770, 0.070, 0.190, 0.150]),
     ]
 
     print("  Drawing Panel A (UMAP grid)...")
@@ -306,8 +308,8 @@ def build_figure(rdir: Path, outdir: Path, multiseed_stats=None):
     print("  Drawing Panel D (Latent structure)...")
     ax_D = _draw_latent_structure(axes_D, fig, configs, metrics)
 
-    add_config_legend_footnote(fig, y_pos=0.005)
-    add_metric_footnote(fig, ["ARI", "NMI", "ASW", "DRE", "DREX", "LSE"], y_pos=-0.005)
+    add_config_legend_footnote(fig, y_pos=0.010)
+    add_metric_footnote(fig, ["ARI", "NMI", "ASW", "DRE", "DREX", "LSE"], y_pos=0.000)
 
     panel_label(fig, ax_A, "A", x_off=-0.026)
     panel_label(fig, ax_B, "B", x_off=-0.026)

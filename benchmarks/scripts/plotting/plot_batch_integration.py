@@ -349,19 +349,19 @@ def build_figure(results_base: Path, outdir: Path):
     # Load cross-dataset metrics
     cross_data = _load_cross_dataset_metrics(results_base)
 
-    # ── Create figure ──
-    fig = plt.figure(figsize=(FIG_WIDTH_IN, FIG_HEIGHT_IN))
+    # ── Create figure with more vertical room ──
+    fig = plt.figure(figsize=(FIG_WIDTH_IN, FIG_HEIGHT_IN * 1.10))
 
-    # Panel A: Batch integration bars (full width)
-    ax_A = fig.add_axes([0.10, 0.78, 0.86, 0.18])
+    # Panel A: Batch integration bars (full width) — more headroom for labels
+    ax_A = fig.add_axes([0.10, 0.82, 0.86, 0.14])
     _draw_batch_bars(ax_A, batch_metrics)
 
-    # Panel B: Bio vs Batch scatter
-    ax_B = fig.add_axes([0.10, 0.56, 0.40, 0.18])
+    # Panel B: Bio vs Batch scatter — separate from B2 with real gap
+    ax_B = fig.add_axes([0.10, 0.58, 0.38, 0.18])
     _draw_bio_batch_scatter(ax_B, batch_metrics)
 
-    # Panel B2: Overall score bar
-    ax_B2 = fig.add_axes([0.56, 0.56, 0.40, 0.18])
+    # Panel B2: Overall score bar — proper horizontal gap
+    ax_B2 = fig.add_axes([0.56, 0.58, 0.40, 0.18])
     configs_present = [c for c in _CONFIGS if c in batch_metrics]
     overall = [batch_metrics[c].get("overall_score", 0) for c in configs_present]
     if not configs_present or all(v == 0 for v in overall):
@@ -382,19 +382,19 @@ def build_figure(results_base: Path, outdir: Path):
         ax_B2.spines["top"].set_visible(False)
         ax_B2.spines["right"].set_visible(False)
 
-    # Panel C: Cross-dataset heatmap (full width)
-    ax_C = fig.add_axes([0.10, 0.30, 0.86, 0.22])
+    # Panel C: Cross-dataset heatmap (full width) — lower, with gap from B
+    ax_C = fig.add_axes([0.10, 0.32, 0.86, 0.20])
     _draw_cross_dataset_heatmap(ax_C, cross_data)
 
-    # Panel D: Cross-dataset radar (polar)
-    ax_D = fig.add_axes([0.20, 0.03, 0.60, 0.24], polar=True)
+    # Panel D: Cross-dataset radar (polar) — narrower to leave room for legend
+    ax_D = fig.add_axes([0.15, 0.05, 0.52, 0.22], polar=True)
     _draw_cross_radar(ax_D, cross_data)
-    add_config_legend_footnote(fig, y_pos=0.005)
+    add_config_legend_footnote(fig, y_pos=0.012)
 
-    panel_label(fig, ax_A, "A")
-    panel_label(fig, ax_B, "B")
-    panel_label(fig, ax_C, "C")
-    panel_label(fig, ax_D, "D")
+    panel_label(fig, ax_A, "A", x_off=-0.05, y_off=0.010)
+    panel_label(fig, ax_B, "B", x_off=-0.05, y_off=0.010)
+    panel_label(fig, ax_C, "C", x_off=-0.05, y_off=0.010)
+    panel_label(fig, ax_D, "D", x_off=-0.05, y_off=0.010)
 
     fig.canvas.draw()
 

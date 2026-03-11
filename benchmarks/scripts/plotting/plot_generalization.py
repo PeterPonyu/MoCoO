@@ -143,23 +143,23 @@ def build_figure(rdir: Path, outdir: Path, multiseed_stats=None):
     n_row1 = len(_ROW1)
     n_row2 = len(_ROW2)
 
-    fig = plt.figure(figsize=(FIG_WIDTH_IN, FIG_HEIGHT_IN * 0.65))
+    fig = plt.figure(figsize=(FIG_WIDTH_IN, FIG_HEIGHT_IN * 0.70))
 
-    # Row 1: 3 clustering panels — explicit per-subplot geometry
-    _aw1 = (0.88 - 0.06 * 2) / 3  # ~0.2533
+    # Row 1: 3 clustering panels — leave room for legend band at top
+    _aw1 = (0.86 - 0.06 * 2) / 3  # ~0.2467
     ax_row1 = [
-        fig.add_axes([0.08, 0.56, _aw1, 0.38]),
-        fig.add_axes([0.08 + _aw1 + 0.06, 0.56, _aw1, 0.38]),
-        fig.add_axes([0.08 + 2 * (_aw1 + 0.06), 0.56, _aw1, 0.38]),
+        fig.add_axes([0.10, 0.56, _aw1, 0.34]),
+        fig.add_axes([0.10 + _aw1 + 0.06, 0.56, _aw1, 0.34]),
+        fig.add_axes([0.10 + 2 * (_aw1 + 0.06), 0.56, _aw1, 0.34]),
     ]
 
-    # Row 2: 4 quality panels — explicit per-subplot geometry
-    _aw2 = (0.88 - 0.04 * 3) / 4  # 0.19
+    # Row 2: 4 quality panels — increased gap from row 1
+    _aw2 = (0.86 - 0.04 * 3) / 4  # 0.185
     ax_row2 = [
-        fig.add_axes([0.08, 0.08, _aw2, 0.38]),
-        fig.add_axes([0.08 + _aw2 + 0.04, 0.08, _aw2, 0.38]),
-        fig.add_axes([0.08 + 2 * (_aw2 + 0.04), 0.08, _aw2, 0.38]),
-        fig.add_axes([0.08 + 3 * (_aw2 + 0.04), 0.08, _aw2, 0.38]),
+        fig.add_axes([0.10, 0.12, _aw2, 0.34]),
+        fig.add_axes([0.10 + _aw2 + 0.04, 0.12, _aw2, 0.34]),
+        fig.add_axes([0.10 + 2 * (_aw2 + 0.04), 0.12, _aw2, 0.34]),
+        fig.add_axes([0.10 + 3 * (_aw2 + 0.04), 0.12, _aw2, 0.34]),
     ]
 
     # Row 1: clustering (3 metrics, now spanning full width)
@@ -174,20 +174,20 @@ def build_figure(rdir: Path, outdir: Path, multiseed_stats=None):
         if j == 0:
             ax_row2[j].set_ylabel("Score", fontsize=FS_AXIS)
 
-    # Manual legend: solid = Val, hatched = Test
+    # Manual legend: solid = Val, hatched = Test — positioned at top band
     import matplotlib.patches as mpatches
     val_patch = mpatches.Patch(facecolor="#888888", edgecolor="white", alpha=0.85, label="Val (train split)")
     test_patch = mpatches.Patch(facecolor="#888888", edgecolor="white", alpha=0.55, hatch="//", label="Test (held-out)")
     fig.legend(handles=[val_patch, test_patch], fontsize=FS_LEGEND, ncol=2,
-               loc="upper right", bbox_to_anchor=(0.97, 0.99),
+               loc="upper center", bbox_to_anchor=(0.50, 0.98),
                frameon=True, framealpha=0.65)
 
     # Panel labels
-    panel_label(fig, ax_row1[0], "A", x_off=-0.04, y_off=0.008)
-    panel_label(fig, ax_row2[0], "B", x_off=-0.04, y_off=0.008)
+    panel_label(fig, ax_row1[0], "A", x_off=-0.06, y_off=0.010)
+    panel_label(fig, ax_row2[0], "B", x_off=-0.06, y_off=0.010)
 
-    add_config_legend_footnote(fig, y_pos=0.005)
-    add_metric_footnote(fig, ["ARI", "NMI", "ASW", "DRE", "DREX", "LSE"], y_pos=-0.005)
+    add_config_legend_footnote(fig, y_pos=0.015)
+    add_metric_footnote(fig, ["ARI", "NMI", "ASW", "DRE", "DREX", "LSE"], y_pos=0.003)
 
     outpath = outdir / "fig7_generalization.png"
 

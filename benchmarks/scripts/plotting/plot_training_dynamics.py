@@ -239,21 +239,21 @@ def build_figure(rdir: Path, outdir: Path):
     if has_scores:
         # Full layout: loss curves + val metrics + efficiency
         fig = plt.figure(figsize=(FIG_W, FIG_H), dpi=DPI)
-        # Row A: 2 loss panels — explicit per-subplot geometry
+        # Row A: 2 loss panels — push down for legend band at top
         _aw_A = (0.86 - 0.06) / 2  # 0.40
         axes_A = [
-            fig.add_axes([0.10, 0.68, _aw_A, 0.26]),
-            fig.add_axes([0.10 + _aw_A + 0.06, 0.68, _aw_A, 0.26]),
+            fig.add_axes([0.10, 0.70, _aw_A, 0.22]),
+            fig.add_axes([0.10 + _aw_A + 0.06, 0.70, _aw_A, 0.22]),
         ]
-        # Row B: 3 val-metric panels — explicit per-subplot geometry
+        # Row B: 3 val-metric panels — increased gap from row A
         _aw_B = (0.86 - 0.05 * 2) / 3  # ~0.2533
         axes_B = [
-            fig.add_axes([0.10, 0.36, _aw_B, 0.26]),
-            fig.add_axes([0.10 + _aw_B + 0.05, 0.36, _aw_B, 0.26]),
-            fig.add_axes([0.10 + 2 * (_aw_B + 0.05), 0.36, _aw_B, 0.26]),
+            fig.add_axes([0.10, 0.38, _aw_B, 0.24]),
+            fig.add_axes([0.10 + _aw_B + 0.05, 0.38, _aw_B, 0.24]),
+            fig.add_axes([0.10 + 2 * (_aw_B + 0.05), 0.38, _aw_B, 0.24]),
         ]
-        # Row C: single efficiency panel
-        ax_C = fig.add_axes([0.10, 0.06, 0.86, 0.24])
+        # Row C: single efficiency panel — lift above footer
+        ax_C = fig.add_axes([0.10, 0.08, 0.86, 0.22])
 
         print("  Drawing Panel A (Loss convergence)...")
         ax_A = _draw_loss_curves(axes_A, fig, configs, train_losses, val_losses)
@@ -262,13 +262,13 @@ def build_figure(rdir: Path, outdir: Path):
         print("  Drawing Panel C (Efficiency)...")
         ax_C = _draw_efficiency(ax_C, fig, configs, metrics)
 
-        add_config_legend_footnote(fig, y_pos=0.005)
+        add_config_legend_footnote(fig, y_pos=0.012)
 
         handles, labels = ax_A.get_legend_handles_labels()
         fig.legend(
             handles, labels,
             fontsize=FS_LEG, frameon=False, ncol=len(handles),
-            loc="upper center", bbox_to_anchor=(0.5, 0.995),
+            loc="upper center", bbox_to_anchor=(0.5, 0.98),
             handlelength=1.0, labelspacing=0.2, columnspacing=0.6,
             borderpad=0.3,
         )
@@ -300,13 +300,13 @@ def build_figure(rdir: Path, outdir: Path):
         print("  Drawing Panel B (Efficiency)...")
         ax_B = _draw_efficiency(ax_B, fig, configs, metrics)
 
-        add_config_legend_footnote(fig, y_pos=0.005)
+        add_config_legend_footnote(fig, y_pos=0.012)
 
         handles, labels = ax_A.get_legend_handles_labels()
         fig.legend(
             handles, labels,
             fontsize=FS_LEG, frameon=False, ncol=len(handles),
-            loc="upper center", bbox_to_anchor=(0.5, 0.99),
+            loc="upper center", bbox_to_anchor=(0.5, 0.98),
             handlelength=1.0, labelspacing=0.2, columnspacing=0.6,
             borderpad=0.3,
         )

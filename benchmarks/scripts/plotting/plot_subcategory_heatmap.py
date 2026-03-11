@@ -185,72 +185,65 @@ def main():
         print(f"No JSON files found in {rdir}")
         return
 
-    panel_names = list(PANELS.keys())
-    n_panels = len(panel_names)
+    # Split into two figures for better readability:
+    #   Figure 1 (5a): Clustering + DRE + DREX (3 panels)
+    #   Figure 2 (5b): LSE + LSEX (2 panels)
+    all_panels = list(PANELS.items())
+    fig1_panels = all_panels[:3]   # Clustering, DRE, DREX
+    fig2_panels = all_panels[3:]   # LSE, LSEX
 
-    # Grid layout: 3 columns x 2 rows (5 panels + 1 empty) — explicit per-subplot geometry
-    n_cols = 3
-    n_rows = 2
-    fig = plt.figure(figsize=(FIG_WIDTH_IN * 1.7, FIG_HEIGHT_IN * 1.0))
-    _cw = (0.88 - 0.06 * (n_cols - 1)) / n_cols  # ~0.2533
-    _rh = (0.86 - 0.06 * (n_rows - 1)) / n_rows  # 0.40
-    axes_list = [
-        [fig.add_axes([0.08 + c * (_cw + 0.06),
-                       0.08 + 0.86 - (r + 1) * _rh - r * 0.06,
-                       _cw, _rh])
-         for c in range(n_cols)]
-        for r in range(n_rows)
-    ]
-    axes = np.array(axes_list)
+    for fig_idx, (panels_subset, suffix) in enumerate([
+        (fig1_panels, "fig5_subcategory_heatmap_a.png"),
+        (fig2_panels, "fig5_subcategory_heatmap_b.png"),
+    ]):
+        n_panels = len(panels_subset)
+        # Single row layout for each sub-figure
+        n_cols = n_panels
+        n_rows = 1
+        fig = plt.figure(figsize=(FIG_WIDTH_IN * 1.5, FIG_HEIGHT_IN * 0.50))
+        _cw = (0.88 - 0.05 * (n_cols - 1)) / n_cols
+        _rh = 0.72
+        axes_list = [
+            fig.add_axes([0.08 + c * (_cw + 0.05),
+                          0.18, _cw, _rh])
+            for c in range(n_cols)
+        ]
 
-    letters = "ABCDE"
-    total_wins = np.zeros(len(CONFIGS), dtype=int)
-    last_im = None
-    for idx, (pname, metrics_spec) in enumerate(PANELS.items()):
-        row, col = divmod(idx, n_cols)
-        ax = axes[row, col]
-        im, wins = make_heatmap(ax, data, pname, metrics_spec, CONFIGS)
-        last_im = im
-        total_wins += wins
+        letters = "ABCDE" if fig_idx == 0 else "DE"
+        if fig_idx == 1:
+            letters = "AB"  # restart lettering for second figure
+        total_wins = np.zeros(len(CONFIGS), dtype=int)
+        last_im = None
+        for idx, (pname, metrics_spec) in enumerate(panels_subset):
+            ax = axes_list[idx]
+            im, wins = make_heatmap(ax, data, pname, metrics_spec, CONFIGS)
+            last_im = im
+            total_wins += wins
 
-    # Use empty cell for colorbar instead of hiding
-    for idx in range(n_panels, n_rows * n_cols):
-        row, col = divmod(idx, n_cols)
-        cbar_ax = axes[row, col]
-        cbar_ax.set_visible(True)
-        # Add colorbar in the empty cell
-        cb = fig.colorbar(last_im, ax=cbar_ax, shrink=0.7, pad=0.05,
-                          label="Column-normalised score")
-        cb.ax.tick_params(labelsize=FS_TICK)
-        cbar_ax.set_axis_off()
+        # Print win summary
+        label = "Clustering/DRE/DREX" if fig_idx == 0 else "LSE/LSEX"
+        print(f"Win counts per config ({label}):")
+        for i, cfg in enumerate(CONFIGS):
+            print(f"  {cfg}: {total_wins[i]} wins")
 
-    # Print win summary
-    print("Win counts per config (across all panels):")
-    for i, cfg in enumerate(CONFIGS):
-        print(f"  {cfg}: {total_wins[i]} wins")
+        add_config_legend_footnote(fig, y_pos=0.010)
 
-    # Finalise layout BEFORE adding panel labels so that ax.get_position()
-    # returns the correct post-adjustment coordinates.
-    add_config_legend_footnote(fig, y_pos=0.005)
+        for idx in range(n_panels):
+            ax = axes_list[idx]
+            panel_label(fig, ax, letters[idx], x_off=-0.04, y_off=0.025)
 
-    # Add panel labels after layout adjustment to avoid overlap with cells.
-    for idx in range(n_panels):
-        row, col = divmod(idx, n_cols)
-        ax = axes[row, col]
-        panel_label(fig, ax, letters[idx], x_off=-0.04, y_off=0.035)
+        out_path = outdir / suffix
 
-    out_path = outdir / "fig5_subcategory_heatmap.png"
+        print(f"\n── Conflict Detection ({label}) ──")
+        issues = detect_all_conflicts(fig, label=f"subcategory_heatmap_{fig_idx}", verbose=True)
+        n_warn = sum(1 for i in issues if i["severity"] == "warning")
+        n_err = sum(1 for i in issues if i["severity"] == "error")
 
-    print("\n── Conflict Detection ──")
-    issues = detect_all_conflicts(fig, label="subcategory_heatmap", verbose=True)
-    n_warn = sum(1 for i in issues if i["severity"] == "warning")
-    n_err = sum(1 for i in issues if i["severity"] == "error")
-
-    from mocoo.visualization.style import save_figure
-    save_figure(fig, out_path, facecolor="white")
-    plt.close(fig)
-    print(f"Saved: {out_path}")
-    print(f"{n_warn} warnings | {n_err} errors")
+        from mocoo.visualization.style import save_figure
+        save_figure(fig, out_path, facecolor="white")
+        plt.close(fig)
+        print(f"Saved: {out_path}")
+        print(f"{n_warn} warnings | {n_err} errors")
 
 
 if __name__ == "__main__":

@@ -392,12 +392,12 @@ def build_figure(rdir: Path, outdir: Path, multiseed_stats=None):
     fig = plt.figure(figsize=(FIG_W, FIG_H), dpi=DPI)
 
     # ── absolute geometry (replaces GridSpec) ────────────────────────────
-    L, R, TOP, BOT = 0.10, 0.96, 0.97, 0.07
+    L, R, TOP, BOT = 0.12, 0.96, 0.96, 0.08
     W_all = R - L
     H_all = TOP - BOT
 
-    _ratios = np.array([3.2, 2.5, 3.2, 2.5])
-    _hspace = 0.58
+    _ratios = np.array([3.4, 2.5, 3.2, 2.5])
+    _hspace = 0.50
     _gap_r  = _hspace * _ratios.mean()
     _unit   = H_all / (_ratios.sum() + 3 * _gap_r)
     row_h   = _ratios * _unit
@@ -411,8 +411,8 @@ def build_figure(rdir: Path, outdir: Path, multiseed_stats=None):
         if _i < 3:
             _y -= gap
 
-    # Row A: two panels (synergy heatmap + summary table), wspace~0.24
-    _gapA = 0.24 * (W_all / 2)
+    # Row A: two panels (synergy heatmap + summary table), wspace~0.22
+    _gapA = 0.22 * (W_all / 2)
     _cwA  = (W_all - _gapA) / 2
     ax_A       = fig.add_axes([L,                  row_b[0], _cwA, row_h[0]])
     ax_A_table = fig.add_axes([L + _cwA + _gapA,   row_b[0], _cwA, row_h[0]])
@@ -447,8 +447,8 @@ def build_figure(rdir: Path, outdir: Path, multiseed_stats=None):
     print("  Drawing Panel D (Permutation box plots)...")
     _draw_perm_boxplots(ax_D, fig, configs, latents, labels)
 
-    add_config_legend_footnote(fig, y_pos=0.005)
-    add_metric_footnote(fig, ["ARI", "NMI", "ASW", "DAV", "DRE", "DREX", "LSE", "LSEX"], y_pos=-0.005)
+    add_config_legend_footnote(fig, y_pos=0.010)
+    add_metric_footnote(fig, ["ARI", "NMI", "ASW", "DAV", "DRE", "DREX", "LSE", "LSEX"], y_pos=0.000)
 
     panel_label(fig, ax_A, "A")
     panel_label(fig, ax_B, "B")

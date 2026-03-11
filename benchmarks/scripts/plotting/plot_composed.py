@@ -137,12 +137,12 @@ def _draw_umap_panel(fig, umap_axes, configs, latents, labels_arr,
         for sp in ax.spines.values():
             sp.set_visible(False)
 
-    # shared legend below the UMAP block
+    # shared legend between the UMAP and training curve blocks
     handles, lbls = fig.axes[0].get_legend_handles_labels()
     # Use more columns for datasets with many cell types to keep legend compact
     n_cols = min(max(6, len(lbls) // 4), 10)
-    fig.legend(handles, lbls, loc="lower center",
-               bbox_to_anchor=(0.5, 0.685),
+    fig.legend(handles, lbls, loc="upper center",
+               bbox_to_anchor=(0.5, 0.70),
                ncol=n_cols, markerscale=2.5,
                fontsize=FONT_ANNOT, frameon=False,
                handlelength=0.8, columnspacing=0.5, labelspacing=0.2)
@@ -297,12 +297,12 @@ def build_composed(data, outpath: Path, cache_dir: Path | None = None):
     # ── Figure with absolute-geometry layout ─────────────────────────────
     fig = plt.figure(figsize=(FIG_W, FIG_H * 0.55), dpi=DPI)
 
-    # Row 0 — UMAP grid (A): 2×3 explicit per-subplot geometry
+    # Row 0 — UMAP grid (A): 2×3, taller rows for better embedding visibility
     _u_cw = (0.92 - 0.03 * 2) / 3   # ~0.2867
-    _u_rh = (0.28 - 0.04) / 2        # 0.12
+    _u_rh = 0.14                      # taller than before (was 0.12)
     umap_axes = [
         [fig.add_axes([0.04 + c * (_u_cw + 0.03),
-                       0.68 + 0.28 - (r + 1) * _u_rh - r * 0.04,
+                       0.70 + 0.26 - (r + 1) * _u_rh - r * 0.02,
                        _u_cw, _u_rh])
          for c in range(3)]
         for r in range(2)
@@ -316,12 +316,12 @@ def build_composed(data, outpath: Path, cache_dir: Path | None = None):
         for vs in val_scores
     )
     if has_scores:
-        # 2×4 grid of training curve panels — explicit per-subplot geometry
+        # 2×4 grid of training curve panels — push down slightly
         _tc_cw = (0.86 - 0.05 * 3) / 4   # ~0.1775
         _tc_rh = (0.24 - 0.05) / 2        # 0.095
         _cg = [
             [fig.add_axes([0.10 + c * (_tc_cw + 0.05),
-                           0.38 + 0.24 - (r + 1) * _tc_rh - r * 0.05,
+                           0.36 + 0.24 - (r + 1) * _tc_rh - r * 0.05,
                            _tc_cw, _tc_rh])
              for c in range(4)]
             for r in range(2)
@@ -331,13 +331,13 @@ def build_composed(data, outpath: Path, cache_dir: Path | None = None):
         # 2 panels in a row
         _tc2_aw = (0.86 - 0.05) / 2  # 0.405
         curve_axes = [
-            fig.add_axes([0.10, 0.38, _tc2_aw, 0.24]),
-            fig.add_axes([0.10 + _tc2_aw + 0.05, 0.38, _tc2_aw, 0.24]),
+            fig.add_axes([0.10, 0.36, _tc2_aw, 0.24]),
+            fig.add_axes([0.10 + _tc2_aw + 0.05, 0.36, _tc2_aw, 0.24]),
         ]
     _draw_training_curves(fig, curve_axes, configs, val_losses, val_scores)
 
-    # Row 2 — Heatmap (C)
-    ax_hm = fig.add_axes([0.10, 0.06, 0.86, 0.26])
+    # Row 2 — Heatmap (C) — lift up from footer
+    ax_hm = fig.add_axes([0.10, 0.08, 0.86, 0.24])
     _draw_heatmap(ax_hm, configs, mets)
 
     # ── Panel labels (A–C) ──────────────────────────────────────────────
@@ -362,7 +362,7 @@ def build_composed(data, outpath: Path, cache_dir: Path | None = None):
             pass
 
     # ── Conflict detection ──────────────────────────────────────────────
-    add_config_legend_footnote(fig, y_pos=0.005)
+    add_config_legend_footnote(fig, y_pos=0.012)
     print("\n── Conflict Detection on Composed Figure ──")
     issues = detect_all_conflicts(fig, label="composed", verbose=True)
 
