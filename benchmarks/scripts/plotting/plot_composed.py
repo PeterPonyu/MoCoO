@@ -33,7 +33,6 @@ from mocoo.visualization.style import (
     FIG_WIDTH_IN, FIG_HEIGHT_IN, DPI,
     FS_LABEL, FS_TITLE, FS_AXIS, FS_TICK, FS_LEGEND, FS_SMALL,
     apply_style, get_config_colors, get_short_name, get_tick_name,
-    row_of_axes, grid_of_axes, place_axes, col_of_axes,
 )
 
 setup_fonts()
@@ -298,9 +297,16 @@ def build_composed(data, outpath: Path, cache_dir: Path | None = None):
     # ── Figure with absolute-geometry layout ─────────────────────────────
     fig = plt.figure(figsize=(FIG_W, FIG_H * 0.55), dpi=DPI)
 
-    # Row 0 — UMAP grid (A)
-    umap_axes = grid_of_axes(fig, 2, 3, [0.04, 0.68, 0.92, 0.28],
-                             hgap=0.04, wgap=0.03)
+    # Row 0 — UMAP grid (A): 2×3 explicit per-subplot geometry
+    _u_cw = (0.92 - 0.03 * 2) / 3   # ~0.2867
+    _u_rh = (0.28 - 0.04) / 2        # 0.12
+    umap_axes = [
+        [fig.add_axes([0.04 + c * (_u_cw + 0.03),
+                       0.68 + 0.28 - (r + 1) * _u_rh - r * 0.04,
+                       _u_cw, _u_rh])
+         for c in range(3)]
+        for r in range(2)
+    ]
     _draw_umap_panel(fig, umap_axes, configs, latents, labels,
                      umap_embeddings=umap_embeddings)
 
@@ -310,15 +316,28 @@ def build_composed(data, outpath: Path, cache_dir: Path | None = None):
         for vs in val_scores
     )
     if has_scores:
-        _cg = grid_of_axes(fig, 2, 4, [0.10, 0.38, 0.86, 0.24],
-                           hgap=0.05, wgap=0.05)
+        # 2×4 grid of training curve panels — explicit per-subplot geometry
+        _tc_cw = (0.86 - 0.05 * 3) / 4   # ~0.1775
+        _tc_rh = (0.24 - 0.05) / 2        # 0.095
+        _cg = [
+            [fig.add_axes([0.10 + c * (_tc_cw + 0.05),
+                           0.38 + 0.24 - (r + 1) * _tc_rh - r * 0.05,
+                           _tc_cw, _tc_rh])
+             for c in range(4)]
+            for r in range(2)
+        ]
         curve_axes = [ax for row in _cg for ax in row]
     else:
-        curve_axes = row_of_axes(fig, 2, [0.10, 0.38, 0.86, 0.24], gap=0.05)
+        # 2 panels in a row
+        _tc2_aw = (0.86 - 0.05) / 2  # 0.405
+        curve_axes = [
+            fig.add_axes([0.10, 0.38, _tc2_aw, 0.24]),
+            fig.add_axes([0.10 + _tc2_aw + 0.05, 0.38, _tc2_aw, 0.24]),
+        ]
     _draw_training_curves(fig, curve_axes, configs, val_losses, val_scores)
 
     # Row 2 — Heatmap (C)
-    ax_hm = place_axes(fig, [0.10, 0.06, 0.86, 0.26])
+    ax_hm = fig.add_axes([0.10, 0.06, 0.86, 0.26])
     _draw_heatmap(ax_hm, configs, mets)
 
     # ── Panel labels (A–C) ──────────────────────────────────────────────

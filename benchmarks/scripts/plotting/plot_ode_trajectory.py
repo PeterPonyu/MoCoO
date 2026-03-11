@@ -49,7 +49,6 @@ from mocoo.visualization.style import (
     FIG_WIDTH_IN, FIG_HEIGHT_IN, DPI,
     FS_LABEL, FS_TITLE, FS_AXIS, FS_TICK, FS_LEGEND, FS_SMALL,
     apply_style, get_config_order, get_config_colors, get_short_name, get_tick_name,
-    row_of_axes, grid_of_axes, place_axes,
 )
 
 FS_LEG = FS_LEGEND
@@ -361,18 +360,33 @@ def build_figure(rdir: Path, outdir: Path, adata_path: str):
 
     n_cfgs = 3  # VAE, VAE+ODE, Full
 
-    # A: 2-row × n_cfgs-col PCA grid (cell type + pseudotime)
-    grid_A = grid_of_axes(fig, 2, n_cfgs,
-                          [0.08, 0.70, 0.88, 0.27], hgap=0.03, wgap=0.03)
+    # A: 2-row × n_cfgs-col PCA grid — explicit per-subplot geometry
+    _a_cw = (0.88 - 0.03 * (n_cfgs - 1)) / n_cfgs  # ~0.2733
+    _a_rh = (0.27 - 0.03) / 2                        # 0.12
+    grid_A = [
+        [fig.add_axes([0.08 + c * (_a_cw + 0.03),
+                       0.70 + 0.27 - (r + 1) * _a_rh - r * 0.03,
+                       _a_cw, _a_rh])
+         for c in range(n_cfgs)]
+        for r in range(2)
+    ]
 
-    # B: 2 violin plots
-    axes_B = row_of_axes(fig, 2, [0.10, 0.47, 0.86, 0.18], gap=0.06)
+    # B: 2 violin plots — explicit per-subplot geometry
+    _b_aw = (0.86 - 0.06) / 2  # 0.40
+    axes_B = [
+        fig.add_axes([0.10, 0.47, _b_aw, 0.18]),
+        fig.add_axes([0.10 + _b_aw + 0.06, 0.47, _b_aw, 0.18]),
+    ]
 
     # C: single wide gene expression panel
-    ax_C_single = place_axes(fig, [0.10, 0.25, 0.86, 0.18])
+    ax_C_single = fig.add_axes([0.10, 0.25, 0.86, 0.18])
 
     # D: 2 panels — pairwise dist histogram + NN entropy bars
-    axes_D = row_of_axes(fig, 2, [0.10, 0.04, 0.86, 0.17], gap=0.06)
+    _d_aw = (0.86 - 0.06) / 2  # 0.40
+    axes_D = [
+        fig.add_axes([0.10, 0.04, _d_aw, 0.17]),
+        fig.add_axes([0.10 + _d_aw + 0.06, 0.04, _d_aw, 0.17]),
+    ]
 
     print("  Drawing Panel A (PCA pseudotime)...")
     ax_A = _draw_pca_comparison(grid_A, fig, configs, latents, labels)

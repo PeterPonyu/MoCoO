@@ -40,7 +40,6 @@ from mocoo.visualization.style import (
     FS_LABEL, FS_TITLE, FS_AXIS, FS_TICK, FS_LEGEND as FS_LEG, FS_SMALL,
     get_config_colors, get_config_order, get_short_name, get_line_style,
     get_line_width, apply_style, get_tick_name, get_legend_name,
-    row_of_axes, place_axes,
 )
 
 apply_style()
@@ -240,9 +239,21 @@ def build_figure(rdir: Path, outdir: Path):
     if has_scores:
         # Full layout: loss curves + val metrics + efficiency
         fig = plt.figure(figsize=(FIG_W, FIG_H), dpi=DPI)
-        axes_A = row_of_axes(fig, 2, [0.10, 0.68, 0.86, 0.26], gap=0.06)
-        axes_B = row_of_axes(fig, 3, [0.10, 0.36, 0.86, 0.26], gap=0.05)
-        ax_C   = place_axes(fig, [0.10, 0.06, 0.86, 0.24])
+        # Row A: 2 loss panels — explicit per-subplot geometry
+        _aw_A = (0.86 - 0.06) / 2  # 0.40
+        axes_A = [
+            fig.add_axes([0.10, 0.68, _aw_A, 0.26]),
+            fig.add_axes([0.10 + _aw_A + 0.06, 0.68, _aw_A, 0.26]),
+        ]
+        # Row B: 3 val-metric panels — explicit per-subplot geometry
+        _aw_B = (0.86 - 0.05 * 2) / 3  # ~0.2533
+        axes_B = [
+            fig.add_axes([0.10, 0.36, _aw_B, 0.26]),
+            fig.add_axes([0.10 + _aw_B + 0.05, 0.36, _aw_B, 0.26]),
+            fig.add_axes([0.10 + 2 * (_aw_B + 0.05), 0.36, _aw_B, 0.26]),
+        ]
+        # Row C: single efficiency panel
+        ax_C = fig.add_axes([0.10, 0.06, 0.86, 0.24])
 
         print("  Drawing Panel A (Loss convergence)...")
         ax_A = _draw_loss_curves(axes_A, fig, configs, train_losses, val_losses)
@@ -274,8 +285,14 @@ def build_figure(rdir: Path, outdir: Path):
         print("  Note: val_scores is empty, using compact 2-row layout.")
         fig_h = FIG_W * 1.0  # balanced 2-panel layout
         fig = plt.figure(figsize=(FIG_W, fig_h), dpi=DPI)
-        axes_A = row_of_axes(fig, 2, [0.10, 0.54, 0.86, 0.38], gap=0.06)
-        ax_B   = place_axes(fig, [0.10, 0.08, 0.86, 0.38])
+        # Row A: 2 loss panels — explicit per-subplot geometry
+        _aw_A2 = (0.86 - 0.06) / 2  # 0.40
+        axes_A = [
+            fig.add_axes([0.10, 0.54, _aw_A2, 0.38]),
+            fig.add_axes([0.10 + _aw_A2 + 0.06, 0.54, _aw_A2, 0.38]),
+        ]
+        # Row B: single efficiency panel
+        ax_B = fig.add_axes([0.10, 0.08, 0.86, 0.38])
 
         print("  Drawing Panel A (Loss convergence)...")
         ax_A = _draw_loss_curves(axes_A, fig, configs, train_losses, val_losses)

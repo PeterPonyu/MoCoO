@@ -28,7 +28,6 @@ from mocoo.visualization.style import (
     HEATMAP_DARK_THRESHOLD,
     apply_style, get_config_order, get_config_colors, get_short_name,
     get_tick_name, FMT_SCORE_SHORT,
-    grid_of_axes, place_axes,
 )
 
 CONFIGS = get_config_order()
@@ -189,11 +188,19 @@ def main():
     panel_names = list(PANELS.keys())
     n_panels = len(panel_names)
 
-    # Grid layout: 3 columns x 2 rows (5 panels + 1 empty) for better space use
+    # Grid layout: 3 columns x 2 rows (5 panels + 1 empty) — explicit per-subplot geometry
     n_cols = 3
     n_rows = 2
     fig = plt.figure(figsize=(FIG_WIDTH_IN * 1.7, FIG_HEIGHT_IN * 1.0))
-    axes_list = grid_of_axes(fig, n_rows, n_cols, [0.08, 0.08, 0.88, 0.86], hgap=0.06, wgap=0.06)
+    _cw = (0.88 - 0.06 * (n_cols - 1)) / n_cols  # ~0.2533
+    _rh = (0.86 - 0.06 * (n_rows - 1)) / n_rows  # 0.40
+    axes_list = [
+        [fig.add_axes([0.08 + c * (_cw + 0.06),
+                       0.08 + 0.86 - (r + 1) * _rh - r * 0.06,
+                       _cw, _rh])
+         for c in range(n_cols)]
+        for r in range(n_rows)
+    ]
     axes = np.array(axes_list)
 
     letters = "ABCDE"

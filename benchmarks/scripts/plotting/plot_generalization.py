@@ -34,7 +34,6 @@ from mocoo.visualization.style import (
     FIG_WIDTH_IN, FIG_HEIGHT_IN, DPI,
     FS_LABEL, FS_TITLE, FS_AXIS, FS_TICK, FS_LEGEND, FS_SMALL,
     apply_style, get_config_order, get_config_colors, get_short_name, get_tick_name,
-    row_of_axes,
 )
 
 setup_fonts()
@@ -146,11 +145,22 @@ def build_figure(rdir: Path, outdir: Path, multiseed_stats=None):
 
     fig = plt.figure(figsize=(FIG_WIDTH_IN, FIG_HEIGHT_IN * 0.65))
 
-    # Row 1: 3 equally-spaced clustering panels
-    ax_row1 = row_of_axes(fig, 3, [0.08, 0.56, 0.88, 0.38], gap=0.06)
+    # Row 1: 3 clustering panels — explicit per-subplot geometry
+    _aw1 = (0.88 - 0.06 * 2) / 3  # ~0.2533
+    ax_row1 = [
+        fig.add_axes([0.08, 0.56, _aw1, 0.38]),
+        fig.add_axes([0.08 + _aw1 + 0.06, 0.56, _aw1, 0.38]),
+        fig.add_axes([0.08 + 2 * (_aw1 + 0.06), 0.56, _aw1, 0.38]),
+    ]
 
-    # Row 2: 4 equally-spaced quality panels
-    ax_row2 = row_of_axes(fig, 4, [0.08, 0.08, 0.88, 0.38], gap=0.04)
+    # Row 2: 4 quality panels — explicit per-subplot geometry
+    _aw2 = (0.88 - 0.04 * 3) / 4  # 0.19
+    ax_row2 = [
+        fig.add_axes([0.08, 0.08, _aw2, 0.38]),
+        fig.add_axes([0.08 + _aw2 + 0.04, 0.08, _aw2, 0.38]),
+        fig.add_axes([0.08 + 2 * (_aw2 + 0.04), 0.08, _aw2, 0.38]),
+        fig.add_axes([0.08 + 3 * (_aw2 + 0.04), 0.08, _aw2, 0.38]),
+    ]
 
     # Row 1: clustering (3 metrics, now spanning full width)
     for j, (mk, ml) in enumerate(_ROW1):

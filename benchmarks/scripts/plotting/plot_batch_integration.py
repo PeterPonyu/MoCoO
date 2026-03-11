@@ -39,7 +39,6 @@ from mocoo.visualization.style import (
     FS_LABEL, FS_TITLE, FS_AXIS, FS_TICK, FS_LEGEND, FS_SMALL,
     HEATMAP_DARK_THRESHOLD,
     apply_style, get_config_order, get_config_colors, get_short_name, get_tick_name,
-    row_of_axes, place_axes, grid_of_axes,
 )
 
 setup_fonts()
@@ -354,7 +353,7 @@ def build_figure(results_base: Path, outdir: Path):
     fig = plt.figure(figsize=(FIG_WIDTH_IN, FIG_HEIGHT_IN))
 
     # Panel A: Batch integration bars (full width)
-    ax_A = place_axes(fig, [0.10, 0.78, 0.86, 0.18])
+    ax_A = fig.add_axes([0.10, 0.78, 0.86, 0.18])
     _draw_batch_bars(ax_A, batch_metrics)
 
     # Panel B: Bio vs Batch scatter
@@ -384,7 +383,7 @@ def build_figure(results_base: Path, outdir: Path):
         ax_B2.spines["right"].set_visible(False)
 
     # Panel C: Cross-dataset heatmap (full width)
-    ax_C = place_axes(fig, [0.10, 0.30, 0.86, 0.22])
+    ax_C = fig.add_axes([0.10, 0.30, 0.86, 0.22])
     _draw_cross_dataset_heatmap(ax_C, cross_data)
 
     # Panel D: Cross-dataset radar (polar)

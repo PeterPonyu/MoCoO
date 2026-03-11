@@ -31,7 +31,7 @@ from mocoo.visualization.style import (
     FIG_WIDTH_IN, FIG_HEIGHT_IN, DPI,
     FS_LABEL, FS_TITLE, FS_AXIS, FS_TICK, FS_LEGEND, FS_SMALL,
     apply_style, get_config_order, get_config_colors, get_short_name, get_tick_name,
-    get_line_style, get_line_width, grid_of_axes,
+    get_line_style, get_line_width,
 )
 
 setup_fonts()
@@ -82,7 +82,16 @@ def build_figure(results_base: Path, outdir: Path):
     betas_present = sorted(all_data.keys())
 
     fig = plt.figure(figsize=(FIG_WIDTH_IN, FIG_HEIGHT_IN * 0.75))
-    axes = np.array(grid_of_axes(fig, 3, 3, [0.08, 0.12, 0.88, 0.82], hgap=0.06, wgap=0.06))
+    # 3×3 grid — explicit per-subplot geometry
+    _cw = (0.88 - 0.06 * 2) / 3   # ~0.2533
+    _rh = (0.82 - 0.06 * 2) / 3   # ~0.2333
+    axes = np.array([
+        [fig.add_axes([0.08 + c * (_cw + 0.06),
+                       0.12 + 0.82 - (r + 1) * _rh - r * 0.06,
+                       _cw, _rh])
+         for c in range(3)]
+        for r in range(3)
+    ])
 
     for idx, (metric_key, metric_label, higher_better) in enumerate(_METRICS):
         row, col = divmod(idx, 3)

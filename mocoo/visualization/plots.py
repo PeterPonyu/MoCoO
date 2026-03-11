@@ -220,7 +220,10 @@ def plot_metric_bars(
 
     n_panels = len(metric_names)
     fig = plt.figure(figsize=(_style.FIG_WIDTH_IN, _style.FIG_HEIGHT_IN * 0.25))
-    axes = _style.row_of_axes(fig, n_panels, [0.10, 0.22, 0.86, 0.68], gap=0.06)
+    # Explicit per-axis geometry: each bar panel in a horizontal row
+    _aw = (0.86 - 0.06 * (n_panels - 1)) / n_panels
+    axes = [fig.add_axes([0.10 + i * (_aw + 0.06), 0.22, _aw, 0.68])
+            for i in range(n_panels)]
 
     x = np.arange(len(configs))
     w = 0.38
@@ -322,8 +325,16 @@ def plot_umap_grid(
     nrows = max(1, (n + ncols - 1) // ncols)
 
     fig = plt.figure(figsize=(_style.FIG_WIDTH_IN, _style.FIG_HEIGHT_IN * 0.38 * nrows))
-    axes_grid = _style.grid_of_axes(fig, nrows, ncols, [0.04, 0.06, 0.92, 0.88],
-                                     hgap=0.06, wgap=0.04)
+    # Explicit per-axis geometry: UMAP grid
+    _cw = (0.92 - 0.04 * (ncols - 1)) / ncols
+    _rh = (0.88 - 0.06 * (nrows - 1)) / nrows
+    axes_grid = [
+        [fig.add_axes([0.04 + c * (_cw + 0.04),
+                       0.06 + 0.88 - (r + 1) * _rh - r * 0.06,
+                       _cw, _rh])
+         for c in range(ncols)]
+        for r in range(nrows)
+    ]
     axes = np.array(axes_grid)
 
     cmap = plt.colormaps.get_cmap("tab20")
@@ -450,7 +461,11 @@ def plot_training_curves(
     else:
         row0_rect = [0.10, 0.56, 0.86, 0.38]
 
-    ax_train, ax_val = _style.row_of_axes(fig, 2, row0_rect, gap=0.08)
+    # Explicit per-axis geometry: loss curve panels
+    _r0_l, _r0_b, _r0_w, _r0_h = row0_rect
+    _aw0 = (_r0_w - 0.08) / 2
+    ax_train = fig.add_axes([_r0_l, _r0_b, _aw0, _r0_h])
+    ax_val = fig.add_axes([_r0_l + _aw0 + 0.08, _r0_b, _aw0, _r0_h])
 
     max_epoch = 0
     for cfg in configs:
@@ -499,7 +514,10 @@ def plot_training_curves(
     if n_bottom_panels > 0:
         score_labels = ["Val ARI", "Val NMI", "Val ASW", "Val CAL", "Val DAV", "Val COR"]
         row1_rect = [0.10, 0.08, 0.86, 0.38]
-        score_axes = _style.row_of_axes(fig, n_bottom_panels, row1_rect, gap=0.06)
+        _r1_l, _r1_b, _r1_w, _r1_h = row1_rect
+        _aw1 = (_r1_w - 0.06 * (n_bottom_panels - 1)) / n_bottom_panels
+        score_axes = [fig.add_axes([_r1_l + i * (_aw1 + 0.06), _r1_b, _aw1, _r1_h])
+                      for i in range(n_bottom_panels)]
         for si in range(n_bottom_panels):
             ax = score_axes[si]
             for cfg in configs:
@@ -607,8 +625,16 @@ def plot_pseudotime_markers(
     nrows = max(1, (n_genes + ncols - 1) // ncols)
 
     fig = plt.figure(figsize=(_style.FIG_WIDTH_IN, _style.FIG_HEIGHT_IN * 0.2 * nrows))
-    axes_grid = _style.grid_of_axes(fig, nrows, ncols, [0.10, 0.10, 0.86, 0.82],
-                                     hgap=0.06, wgap=0.05)
+    # Explicit per-axis geometry: pseudotime gene grid
+    _cw = (0.86 - 0.05 * (ncols - 1)) / ncols
+    _rh = (0.82 - 0.06 * (nrows - 1)) / nrows
+    axes_grid = [
+        [fig.add_axes([0.10 + c * (_cw + 0.05),
+                       0.10 + 0.82 - (r + 1) * _rh - r * 0.06,
+                       _cw, _rh])
+         for c in range(ncols)]
+        for r in range(nrows)
+    ]
     axes = np.array(axes_grid)
 
     cmap = plt.colormaps.get_cmap("viridis")

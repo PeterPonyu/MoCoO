@@ -41,7 +41,7 @@ from mocoo.visualization.style import (
     FS_LABEL, FS_TITLE, FS_AXIS, FS_TICK, FS_LEGEND as FS_LEG, FS_SMALL,
     get_config_colors, get_config_order, get_short_name, apply_style,
     get_tick_name, get_legend_name, metric_title, FMT_SCORE_SHORT,
-    row_of_axes, grid_of_axes,
+
 )
 from benchmarks.scripts.plotting.shared import (
     setup_fonts, unify_metric_keys, load_benchmark_npz,
@@ -261,17 +261,38 @@ def build_figure(rdir: Path, outdir: Path, multiseed_stats=None):
 
     fig = plt.figure(figsize=(FIG_W, FIG_H), dpi=DPI)
 
-    # Row A: UMAP grid (2×3)
-    axes_A = grid_of_axes(fig, 2, 3, [0.06, 0.72, 0.90, 0.24], hgap=0.04, wgap=0.03)
+    # Row A: UMAP grid (2×3) — explicit per-subplot geometry
+    axes_A = [
+        [fig.add_axes([0.060, 0.860, 0.280, 0.100]),
+         fig.add_axes([0.370, 0.860, 0.280, 0.100]),
+         fig.add_axes([0.680, 0.860, 0.280, 0.100])],
+        [fig.add_axes([0.060, 0.720, 0.280, 0.100]),
+         fig.add_axes([0.370, 0.720, 0.280, 0.100]),
+         fig.add_axes([0.680, 0.720, 0.280, 0.100])],
+    ]
 
-    # Row B: 3 bar charts
-    axes_B = row_of_axes(fig, 3, [0.08, 0.48, 0.88, 0.18], gap=0.06)
+    # Row B: 3 bar charts — explicit per-subplot geometry
+    axes_B = [
+        fig.add_axes([0.080, 0.480, 0.253, 0.180]),
+        fig.add_axes([0.393, 0.480, 0.253, 0.180]),
+        fig.add_axes([0.707, 0.480, 0.253, 0.180]),
+    ]
 
-    # Row C: 4 neighbourhood quality bars
-    axes_C = row_of_axes(fig, 4, [0.08, 0.27, 0.88, 0.16], gap=0.04)
+    # Row C: 4 neighbourhood quality bars — explicit per-subplot geometry
+    axes_C = [
+        fig.add_axes([0.080, 0.270, 0.190, 0.160]),
+        fig.add_axes([0.310, 0.270, 0.190, 0.160]),
+        fig.add_axes([0.540, 0.270, 0.190, 0.160]),
+        fig.add_axes([0.770, 0.270, 0.190, 0.160]),
+    ]
 
-    # Row D: 4 latent structure bars
-    axes_D = row_of_axes(fig, 4, [0.08, 0.06, 0.88, 0.16], gap=0.04)
+    # Row D: 4 latent structure bars — explicit per-subplot geometry
+    axes_D = [
+        fig.add_axes([0.080, 0.060, 0.190, 0.160]),
+        fig.add_axes([0.310, 0.060, 0.190, 0.160]),
+        fig.add_axes([0.540, 0.060, 0.190, 0.160]),
+        fig.add_axes([0.770, 0.060, 0.190, 0.160]),
+    ]
 
     print("  Drawing Panel A (UMAP grid)...")
     ax_A = _draw_umap_grid(axes_A, fig, configs, latents, labels, cache_dir)

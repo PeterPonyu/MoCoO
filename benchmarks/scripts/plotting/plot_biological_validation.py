@@ -43,7 +43,6 @@ from mocoo.visualization.style import (
     FIG_WIDTH_IN, FIG_HEIGHT_IN, DPI,
     FS_LABEL, FS_TITLE, FS_AXIS, FS_TICK, FS_LEGEND, FS_SMALL,
     apply_style, get_config_colors, get_tick_name,
-    row_of_axes, grid_of_axes, place_axes,
 )
 
 warnings.filterwarnings("ignore", category=FutureWarning)
@@ -454,17 +453,29 @@ def build_figure(data, adata, outpath: Path):
     fig = plt.figure(figsize=(FIG_WIDTH_IN, FIG_HEIGHT_IN), dpi=DPI)
 
     # Row A: 2 sub-rows (perturbation robustness + importance bars)
-    ax_a1 = place_axes(fig, [0.10, 0.85, 0.86, 0.12])
-    ax_a2 = place_axes(fig, [0.10, 0.72, 0.86, 0.10])
+    ax_a1 = fig.add_axes([0.10, 0.85, 0.86, 0.12])
+    ax_a2 = fig.add_axes([0.10, 0.72, 0.86, 0.10])
 
-    # Row B: UMAP panels (1 cell-type + 4 component UMAPs)
-    axes_b = row_of_axes(fig, 5, [0.04, 0.54, 0.92, 0.14], gap=0.02)
+    # Row B: UMAP panels (1 cell-type + 4 component UMAPs) — 5 explicit axes
+    _bw = (0.92 - 0.02 * 4) / 5  # ~0.168
+    axes_b = [fig.add_axes([0.04 + i * (_bw + 0.02), 0.54, _bw, 0.14])
+              for i in range(5)]
 
-    # Row C: Gene expression panels (5 scalar UMAPs)
-    axes_c = row_of_axes(fig, 5, [0.04, 0.38, 0.92, 0.12], gap=0.02)
+    # Row C: Gene expression panels (5 scalar UMAPs) — 5 explicit axes
+    _cw_c = (0.92 - 0.02 * 4) / 5  # ~0.168
+    axes_c = [fig.add_axes([0.04 + i * (_cw_c + 0.02), 0.38, _cw_c, 0.12])
+              for i in range(5)]
 
-    # Row D: 2×3 grid of per-config Pearson heatmaps
-    axes_d = grid_of_axes(fig, 2, 3, [0.06, 0.04, 0.90, 0.30], hgap=0.04, wgap=0.06)
+    # Row D: 2×3 grid of per-config Pearson heatmaps — explicit per-subplot geometry
+    _d_cw = (0.90 - 0.06 * 2) / 3  # 0.26
+    _d_rh = (0.30 - 0.04) / 2      # 0.13
+    axes_d = [
+        [fig.add_axes([0.06 + c * (_d_cw + 0.06),
+                       0.04 + 0.30 - (r + 1) * _d_rh - r * 0.04,
+                       _d_cw, _d_rh])
+         for c in range(3)]
+        for r in range(2)
+    ]
 
     # ── 7. Draw panels ────────────────────────────────────────────────────
     print("  Drawing Panel A ...")
