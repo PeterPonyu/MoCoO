@@ -590,7 +590,7 @@ def build_figure(data, adata, outpath: Path):
     save_figure(fig, outpath, bbox_inches='tight', pad_inches=0.04)
 
     # Export individual panel sub-figures
-    sub_dir = outpath.parent / "supp_biological_validation"
+    sub_dir = outpath.parent / "fig10_biological_validation"
     sub_dir.mkdir(parents=True, exist_ok=True)
     export_subpanels(fig, sub_dir, [(ax_A, "panelA_permutation_importance"),
                                      (ax_B, "panelB_umap_components"),
@@ -645,7 +645,7 @@ def main():
         adata = sc.AnnData(X=proxy)
         adata.var_names = np.array([f"G{i+1}" for i in range(proxy.shape[1])])
     print("Building figure ...")
-    return build_figure(data, adata, outdir / "supp_biological_validation.png")
+    return build_figure(data, adata, outdir / "fig10_biological_validation.png")
 
 
 if __name__ == "__main__":

@@ -406,12 +406,12 @@ def build_figure(rdir: Path, outdir: Path, adata_path: str):
     print("\n── Conflict Detection ──")
     issues = detect_all_conflicts(fig, label="ode_trajectory", verbose=True)
 
-    outpath = outdir / "supp_ode_trajectory.png"
+    outpath = outdir / "fig8_ode_trajectory.png"
     from mocoo.visualization.style import save_figure
     save_figure(fig, outpath)
 
     # Export individual panel sub-figures
-    sub_dir = outdir / "supp_ode_trajectory"
+    sub_dir = outdir / "fig8_ode_trajectory"
     sub_dir.mkdir(parents=True, exist_ok=True)
     export_subpanels(fig, sub_dir, [(ax_A, "panelA_pca"),
                                      (ax_B, "panelB_pseudotime_violin"),

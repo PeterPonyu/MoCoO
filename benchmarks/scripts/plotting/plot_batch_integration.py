@@ -412,12 +412,12 @@ def build_figure(results_base: Path, outdir: Path):
     print("\n── Conflict Detection ──")
     issues = detect_all_conflicts(fig, label="batch_integration", verbose=True)
 
-    outpath = outdir / "supp_batch_integration.png"
+    outpath = outdir / "fig9_batch_integration.png"
     from mocoo.visualization.style import save_figure
     save_figure(fig, outpath, bbox_inches='tight', pad_inches=0.04)
 
     # Export individual panels
-    sub_dir = outdir / "supp_batch_integration"
+    sub_dir = outdir / "fig9_batch_integration"
     sub_dir.mkdir(parents=True, exist_ok=True)
     export_subpanels(fig, sub_dir, [
         (ax_A, "panelA_batch_bars"),

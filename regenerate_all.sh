@@ -39,18 +39,18 @@ python benchmarks/scripts/plotting/plot_generalization.py \
     --resultsdir benchmarks/results/beta_ablation/beta_0.1 \
     --outdir benchmarks/figures
 
-echo "=== Supp: ODE Trajectory ==="
+echo "=== Fig 8: ODE Trajectory ==="
 python benchmarks/scripts/plotting/plot_ode_trajectory.py \
     --resultsdir benchmarks/results/single_dataset \
     --outdir benchmarks/figures \
     --data /home/zeyufu/LAB/scRL/IRALL.h5ad
 
-echo "=== Supp: Batch Integration ==="
+echo "=== Fig 9: Batch Integration ==="
 python benchmarks/scripts/plotting/plot_batch_integration.py \
     --resultsdir benchmarks/results \
     --outdir benchmarks/figures
 
-echo "=== Supp: Biological Validation ==="
+echo "=== Fig 10: Biological Validation ==="
 python benchmarks/scripts/plotting/plot_biological_validation.py \
     --resultsdir benchmarks/results/single_dataset \
     --outdir benchmarks/figures \
