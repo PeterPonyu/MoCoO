@@ -1,7 +1,7 @@
 """VCD colorbar-related detection passes (14, 17)."""
 from __future__ import annotations
 
-from .vcd_core import _safe_bbox, _shrink, _fig_bbox, _overlap_area, _sides_outside, _artist_label, _is_colorbar_like_axes
+from .vcd_core import _safe_bbox, _shrink, _fig_bbox, _overlap_area, _sides_outside, _artist_label, _is_colorbar_axes
 from matplotlib.collections import PathCollection, PolyCollection, LineCollection
 from matplotlib.lines import Line2D
 from matplotlib.image import AxesImage
@@ -21,7 +21,7 @@ def _check_colorbar_internal(fig, renderer, tol_px=1.0):
     fig_bb = _fig_bbox(fig)
 
     for ax in fig.get_axes():
-        is_cbar = _is_colorbar_like_axes(ax)
+        is_cbar = _is_colorbar_axes(ax)
         if not is_cbar:
             continue
 
@@ -117,7 +117,7 @@ def _check_colorbar_data_overlap(fig, renderer, auto_fix=True):
     issues: list[dict] = []
 
     for ax in fig.get_axes():
-        is_cbar = _is_colorbar_like_axes(ax)
+        is_cbar = _is_colorbar_axes(ax)
         if not is_cbar:
             continue
 
@@ -138,7 +138,7 @@ def _check_colorbar_data_overlap(fig, renderer, auto_fix=True):
             for candidate in fig.get_axes():
                 if candidate is ax:
                     continue
-                c_is_cbar = _is_colorbar_like_axes(candidate)
+                c_is_cbar = _is_colorbar_axes(candidate)
                 if c_is_cbar:
                     continue
                 c_bb = _safe_bbox(candidate, renderer)

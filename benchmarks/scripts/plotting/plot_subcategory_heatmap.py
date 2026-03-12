@@ -137,7 +137,7 @@ def make_heatmap(ax, data, panel_name, metrics_spec, configs, *, show_ylabels=Tr
     else:
         ax.set_yticklabels([])
     # Extra padding so labels don't overlap with heatmap boundaries
-    ax.tick_params(axis="y", pad=8, labelleft=True)
+    ax.tick_params(axis="y", pad=1, labelleft=True)
     ax.tick_params(axis="x", pad=2, labelbottom=True)
     ax.set_title(panel_name, fontsize=FS_TITLE - 1, pad=2)
     return im, wins

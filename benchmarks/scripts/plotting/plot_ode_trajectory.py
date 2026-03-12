@@ -130,7 +130,13 @@ def _draw_pca_comparison(axes, fig, configs, latents, labels):
             ax_pt.set_ylabel("PC 2", fontsize=FS_AXIS)
         for spine in ax_pt.spines.values():
             spine.set_visible(False)
-        cax = ax_pt.inset_axes([0.90, 0.05, 0.03, 0.28])
+        pos_pt = ax_pt.get_position()
+        cax = fig.add_axes([
+            pos_pt.x0 + pos_pt.width * 0.90,
+            pos_pt.y0 + pos_pt.height * 0.05,
+            pos_pt.width * 0.03,
+            pos_pt.height * 0.28,
+        ])
         cb  = fig.colorbar(sc, cax=cax)
         cb.ax.tick_params(labelsize=6, length=1.2, pad=0.4)
         cb.set_label("Pseudotime", fontsize=6, labelpad=1)

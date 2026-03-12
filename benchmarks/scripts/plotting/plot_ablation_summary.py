@@ -400,7 +400,7 @@ def build_figure(rdir: Path, outdir: Path, multiseed_stats=None):
     fig = plt.figure(figsize=(FIG_W, FIG_H), dpi=DPI)
 
     # ── absolute geometry (replaces GridSpec) ────────────────────────────
-    L, R, TOP, BOT = 0.12, 0.96, 0.91, 0.11
+    L, R, TOP, BOT = 0.12, 0.94, 0.91, 0.11
     W_all = R - L
     H_all = TOP - BOT
 
@@ -444,7 +444,7 @@ def build_figure(rdir: Path, outdir: Path, multiseed_stats=None):
     pos_A_table = ax_A_table.get_position()
     gap_A = pos_A_table.x0 - pos_A.x1
     synergy_cbar_rect = [
-        pos_A.x1 + gap_A * 0.54,
+        pos_A.x1 + gap_A * 0.18,
         pos_A.y0 + pos_A.height * 0.08,
         min(gap_A * 0.11, 0.010),
         pos_A.height * 0.24,
@@ -460,7 +460,7 @@ def build_figure(rdir: Path, outdir: Path, multiseed_stats=None):
 
     pos_C = ax_C.get_position()
     metric_cbar_rect = [
-        min(pos_C.x1 + 0.006, 0.968),
+        pos_C.x1 + 0.010,
         pos_C.y0 + pos_C.height * 0.08,
         0.010,
         pos_C.height * 0.22,

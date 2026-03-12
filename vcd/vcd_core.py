@@ -77,39 +77,6 @@ def _is_colorbar_axes(ax) -> bool:
             or getattr(ax, '_colorbar', None) is not None)
 
 
-def _is_colorbar_like_axes(ax) -> bool:
-    """Return True for explicit or colorbar-like inset axes.
-
-    Some inset colorbars created through explicit geometry are plain axes and
-    do not carry matplotlib's internal colorbar markers. For VCD purposes, a
-    very thin axes with visible tick labels and no normal data title behaves
-    like a colorbar and should be checked as one.
-    """
-    if _is_colorbar_axes(ax):
-        return True
-
-    try:
-        pos = ax.get_position()
-    except Exception:
-        return False
-
-    if ax.get_title().strip():
-        return False
-
-    tick_texts = [t.get_text().strip() for t in ax.get_xticklabels() + ax.get_yticklabels()]
-    n_ticks = sum(1 for t in tick_texts if t)
-    if n_ticks < 2:
-        return False
-
-    has_label = bool(ax.xaxis.label.get_text().strip() or ax.yaxis.label.get_text().strip())
-    if not has_label:
-        return False
-
-    thin_vertical = pos.width <= 0.045 and pos.height >= 0.12
-    thin_horizontal = pos.height <= 0.045 and pos.width >= 0.12
-    return thin_vertical or thin_horizontal
-
-
 def _artist_label(artist, hint: str = "") -> str:
     """Human-readable tag for an artist."""
     if isinstance(artist, Text):

@@ -283,20 +283,20 @@ def build_figure(rdir: Path, outdir: Path, multiseed_stats=None):
         fig.add_axes([0.707, 0.510, 0.253, 0.145]),
     ]
 
-    # Row C: 4 neighbourhood quality bars — explicit wider gutters for y-ticks
+    # Row C: 4 neighbourhood quality bars — wider panels to match A/B right edge
     axes_C = [
-        fig.add_axes([0.090, 0.295, 0.162, 0.125]),
-        fig.add_axes([0.310, 0.295, 0.162, 0.125]),
-        fig.add_axes([0.530, 0.295, 0.162, 0.125]),
-        fig.add_axes([0.750, 0.295, 0.162, 0.125]),
+        fig.add_axes([0.090, 0.295, 0.180, 0.125]),
+        fig.add_axes([0.320, 0.295, 0.180, 0.125]),
+        fig.add_axes([0.550, 0.295, 0.180, 0.125]),
+        fig.add_axes([0.780, 0.295, 0.180, 0.125]),
     ]
 
-    # Row D: 4 latent structure bars — explicit wider gutters for y-ticks
+    # Row D: 4 latent structure bars — wider panels to match A/B right edge
     axes_D = [
-        fig.add_axes([0.090, 0.085, 0.162, 0.120]),
-        fig.add_axes([0.310, 0.085, 0.162, 0.120]),
-        fig.add_axes([0.530, 0.085, 0.162, 0.120]),
-        fig.add_axes([0.750, 0.085, 0.162, 0.120]),
+        fig.add_axes([0.090, 0.085, 0.180, 0.120]),
+        fig.add_axes([0.320, 0.085, 0.180, 0.120]),
+        fig.add_axes([0.550, 0.085, 0.180, 0.120]),
+        fig.add_axes([0.780, 0.085, 0.180, 0.120]),
     ]
 
     print("  Drawing Panel A (UMAP grid)...")

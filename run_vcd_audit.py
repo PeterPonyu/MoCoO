@@ -1,6 +1,5 @@
 #!/usr/bin/env python
 """Run visual conflict detector on ALL figures by building them from source."""
-import argparse
 import sys, importlib, traceback
 from pathlib import Path
 
@@ -23,11 +22,6 @@ SCRIPTS = [
     ("benchmarks.scripts.plotting.plot_biological_validation", "supp_bio_validation"),
 ]
 
-parser = argparse.ArgumentParser()
-parser.add_argument("--mode", default="mocoo",
-                    choices=["loose", "balanced", "strict", "mocoo"])
-args = parser.parse_args()
-
 all_results = {}
 for mod_path, label in SCRIPTS:
     print(f"\n{'='*60}")
@@ -36,7 +30,7 @@ for mod_path, label in SCRIPTS:
     try:
         mod = importlib.import_module(mod_path)
         importlib.reload(mod)
-        sys.argv = [sys.argv[0], "--mode", args.mode] if "--mode" in getattr(mod, "__doc__", "") else [sys.argv[0]]
+        sys.argv = [sys.argv[0]]
         issues = mod.main()
         all_results[label] = issues if issues else []
     except Exception:

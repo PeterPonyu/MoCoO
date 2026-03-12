@@ -220,7 +220,7 @@ def _draw_bio_batch_scatter(ax, metrics):
 # Panel C: Cross-dataset heatmap
 # ═══════════════════════════════════════════════════════════════════════════════
 
-def _draw_cross_dataset_heatmap(ax, cross_data):
+def _draw_cross_dataset_heatmap(ax, cross_data, fig=None):
     """Heatmap: rows = configs, cols = datasets × metrics."""
     metric_keys = ["ARI", "NMI", "ASW"]
     # Fallback keys for dataset_default which uses full_ARI etc.
@@ -282,6 +282,21 @@ def _draw_cross_dataset_heatmap(ax, cross_data):
 
     ax.set_title("Cross-Dataset Perf.",
                  fontsize=FS_AXIS, pad=1)
+
+    # Colorbar to the right of the heatmap
+    if fig is not None:
+        pos = ax.get_position()
+        cbar_rect = [
+            pos.x1 + 0.008,
+            pos.y0 + pos.height * 0.10,
+            0.010,
+            pos.height * 0.60,
+        ]
+        cax = fig.add_axes(cbar_rect)
+        cb = fig.colorbar(im, cax=cax)
+        cb.set_ticks([0.0, 0.5, 1.0])
+        cb.ax.tick_params(labelsize=max(FS_SMALL - 1, 6), length=1.2, pad=0.4)
+        cb.set_label("Norm.", fontsize=max(FS_SMALL - 1, 6), labelpad=1)
 
     # Vertical separators between datasets
     for sep in range(1, n_ds):
@@ -380,8 +395,8 @@ def build_figure(results_base: Path, outdir: Path):
         ax_B2.spines["right"].set_visible(False)
 
     # Panel C: Cross-dataset heatmap (full width) — lower, with gap from B
-    ax_C = fig.add_axes([0.10, 0.38, 0.86, 0.14])
-    _draw_cross_dataset_heatmap(ax_C, cross_data)
+    ax_C = fig.add_axes([0.10, 0.38, 0.83, 0.14])
+    _draw_cross_dataset_heatmap(ax_C, cross_data, fig=fig)
 
     # Panel D: Cross-dataset radar (polar) — narrower to leave room for legend
     ax_D = fig.add_axes([0.10, 0.08, 0.48, 0.22], polar=True)

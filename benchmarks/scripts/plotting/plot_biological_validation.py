@@ -216,10 +216,18 @@ def _umap_lims(emb: np.ndarray, pad: float = 0.05):
 
 
 def _inset_cbar(fig, ax, mappable, label: str = ""):
-    """Tiny colorbar inside bottom-right of axes (avoids cross-panel leakage)."""
-    cax = ax.inset_axes([0.88, 0.08, 0.025, 0.22])
+    """Tiny colorbar inside bottom-right of axes using explicit figure coords."""
+    pos = ax.get_position()
+    cax = fig.add_axes([
+        pos.x0 + pos.width * 0.88,
+        pos.y0 + pos.height * 0.08,
+        pos.width * 0.025,
+        pos.height * 0.22,
+    ])
     cb = fig.colorbar(mappable, cax=cax)
     cb.ax.tick_params(labelsize=max(FS_SMALL - 2, 5), length=1.0, pad=0.3)
+    cb.set_ticks([cb.vmin, cb.vmax])
+    cb.set_ticklabels([f"{cb.vmin:.1f}", f"{cb.vmax:.1f}"])
     if label:
         cb.ax.set_ylabel(label, fontsize=max(FS_SMALL - 2, 5), labelpad=0.8)
     return cb
@@ -361,30 +369,31 @@ def _draw_panel_D(axes_d, fig, configs, latents, X_raw, n_cells, gene_names):
     k = GENES_PER_COMP
     ax_d0 = None
     shared_im = None
-    
+
+    # Pre-compute all data to find global vmax for consistent colorbar
+    panel_data = []
+    global_vmax = 0.15
     for j, cfg in enumerate(HEATMAP_CONFIGS):
+        cfg_idx = configs.index(cfg)
+        Z_cfg = latents[cfg_idx][:n_cells]
+        corr_mat = _numpy_gene_latent_corr(X_raw, Z_cfg)
+        comp_indices = _select_top_components(corr_mat, n=TOP_COMPS)
+        gene_idx_table, gene_name_table = _select_genes_per_comp(
+            corr_mat, comp_indices, gene_names, k=k)
+        ordered_gene_idx = np.concatenate(gene_idx_table)
+        mat = corr_mat[ordered_gene_idx, :][:, comp_indices]
+        vmax = max(float(np.percentile(np.abs(mat), 99)), 0.15)
+        global_vmax = max(global_vmax, vmax)
+        panel_data.append((cfg, comp_indices, gene_idx_table, gene_name_table, mat))
+
+    for j, (cfg, comp_indices, gene_idx_table, gene_name_table, mat) in enumerate(panel_data):
         r, c = divmod(j, 3)
         ax_dj = axes_d[r][c]
         if j == 0:
             ax_d0 = ax_dj
-            
-        # Compute correlation and select top components/genes FOR THIS CONFIG
-        cfg_idx = configs.index(cfg)
-        Z_cfg = latents[cfg_idx][:n_cells]
-        corr_mat = _numpy_gene_latent_corr(X_raw, Z_cfg)
-        
-        comp_indices = _select_top_components(corr_mat, n=TOP_COMPS)
-        gene_idx_table, gene_name_table = _select_genes_per_comp(
-            corr_mat, comp_indices, gene_names, k=k)
-            
-        ordered_gene_idx = np.concatenate(gene_idx_table)
-        mat = corr_mat[ordered_gene_idx, :][:, comp_indices]
-
-        vmax = float(np.percentile(np.abs(mat), 99))
-        vmax = max(vmax, 0.15)
 
         im = ax_dj.imshow(mat, aspect="auto", cmap="RdBu_r",
-                  vmin=-vmax, vmax=vmax, interpolation="nearest")
+                  vmin=-global_vmax, vmax=global_vmax, interpolation="nearest")
         shared_im = im
         # X: component labels
         ax_dj.set_xticks(np.arange(TOP_COMPS))
@@ -400,9 +409,6 @@ def _draw_panel_D(axes_d, fig, configs, latents, X_raw, n_cells, gene_names):
             ax_dj.set_ylabel("Top gene", fontsize=FS_AXIS)
         else:
             ax_dj.set_ylabel("")
-        if c == 2:
-            ax_dj.yaxis.tick_right()
-            ax_dj.tick_params(axis="y", labelright=True, labelleft=False, pad=2)
 
         # White dividers between groups
         for gi in range(1, TOP_COMPS):
@@ -411,16 +417,14 @@ def _draw_panel_D(axes_d, fig, configs, latents, X_raw, n_cells, gene_names):
         ax_dj.set_title(get_tick_name(cfg), fontsize=FS_AXIS, pad=1)
 
     if shared_im is not None:
-        pos_mid = axes_d[0][1].get_position()
-        pos_right = axes_d[0][2].get_position()
-        pos_bottom = axes_d[1][1].get_position()
-        gap_x0 = pos_mid.x1
-        gap_w = pos_right.x0 - pos_mid.x1
+        # Place shared colorbar to the right of the entire D block
+        pos_top_right = axes_d[0][2].get_position()
+        pos_bot_right = axes_d[1][2].get_position()
         cbar_rect = [
-            gap_x0 + gap_w * 0.38,
-            pos_bottom.y0 + pos_bottom.height * 0.12,
-            min(gap_w * 0.16, 0.012),
-            (pos_mid.y1 - pos_bottom.y0) * 0.34,
+            pos_top_right.x1 + 0.008,
+            pos_bot_right.y0 + pos_bot_right.height * 0.10,
+            0.010,
+            (pos_top_right.y1 - pos_bot_right.y0) * 0.40,
         ]
         cax = fig.add_axes(cbar_rect)
         cb = fig.colorbar(shared_im, cax=cax)
