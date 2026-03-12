@@ -367,7 +367,15 @@ def build_composed(data, outpath: Path, cache_dir: Path | None = None):
         fig.add_axes([0.12 + d_bot_w + d_bot_gap, 0.08, d_bot_w, 0.075]),
     ]
     if subcategory_data:
-        draw_subcategory_block(fig, axes_D, subcategory_data, configs=configs)
+        total_wins, last_im = draw_subcategory_block(fig, axes_D, subcategory_data, configs=configs)
+        # Shared colorbar at bottom-right of D block
+        if last_im is not None:
+            pos = axes_D[-1].get_position()
+            cax = fig.add_axes([pos.x1 + 0.008, pos.y0, 0.010, pos.height * 0.80])
+            cb = fig.colorbar(last_im, cax=cax)
+            cb.set_ticks([0.0, 0.5, 1.0])
+            cb.ax.tick_params(labelsize=max(FS_SMALL - 1, 6), length=1.2, pad=0.4)
+            cb.set_label("Norm.", fontsize=max(FS_SMALL - 1, 6), labelpad=1)
     else:
         for ax in axes_D:
             ax.set_axis_off()
@@ -400,12 +408,8 @@ def build_composed(data, outpath: Path, cache_dir: Path | None = None):
     print("\n── Conflict Detection on Composed Figure ──")
     issues = detect_all_conflicts(fig, label="composed", verbose=True)
 
-    has_trunc = any(i["type"].endswith("_truncation") and
-                    i["severity"] == "warning" for i in issues)
-    pad = 0.3 if has_trunc else 0.15
-
     from mocoo.visualization.style import save_figure
-    save_figure(fig, str(outpath), pad_inches=pad)
+    save_figure(fig, str(outpath), bbox_inches='tight', pad_inches=0.04)
 
     sub_dir = outpath.parent / outpath.stem
     sub_dir.mkdir(parents=True, exist_ok=True)

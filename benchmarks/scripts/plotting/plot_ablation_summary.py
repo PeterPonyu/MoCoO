@@ -201,7 +201,7 @@ def _draw_synergy_heatmap(ax, fig, rdir, cbar_rect=None):
     ax.set_yticks(np.arange(len(metric_labels)))
     ax.set_yticklabels(metric_labels, fontsize=FS_TICK)
     ax.set_title("A1  ODE \u00d7 MoCo Synergy",
-                 fontsize=FS_AXIS, pad=3)
+                 fontsize=FS_TITLE, pad=3)
 
     if cbar_rect is None:
         pos = ax.get_position()
@@ -484,7 +484,7 @@ def build_figure(rdir: Path, outdir: Path, multiseed_stats=None):
 
     outpath = outdir / "fig3_ablation_summary.png"
     from mocoo.visualization.style import save_figure
-    save_figure(fig, outpath)
+    save_figure(fig, outpath, bbox_inches='tight', pad_inches=0.04)
 
     # Export individual panel sub-figures
     sub_dir = outdir / "fig3_ablation_summary"

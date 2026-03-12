@@ -147,8 +147,9 @@ def draw_subcategory_block(fig, axes_list, data, configs=None):
     """Draw the 5-panel subcategory diagnostic block on the supplied axes."""
     active_configs = list(configs or CONFIGS)
     total_wins = np.zeros(len(active_configs), dtype=int)
+    last_im = None
     for idx, (pname, metrics_spec) in enumerate(PANELS.items()):
-        _, wins = make_heatmap(
+        im, wins = make_heatmap(
             axes_list[idx],
             data,
             pname,
@@ -157,7 +158,8 @@ def draw_subcategory_block(fig, axes_list, data, configs=None):
             show_ylabels=True,
         )
         total_wins += wins
-    return total_wins
+        last_im = im
+    return total_wins, last_im
 
 
 def main():
@@ -194,7 +196,16 @@ def main():
         fig.add_axes([0.12 + bot_w + bot_gap, 0.16, bot_w, 0.24]),
     ]
 
-    total_wins = draw_subcategory_block(fig, axes_list, data, CONFIGS)
+    total_wins, last_im = draw_subcategory_block(fig, axes_list, data, CONFIGS)
+
+    # Shared colorbar at bottom-right
+    if last_im is not None:
+        pos = axes_list[-1].get_position()
+        cax = fig.add_axes([pos.x1 + 0.008, pos.y0, 0.010, pos.height * 0.80])
+        cb = fig.colorbar(last_im, cax=cax)
+        cb.set_ticks([0.0, 0.5, 1.0])
+        cb.ax.tick_params(labelsize=max(FS_SMALL - 1, 6), length=1.2, pad=0.4)
+        cb.set_label("Norm.", fontsize=max(FS_SMALL - 1, 6), labelpad=1)
 
     print("Win counts per config (merged subcategory heatmap):")
     for i, cfg in enumerate(CONFIGS):

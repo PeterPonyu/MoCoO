@@ -192,7 +192,7 @@ def build_figure(rdir: Path, outdir: Path, multiseed_stats=None):
     n_err = sum(1 for i in issues if i.get("severity") == "error")
 
     from mocoo.visualization.style import save_figure
-    save_figure(fig, outpath)
+    save_figure(fig, outpath, bbox_inches='tight', pad_inches=0.04)
     plt.close(fig)
     print(f"Saved: {outpath}")
     print(f"{n_warn} warnings | {n_err} errors")

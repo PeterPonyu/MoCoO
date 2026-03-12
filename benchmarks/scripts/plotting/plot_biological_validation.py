@@ -257,12 +257,18 @@ def _umap_celltype(ax, emb, labels, title, show_ylabel=True, show_legend=True):
                   columnspacing=0.3)
 
 
-def _umap_scalar(ax, emb, values, title, cmap_name, cbar_label, fig, show_ylabel=True):
-    v5, v95 = np.percentile(values, 5), np.percentile(values, 95)
-    if v95 - v5 < 1e-6:
-        v5, v95 = values.min(), values.max() + 1e-6
+def _umap_scalar(ax, emb, values, title, cmap_name, cbar_label, fig, show_ylabel=True,
+                 vmin=None, vmax=None, add_colorbar=True):
+    if vmin is None or vmax is None:
+        v5, v95 = np.percentile(values, 5), np.percentile(values, 95)
+        if v95 - v5 < 1e-6:
+            v5, v95 = values.min(), values.max() + 1e-6
+        if vmin is None:
+            vmin = v5
+        if vmax is None:
+            vmax = v95
     sc = ax.scatter(emb[:, 0], emb[:, 1], c=values,
-                    cmap=cmap_name, vmin=v5, vmax=v95,
+                    cmap=cmap_name, vmin=vmin, vmax=vmax,
                     clip_on=False, **_SCATTER_KW)
     xl, xh, yl, yh = _umap_lims(emb)
     ax.set_xlim(xl, xh); ax.set_ylim(yl, yh)
@@ -270,7 +276,9 @@ def _umap_scalar(ax, emb, values, title, cmap_name, cbar_label, fig, show_ylabel
     ax.set_xticks([]); ax.set_yticks([])
     for sp in ax.spines.values():
         sp.set_visible(False)
-    _inset_cbar(fig, ax, sc, label=cbar_label)
+    if add_colorbar:
+        _inset_cbar(fig, ax, sc, label=cbar_label)
+    return sc
 
 
 
@@ -336,13 +344,31 @@ def _draw_panel_B(axes_b, fig, emb, Z_full, labels_f, n_cells,
     ax_b0 = axes_b[0]
     _umap_celltype(ax_b0, emb, labels_f,
                    title="CT (Full)", show_ylabel=True, show_legend=False)
+    # Shared normalization across all component intensities
+    all_vals = np.concatenate([Z_full[:n_cells, ci] for ci in umap_comp_indices])
+    shared_v5 = float(np.percentile(all_vals, 5))
+    shared_v95 = float(np.percentile(all_vals, 95))
+    if shared_v95 - shared_v5 < 1e-6:
+        shared_v95 = shared_v5 + 1e-6
+    shared_sc = None
     for j, ci in enumerate(umap_comp_indices):
         ax_bj = axes_b[j + 1]
-        _umap_scalar(ax_bj, emb, Z_full[:n_cells, ci],
+        sc = _umap_scalar(ax_bj, emb, Z_full[:n_cells, ci],
                      title=f"Z{ci+1} intensity",
                      cmap_name="plasma",
                      cbar_label=f"Z{ci+1}",
-                     fig=fig, show_ylabel=False)
+                     fig=fig, show_ylabel=False,
+                     vmin=shared_v5, vmax=shared_v95, add_colorbar=False)
+        if shared_sc is None:
+            shared_sc = sc
+    # Single shared colorbar at right of B row
+    if shared_sc is not None:
+        pos = axes_b[-1].get_position()
+        cax = fig.add_axes([pos.x1 + 0.006, pos.y0 + pos.height * 0.10,
+                            0.008, pos.height * 0.60])
+        cb = fig.colorbar(shared_sc, cax=cax)
+        cb.ax.tick_params(labelsize=max(FS_SMALL - 1, 6), length=1.0, pad=0.3)
+        cb.set_label("Z int.", fontsize=max(FS_SMALL - 1, 6), labelpad=1)
     return ax_b0
 
 
@@ -352,15 +378,34 @@ def _draw_panel_C(axes_c, fig, emb, X_raw, labels_f,
     ax_c0 = axes_c[0]
     _umap_celltype(ax_c0, emb, labels_f,
                    title="CT (ref.)", show_ylabel=True, show_legend=False)
+    # Shared normalization across all gene expression UMAPs
+    all_gene_vals = np.concatenate([X_raw[:, rf_gene_idx_table[j][0]]
+                                    for j in range(len(umap_comp_indices))])
+    shared_v5 = float(np.percentile(all_gene_vals, 5))
+    shared_v95 = float(np.percentile(all_gene_vals, 95))
+    if shared_v95 - shared_v5 < 1e-6:
+        shared_v95 = shared_v5 + 1e-6
+    shared_sc = None
     for j, ci in enumerate(umap_comp_indices):
         ax_cj = axes_c[j + 1]
         g_idx = rf_gene_idx_table[j][0]
         tg    = rf_gene_name_table[j][0]
-        _umap_scalar(ax_cj, emb, X_raw[:, g_idx],
+        sc = _umap_scalar(ax_cj, emb, X_raw[:, g_idx],
                      title=f"{tg} (Z{ci+1})",
                      cmap_name="YlOrRd",
                      cbar_label="log1p",
-                     fig=fig, show_ylabel=False)
+                     fig=fig, show_ylabel=False,
+                     vmin=shared_v5, vmax=shared_v95, add_colorbar=False)
+        if shared_sc is None:
+            shared_sc = sc
+    # Single shared colorbar at right of C row
+    if shared_sc is not None:
+        pos = axes_c[-1].get_position()
+        cax = fig.add_axes([pos.x1 + 0.006, pos.y0 + pos.height * 0.10,
+                            0.008, pos.height * 0.60])
+        cb = fig.colorbar(shared_sc, cax=cax)
+        cb.ax.tick_params(labelsize=max(FS_SMALL - 1, 6), length=1.0, pad=0.3)
+        cb.set_label("log1p", fontsize=max(FS_SMALL - 1, 6), labelpad=1)
     return ax_c0
 
 
@@ -542,7 +587,7 @@ def build_figure(data, adata, outpath: Path):
     issues = detect_all_conflicts(fig, label="bio_validation_abcd", verbose=True)
 
     from mocoo.visualization.style import save_figure
-    save_figure(fig, outpath)
+    save_figure(fig, outpath, bbox_inches='tight', pad_inches=0.04)
 
     # Export individual panel sub-figures
     sub_dir = outpath.parent / "supp_biological_validation"

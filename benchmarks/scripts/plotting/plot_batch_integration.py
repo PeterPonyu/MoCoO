@@ -166,7 +166,7 @@ def _draw_batch_bars(ax, metrics):
     ax.set_xticklabels(batch_labels, fontsize=FS_SMALL, rotation=0)
     ax.set_ylabel("Score", fontsize=FS_AXIS)
     ax.set_title("Batch Metrics",
-                 fontsize=FS_AXIS, pad=1)
+                 fontsize=FS_TITLE, pad=1)
     ax.tick_params(axis="both", labelsize=FS_TICK)
     ax.set_ylim(0, 1.25)
     ax.set_xlim(-0.5, len(batch_keys) - 0.5)
@@ -281,7 +281,7 @@ def _draw_cross_dataset_heatmap(ax, cross_data, fig=None):
                         fontsize=FS_SMALL, color=color)
 
     ax.set_title("Cross-Dataset Perf.",
-                 fontsize=FS_AXIS, pad=1)
+                 fontsize=FS_TITLE, pad=1)
 
     # Colorbar to the right of the heatmap
     if fig is not None:
@@ -414,7 +414,7 @@ def build_figure(results_base: Path, outdir: Path):
 
     outpath = outdir / "supp_batch_integration.png"
     from mocoo.visualization.style import save_figure
-    save_figure(fig, outpath)
+    save_figure(fig, outpath, bbox_inches='tight', pad_inches=0.04)
 
     # Export individual panels
     sub_dir = outdir / "supp_batch_integration"
