@@ -126,59 +126,24 @@ class Decoder(nn.Module):
 
 
 class LatentODEfunc(nn.Module):
-    """Time-conditioned ODE dynamics: dz/dt = f(t, z).
+    """Autonomous ODE dynamics: dz/dt = f(z).
     
-    Follows HSDE's BaseControlledSDE drift architecture with time conditioning.
-    Supports 'concat', 'film', and 'add' modes.
+    Follows scTour's LatentODEfunc — a simple two-layer ELU network that
+    models latent-state derivatives without explicit time conditioning.
+    The time argument t is accepted (required by torchdiffeq) but ignored.
     """
     
-    def __init__(self, n_latent: int = 10, n_hidden: int = 25,
-                 time_cond: str = 'concat'):
+    def __init__(self, n_latent: int = 10, n_hidden: int = 25):
         super().__init__()
-        self.time_cond = time_cond
         self.elu = nn.ELU()
-        
-        # Build time-conditioned network (following HSDE pattern)
-        if time_cond == 'concat':
-            self.fc1 = nn.Linear(n_latent + 1, n_hidden)
-        elif time_cond == 'film':
-            self.fc1 = nn.Linear(n_latent, n_hidden)
-            self.time_scale = nn.Linear(1, n_hidden)
-            self.time_shift = nn.Linear(1, n_hidden)
-        else:  # 'add'
-            self.fc1 = nn.Linear(n_latent, n_hidden)
-            self.time_embed = nn.Linear(1, n_hidden)
-        
+        self.fc1 = nn.Linear(n_latent, n_hidden)
         self.fc2 = nn.Linear(n_hidden, n_latent)
-        
-        self.apply(_init_weights)
-
-    def _broadcast_time(self, t: torch.Tensor, x: torch.Tensor) -> torch.Tensor:
-        """Broadcast scalar/1D time to match x's shape for concat/film/add."""
-        if x.dim() == 1:
-            # x is (latent_dim,) — from odeint with 1D z0
-            return t.reshape(1) if t.dim() == 0 else t.view(-1)[:1]
-        else:
-            # x is (batch, latent_dim)
-            batch_size = x.shape[0]
-            if t.dim() == 0 or t.numel() == 1:
-                return t.reshape(1, 1).expand(batch_size, 1)
-            return t.view(-1, 1)
     
     def forward(self, t: torch.Tensor, x: torch.Tensor) -> torch.Tensor:
-        t_bc = self._broadcast_time(t, x)
-        
-        if self.time_cond == 'concat':
-            h = torch.cat([x, t_bc], dim=-1)
-            h = self.fc1(h)
-        elif self.time_cond == 'film':
-            h = self.fc1(x)
-            h = self.time_scale(t_bc) * h + self.time_shift(t_bc)
-        else:  # 'add'
-            h = self.fc1(x) + self.time_embed(t_bc)
-        
-        h = self.elu(h)
-        return self.fc2(h)
+        out = self.fc1(x)
+        out = self.elu(out)
+        out = self.fc2(out)
+        return out
 
 
 class MoCo(nn.Module):
@@ -362,7 +327,9 @@ class VAE(nn.Module, NODEMixin):
                                use_layer_norm=True).to(device)
         
         if use_ode:
-            self.ode_solver = LatentODEfunc(action_dim, time_cond='concat').to(device)
+            # Keep ODE function on CPU (following scTour convention).
+            # solve_ode() runs odeint on CPU; no device transfer needed.
+            self.ode_solver = LatentODEfunc(action_dim)
         
         if self.use_moco:
             self.encoder_k = Encoder(state_dim, hidden_dim, action_dim, use_ode,
@@ -425,11 +392,9 @@ class VAE(nn.Module, NODEMixin):
                 t = t_fixed
             
             z0 = q_z[0]
-            # ODE integrates from z0 along the learned time axis.
-            # Gradients flow through ODE solver for joint encoder-ODE
-            # training (dual-path reconstruction, following HSDE).
+            # ODE integrates from z0 along the learned time axis
+            # (following scTour's dual-path architecture).
             q_z_ode = self.solve_ode(self.ode_solver, z0, t)
-            velocity = self.ode_solver(t, q_z)
             
             # Dual-path reconstruction: encoder path + ODE path
             vae_dec = self._decode(q_z)          # encoder-derived latent
@@ -442,7 +407,6 @@ class VAE(nn.Module, NODEMixin):
                 'pred_x': vae_dec['pred'], 'dropout_x': vae_dec['dropout'],
                 'pred_x_ode': ode_dec['pred'], 'dropout_x_ode': ode_dec['dropout'],
                 'q_z_ode': q_z_ode,
-                'velocity': velocity,
             })
             
             if self.use_moco and x_q is not None and x_k is not None:

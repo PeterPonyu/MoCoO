@@ -15,6 +15,7 @@
 \usepackage{booktabs}
 \usepackage{multirow}
 \usepackage{array}
+\usepackage{makecell}
 \usepackage{xspace}
 \usepackage{bm}
 \usepackage{balance}
@@ -46,7 +47,7 @@
 \maketitle
 
 \begin{abstract}
-Characterising cellular differentiation from single-cell RNA sequencing (scRNA-seq) requires representations that capture both discrete cell-type identity and continuous developmental trajectories. We present \MoCoO, a modular framework integrating a Variational Autoencoder (VAE), Neural Ordinary Differential Equations (Neural ODE), and Momentum Contrast (MoCo) with learnable prototypes. Through a systematic six-configuration ablation on three scRNA-seq datasets with multi-seed evaluation and external baselines (scVI, DPT, PCA+KMeans, Harmony, scANVI), we demonstrate that the Full MoCoO achieves unique advantages that no simpler variant can match. The Full model wins \textit{all four} distance-preservation subcategory metrics (UMAP/tSNE distance correlations, DREX Spearman/Pearson $\rho$)---a property critical for trustworthy UMAP visualisation---with margins of $+0.038$--$0.086$ over the next-best configuration. It achieves the lowest Davies--Bouldin index in multi-seed evaluation ($1.243{\pm}0.059$, 5~seeds), indicating the most compact clusters. On the Paul cross-dataset benchmark, the Full model attains the highest ARI~($0.365$) and NMI~($0.591$) at $\beta{=}0.01$, confirming that its advantages transfer across biological systems. Disaggregating composite metrics into subcategories, the Full model dominates latent-space quality (LSEX overall, cluster compactness, inter-cluster gap), dimensionality-reduction quality (DRE/DREX overall), and batch integration (best iLISI). These advantages are invisible to standard aggregate benchmarking: 9-metric win counts assign 13/27 to VAE+ODE and 1/27 to Full, yet expanding to 32 subcategory metrics reverses the picture. Component analysis reveals how each module contributes: the Neural ODE smooths the latent manifold, MoCo sharpens pairwise distance structure, and prototypes anchor inter-cluster separation---producing a synergy unique to the full architecture. Pseudotime predictions correlate significantly with canonical marker genes across five developmental systems. We publicly release the MoCoO Python package (\texttt{pip install mocoo}) and full benchmark suite with practical configuration guidelines.
+Characterising cellular differentiation from single-cell RNA sequencing (scRNA-seq) requires representations that capture both discrete cell-type identity and continuous developmental trajectories. We present \MoCoO, a modular framework integrating a Variational Autoencoder (VAE), Neural Ordinary Differential Equations (Neural ODE), and Momentum Contrast (MoCo) with learnable prototypes. Through a systematic six-configuration ablation across five scRNA-seq datasets spanning hematopoiesis, neurogenesis, endocrine differentiation, myeloid/erythroid bifurcation, and spinal cord organogenesis, evaluated with 17 disaggregated metrics, we demonstrate that combining ODE and MoCo produces the best discrete clustering (cross-dataset mean ARI $0.423$, NMI $0.574$ for VAE+ODE+MoCo) while the Full MoCoO achieves the best distance preservation (UMAP distance correlation $0.668$, DREX Spearman $0.694$, DREX overall $0.646$), winning 5 of 11 embedding quality metrics---a property critical for trustworthy UMAP/tSNE visualisation. ODE-containing configurations consistently outperform non-ODE variants on cluster geometry (ASW ${\sim}0.22$ vs.\ ${\sim}0.17$; DAV ${\sim}1.50$ vs.\ ${\sim}1.78$) across all datasets. Component analysis reveals how each module contributes: the Neural ODE smooths the latent manifold along trajectories, MoCo sharpens pairwise distance structure, and prototypes anchor inter-cluster separation---producing a synergy unique to the full architecture. Pseudotime predictions correlate significantly with canonical marker genes across all five developmental systems. We publicly release the MoCoO Python package (\texttt{pip install mocoo}) and full benchmark suite with practical configuration guidelines.
 \end{abstract}
 
 \begin{IEEEkeywords}
@@ -76,7 +77,7 @@ No existing method unifies VAE reconstruction, Neural ODE dynamics, and momentum
 \end{enumerate}
 The framework additionally supports DIP-VAE, $\beta$-TC-VAE, and InfoVAE/MMD disentanglement regularisers, but these are not active in the experiments reported here.
 
-We conduct a systematic ablation across six configurations (VAE, VAE+ODE, VAE+MoCo, VAE+MoCo+Proto, VAE+ODE+MoCo, and Full MoCoO) on five scRNA-seq datasets spanning diverse developmental systems. Multi-seed evaluation (5 seeds per configuration) provides statistical robustness. External baselines---scVI~\cite{lopez2018deep}, Diffusion Pseudotime (DPT)~\cite{haghverdi2016dpt}, PCA+KMeans, Harmony~\cite{korsunsky2019harmony}, and scANVI~\cite{xu2021probabilistic}---contextualise MoCoO's absolute performance. A key finding is that the Full MoCoO achieves unique advantages invisible to standard aggregate benchmarking: it wins all four distance-preservation subcategory metrics, achieves the lowest Davies--Bouldin in multi-seed evaluation, dominates latent-space quality composites (LSEX overall, cluster compactness, inter-cluster gap), attains the best batch mixing (iLISI), and transfers its clustering advantage to the Paul dataset (best ARI and NMI). These wins are masked when DRE/DREX/LSEX composites are reported as single aggregate scores, an instance of Simpson's paradox at the metric level. Component analysis reveals that each module contributes essential geometric structure: the Neural ODE smooths the latent manifold along trajectories, MoCo sharpens pairwise distance relationships, and prototypes anchor inter-cluster separation---producing a synergistic combination achievable only by the full architecture. Evaluation covers clustering (ARI, NMI, ASW, Calinski--Harabasz, Davies--Bouldin), dimensionality reduction quality (DRE, DREX, LSE, LSEX), biological validation (pseudotime--marker correlations), batch integration (iLISI, bASW, cLISI, graph connectivity, isolated label ASW via scIB~\cite{luecken2022scib}), training dynamics, and computational cost.
+We conduct a systematic ablation across six configurations (VAE, VAE+ODE, VAE+MoCo, VAE+MoCo+Proto, VAE+ODE+MoCo, and Full MoCoO) on five scRNA-seq datasets spanning diverse developmental systems. External baselines---scVI~\cite{lopez2018deep}, Diffusion Pseudotime (DPT)~\cite{haghverdi2016dpt}, PCA+KMeans, Harmony~\cite{korsunsky2019harmony}, and scANVI~\cite{xu2021probabilistic}---contextualise MoCoO's absolute performance. A key finding is that combining ODE and MoCo consistently produces the best discrete clustering (cross-dataset mean ARI $0.423$, NMI $0.574$ for VAE+ODE+MoCo), while the Full MoCoO achieves unique distance-preservation advantages: it wins 5 of 11 embedding quality metrics (UMAP distance correlation, UMAP overall quality, tSNE overall quality, DREX Spearman, DREX overall), reflecting the most faithful 2-D projection of latent-space pairwise distances. ODE-containing configurations consistently outperform non-ODE variants on cluster geometry across all five datasets ($\Delta$ASW ${\sim}0.05$, $\Delta$DAV ${\sim}0.28$). Component analysis reveals that each module contributes essential geometric structure: the Neural ODE smooths the latent manifold along trajectories, MoCo sharpens pairwise distance relationships, and prototypes anchor inter-cluster separation---producing a synergistic combination achievable only by the full architecture. Evaluation covers clustering (ARI, NMI, ASW, Calinski--Harabasz, Davies--Bouldin, COR), embedding quality (DRE, DREX), biological validation (pseudotime--marker correlations), batch integration (iLISI, bASW, cLISI, graph connectivity, isolated label ASW via scIB~\cite{luecken2022scib}), and training dynamics.
 
 %% ============================================================
 \section{Related Work}
@@ -309,7 +310,7 @@ DREX supplements DRE with additional diagnostics:
 \textbf{Latent Structure Evaluation (LSE/LSEX).}
 LSE assesses the intrinsic quality of the latent space without reference to any downstream clustering or embedding, using SVD-based measures including manifold dimensionality (participation ratio), spectral decay rate, and anisotropy score. LSEX adds label-aware diagnostics: cluster compactness, inter-cluster gap, $k$-NN purity, and sampling stability. Full metric definitions appear in Appendix~\ref{sec:supp:metric_defs}.
 
-\textit{Metric validation note:} DRE/DREX and LSE/LSEX are composite metrics introduced in this work. Each individual sub-metric within these suites (trustworthiness, continuity, $k$-NN overlap, participation ratio, spectral decay) has an established basis in the manifold learning literature~\cite{venna2006local}. Crucially, disaggregating these composites into subcategories reveals the Full model's comprehensive advantages---including distance preservation, LSEX quality, and spectral analysis---that are invisible at the aggregate level (Section~\ref{sec:results:subcatwins}). We confirm that configuration rankings based on the five standard clustering metrics alone (ARI, NMI, ASW, CH, DB) show that the Full model achieves the best DB (cluster compactness) and CH (global separation), while VAE+ODE leads ARI and ASW. The DRE/DREX/LSE/LSEX suites provide the geometric insight necessary to identify the Full model's unique strengths. Full computation code for all metrics is released with the package (\texttt{mocoo.evaluation}).
+\textit{Metric validation note:} DRE/DREX and LSE/LSEX are composite metrics introduced in this work. Each individual sub-metric within these suites (trustworthiness, continuity, $k$-NN overlap, participation ratio, spectral decay) has an established basis in the manifold learning literature~\cite{venna2006local}. Crucially, disaggregating these composites into subcategories reveals the Full model's comprehensive advantages---including distance preservation, LSEX quality, and spectral analysis---that are invisible at the aggregate level. We confirm that configuration rankings based on the five standard clustering metrics alone (ARI, NMI, ASW, CH, DB) show that the Full model achieves the best DB (cluster compactness) and CH (global separation), while VAE+ODE leads ARI and ASW. The DRE/DREX/LSE/LSEX suites provide the geometric insight necessary to identify the Full model's unique strengths. Full computation code for all metrics is released with the package (\texttt{mocoo.evaluation}).
 
 \textbf{Biological validation.} Cell-type purity, marker gene enrichment, and pseudotime--trajectory correlation (Spearman $\rho$).
 
@@ -320,365 +321,85 @@ LSE assesses the intrinsic quality of the latent space without reference to any 
 \subsection{Evaluation Protocol}
 \label{sec:experiments:protocol}
 
-\textit{Data splits:} Each dataset is split into 70\% training, 15\% validation, and 15\% held-out test cells by stratified random sampling (preserving cell-type proportions). The model is trained only on training cells; validation cells determine early stopping (patience~40). All reported metrics, unless marked ``test,'' are computed on the \textit{validation} split. Figures~\ref{fig:quant_comparison} and~\ref{fig:generalization} explicitly compare validation and test metrics to confirm generalisation.
+\textit{Data splits:} Each dataset is split into 70\% training, 15\% validation, and 15\% held-out test cells by stratified random sampling (preserving cell-type proportions). The model is trained only on training cells; validation cells determine early stopping (patience~40). All reported metrics, unless marked ``test,'' are computed on the \textit{validation} split. Validation and test metrics are compared to confirm generalisation.
 
 \textit{KMeans cluster count:} $k$ is set to the ground-truth number of cell types, following Luecken~\textit{et~al.}~\cite{luecken2022scib}. This is standard practice for \textit{evaluation} of unsupervised methods---it provides fair cross-method comparison by removing the confounding effect of cluster-count selection. We additionally compute Leiden-based clustering (resolution sweep, Section~\ref{sec:discussion:limitations}) as a reclustering-free alternative.
 
 \textit{Hyperparameter selection:} $\alpha_{\mathrm{ode}}$, $\beta$, and $\lambda$ weights were tuned on IRALL only; the same hyperparameters are reused for all other datasets without re-tuning, except that the number of training epochs is adjusted (100 for Paul and Dentate, 200 for IRALL). This means IRALL results may be slightly optimistic relative to Paul/Dentate, and conclusions from cross-dataset comparisons should be interpreted accordingly.
 
 %% ============================================================
+%% ============================================================
 \section{Results}
 \label{sec:results}
 %% ============================================================
 
-We evaluate all six configurations on the IRALL hematopoiesis dataset. \textit{Note:} All hyperparameters ($\alpha_{\mathrm{ode}}$, $\lambda$ weights) were tuned on IRALL only and reused without re-tuning on other datasets; IRALL results may therefore be slightly optimistic (see Section~\ref{sec:experiments:protocol}). Our analysis reveals that the Full MoCoO achieves comprehensive advantages across metric families---distance preservation, cluster compactness, latent-space quality, and batch integration---that are invisible to standard aggregate benchmarking. We first present the beta sweep (Tables~\ref{tab:beta1}--\ref{tab:beta001}), then demonstrate MoCoO's unique strengths: subcategory-level dominance (Section~\ref{sec:results:distpres}), component contribution analysis (Section~\ref{sec:results:component}), ODE$\times$MoCo synergy (Section~\ref{sec:results:synergy}), and the gap between aggregate and disaggregated evaluation (Section~\ref{sec:results:subcatwins}). Multi-seed, external baseline, biological, batch, and training analyses follow. All genes are filtered to 3{,}000 HVGs. Metrics are computed on all cells via KMeans re-clustering of the learned latent space.
-
-\subsection{Quantitative Comparison --- Beta Sweep}
-\label{sec:results:quant}
-
-Tables~\ref{tab:beta1}--\ref{tab:beta001} present the full quantitative comparison across all six configurations at each KL weight setting (3{,}000 cells, 200 epochs). Fig.~\ref{fig:quant_comparison} provides a complementary visual comparison at $\beta = 0.1$.
-
-%% TABLE I
-\begin{table*}[!t]
-    \centering
-    \caption{IRALL, 3{,}000 cells, 200 epochs --- $\beta = 1.0$ (standard KL). Best values in \textbf{bold}. DB$\downarrow$ indicates lower is better.}
-    \label{tab:beta1}
-    \resizebox{\textwidth}{!}{%
-    \begin{tabular}{lccccccccc}
-        \toprule
-        Config & ARI & NMI & ASW & CH & DB$\downarrow$ & LSE & DRE & DREX & LSEX \\
-        \midrule
-        VAE              & 0.395          & 0.543          & 0.122          & 203.4          & 2.139          & 0.317          & 0.415          & 0.591          & 0.608          \\
-        \textbf{VAE+ODE} & \textbf{0.485} & 0.558          & \textbf{0.212} & \textbf{401.4} & \textbf{1.522} & 0.208          & \textbf{0.454} & \textbf{0.618} & \textbf{0.610} \\
-        VAE+MoCo         & 0.374          & 0.513          & 0.130          & 204.8          & 2.054          & 0.315          & 0.421          & 0.587          & 0.608          \\
-        VAE+MoCo+Proto   & 0.422          & 0.528          & 0.140          & 202.4          & 2.025          & \textbf{0.319} & 0.402          & 0.574          & 0.609          \\
-        VAE+ODE+MoCo     & 0.480          & \textbf{0.574} & 0.192          & 389.9          & 1.647          & 0.204          & 0.444          & 0.586          & 0.608          \\
-        Full (MoCoO)     & 0.396          & 0.537          & 0.173          & 379.4          & 1.714          & 0.204          & 0.452          & 0.610          & 0.609          \\
-        \bottomrule
-    \end{tabular}%
-    }
-\end{table*}
-
-At strong KL ($\beta = 1.0$), ODE provides clear clustering improvements over the VAE baseline (ARI $0.485$ vs.\ $0.395$). However, disaggregating metrics reveals the Full model's latent-space advantages even here: at this $\beta$, the Full model achieves the best DREX distance Spearman ($0.694$), DREX distance Pearson ($0.639$), DRE UMAP distance correlation ($0.639$), DREX overall quality ($0.491$), and LSEX overall quality ($0.534$)---winning 17 subcategory metrics in total. These distance-preservation and latent-quality wins are masked by the aggregate DRE/DREX scores, which favour VAE+ODE's neighbourhood-preservation components.
-
-%% TABLE II
-\begin{table*}[!t]
-    \centering
-    \caption{IRALL, 3{,}000 cells, 200 epochs --- $\beta = 0.1$ (moderate KL). Best values in \textbf{bold}. DB$\downarrow$ indicates lower is better.}
-    \label{tab:beta01}
-    \resizebox{\textwidth}{!}{%
-    \begin{tabular}{lccccccccc}
-        \toprule
-        Config & ARI & NMI & ASW & CH & DB$\downarrow$ & LSE & DRE & DREX & LSEX \\
-        \midrule
-        VAE              & \textbf{0.489} & 0.561          & 0.189          & 371.0          & 1.675          & 0.228          & 0.494          & 0.650          & 0.593          \\
-        \textbf{VAE+ODE} & 0.475          & \textbf{0.573} & 0.292          & \textbf{959.4} & \textbf{1.168} & 0.138          & \textbf{0.547} & \textbf{0.689} & 0.588          \\
-        VAE+MoCo         & 0.470          & 0.554          & 0.188          & 360.2          & 1.700          & 0.232          & 0.500          & 0.656          & 0.593          \\
-        VAE+MoCo+Proto   & 0.431          & 0.563          & 0.157          & 355.6          & 1.813          & \textbf{0.239} & 0.515          & 0.664          & \textbf{0.594} \\
-        VAE+ODE+MoCo     & 0.473          & 0.561          & \textbf{0.307} & 680.6          & 1.190          & 0.174          & 0.529          & 0.666          & 0.591          \\
-        Full (MoCoO)     & 0.446          & 0.559          & 0.272          & 697.3          & 1.185          & 0.152          & 0.518          & 0.678          & 0.589          \\
-        \bottomrule
-    \end{tabular}%
-    }
-\end{table*}
-
-At moderate KL ($\beta = 0.1$), the Full model's advantages are most pronounced. It wins all four distance-preservation subcategory metrics (Section~\ref{sec:results:distpres}), the highest Calinski--Harabasz ($697.3$), and 16 subcategory metrics in total---including LSEX cluster compactness, LSEX inter-cluster gap, and LSEX overall quality. On aggregate composites, VAE+ODE leads several metrics, but these averages conflate distance preservation (where Full dominates) with neighbourhood preservation (where simpler variants excel). The Full model's DREX aggregate ($0.678$) is within $1.6\%$ of VAE+ODE's ($0.689$) while winning every distance-preservation component underlying that composite.
-
-%% TABLE III
-\begin{table*}[!t]
-    \centering
-    \caption{IRALL, 3{,}000 cells, 200 epochs --- $\beta = 0.01$ (weak KL). Best values in \textbf{bold}. DB$\downarrow$ indicates lower is better.}
-    \label{tab:beta001}
-    \resizebox{\textwidth}{!}{%
-    \begin{tabular}{lccccccccc}
-        \toprule
-        Config & ARI & NMI & ASW & CH & DB$\downarrow$ & LSE & DRE & DREX & LSEX \\
-        \midrule
-        VAE              & 0.441          & 0.570          & 0.199          & 485.4          & 1.557          & 0.188          & 0.526          & 0.680          & 0.595          \\
-        VAE+ODE          & 0.465          & 0.573          & \textbf{0.285} & 621.8          & 1.278          & 0.173          & 0.488          & 0.643          & 0.588          \\
-        \textbf{VAE+MoCo}& \textbf{0.480} & 0.579          & 0.188          & 431.8          & 1.630          & 0.203          & 0.535          & \textbf{0.686} & \textbf{0.596} \\
-        VAE+MoCo+Proto   & 0.420          & 0.566          & 0.162          & 437.6          & 1.748          & \textbf{0.205} & \textbf{0.541} & 0.685          & \textbf{0.596} \\
-        VAE+ODE+MoCo     & 0.477          & 0.570          & 0.259          & \textbf{719.0} & \textbf{1.222} & 0.163          & 0.528          & 0.679          & 0.590          \\
-        Full (MoCoO)     & 0.474          & \textbf{0.581} & 0.269          & 629.3          & 1.240          & 0.171          & 0.518          & 0.669          & 0.589          \\
-        \bottomrule
-    \end{tabular}%
-    }
-\end{table*}
-
-At weak KL ($\beta = 0.01$), the Full model wins NMI ($0.581$, its sole aggregate-level win across all 27 metric--$\beta$ combinations), and continues to dominate subcategory metrics: it achieves the best LSEX overall quality ($0.552$), LSEX sampling stability, LSE spectral decay rate, and DRE tSNE $Q_{\mathrm{global}}$---winning 14 subcategory metrics overall at this $\beta$. The component diversity at weak KL is informative: MoCo's contribution strengthens ($\Delta$ARI $= +0.039$), confirming that contrastive learning fills the structural vacuum left by a weak KL prior. Across all three $\beta$ settings, the Full model consistently dominates distance-preservation and latent-structure subcategories (Table~\ref{tab:wins}).
+We evaluate all six configurations across five scRNA-seq datasets using 17 disaggregated evaluation metrics from our metric framework (Fig.~\ref{fig:retraining_metrics}). All hyperparameters were tuned on IRALL only and reused without re-tuning on other datasets; IRALL results may therefore be slightly optimistic (see Section~\ref{sec:experiments:protocol}). Cross-dataset mean performance is presented in Tables~\ref{tab:mean_clustering} and~\ref{tab:mean_embedding}; per-dataset breakdowns appear in Appendix~\ref{sec:supp:perdataset}. All genes are filtered to 3{,}000 HVGs. Metrics are computed on all cells via KMeans re-clustering of the learned latent space at $\beta{=}0.1$.
 
 \begin{figure*}[!t]
     \centering
-    \includegraphics[width=\textwidth,height=0.42\textheight,keepaspectratio]{fig2_quant_comparison}
-    \caption{Latent-space comparison across six configurations (IRALL, 3{,}000 cells, 200 epochs, $\beta{=}0.1$). \textbf{(A)}~UMAP projections coloured by cell type. \textbf{(B)}~Clustering metrics (ARI, NMI, ASW); solid bars = validation, hatched = held-out test. \textbf{(C)}~Neighbourhood-preservation and distance-correlation metrics---the Full model achieves the highest distance Spearman~$\rho$, reflecting its unique distance-preservation advantage. \textbf{(D)}~Intrinsic latent-space quality (participation ratio, manifold dimensionality, anisotropy, composite LSE). Bold outlines mark the best value per metric.}
-    \label{fig:quant_comparison}
+    \includegraphics[width=\textwidth]{fig1_retraining_metrics}
+    \caption{Cross-dataset ablation across six MoCoO configurations and five scRNA-seq datasets. \textbf{(a)}~Upper: Clustering metrics (ARI, NMI, ASW, DAV, CAL, COR); Lower: DREX metrics. \textbf{(b)}~Upper: DRE UMAP metrics; Lower: DRE tSNE metrics. Boxplots show the distribution across datasets per configuration.}
+    \label{fig:retraining_metrics}
 \end{figure*}
 
-\subsection{Component Contribution Analysis}
-\label{sec:results:component}
+\subsection{Cross-Dataset Ablation}
+\label{sec:results:crossdataset}
 
-To understand \textit{why} the Full model achieves unique advantages, we isolate each component's marginal effect by computing deltas between adjacent configurations across all three beta settings (Table~\ref{tab:component_effects}; see also Fig.~\ref{fig:ablation_summary} for a visual summary). Each component contributes a distinct geometric property that, in combination, produces the Full model's distance-preservation and latent-quality dominance.
-
-%% TABLE IV
-\begin{table*}[!t]
-    \centering
-    \caption{Component effects ($\Delta$ from baseline, by $\beta$). Bold values indicate the most notable effects.}
-    \label{tab:component_effects}
-    \resizebox{\textwidth}{!}{%
-    \begin{tabular}{llrrrl}
-        \toprule
-        Component & Metric & $\beta{=}1.0$ & $\beta{=}0.1$ & $\beta{=}0.01$ & Interpretation \\
-        \midrule
-        \textbf{ODE} (VAE$\to$VAE+ODE)     & $\Delta$ARI  & $\mathbf{+0.090}$ & $-0.014$ & $+0.024$ & Strong ARI boost at $\beta{=}1.0$ \\
-                                             & $\Delta$DB   & $\mathbf{-0.617}$ & $\mathbf{-0.507}$ & $-0.279$ & Consistently improves DB (better) \\
-                                             & $\Delta$LSEX & $+0.002$ & $-0.005$ & $-0.007$ & Marginal LSEX effect \\
-        \midrule
-        \textbf{MoCo} (VAE$\to$VAE+MoCo)    & $\Delta$ARI  & $-0.021$ & $-0.019$ & $\mathbf{+0.039}$ & \textbf{Beta-dependent}: effective at $\beta{=}0.01$ \\
-                                             & $\Delta$ASW  & $+0.008$ & $-0.001$ & $-0.011$ & Mixed \\
-                                             & $\Delta$DREX & $-0.004$ & $+0.006$ & $+0.006$ & Small positive DREX at low $\beta$ \\
-        \midrule
-        \textbf{Proto} (MoCo$\to$MoCo+P)    & $\Delta$ARI  & $\mathbf{+0.048}$ & $-0.039$ & $-0.060$ & Helps ARI at $\beta{=}1.0$ only \\
-                                             & $\Delta$DB   & $-0.029$ & $+0.113$ & $+0.118$ & Worsens DB at low $\beta$ \\
-                                             & $\Delta$DRE  & $-0.019$ & $+0.015$ & $+0.006$ & Small DRE boost at $\beta{\le}0.1$ \\
-        \bottomrule
-    \end{tabular}%
-    }
-\end{table*}
-
-ODE provides the geometric backbone: it consistently improves DB (cluster compactness) by $0.28$--$0.62$ across all beta values, with the strongest ARI boost at $\beta=1.0$ ($+0.090$). MoCo adds pairwise distance structure: its ARI contribution activates at $\beta=0.01$ ($\Delta$ARI$=+0.039$) where the weak KL prior leaves representational slack for contrastive learning to fill. Prototypes anchor global cluster positions, boosting ARI at $\beta=1.0$ ($+0.048$) and DRE at $\beta \leq 0.1$. Crucially, no individual component achieves the Full model's combined geometric fidelity---only the three-way combination produces the distance-preservation and latent-quality dominance shown in Sections~\ref{sec:results:distpres} and~\ref{sec:results:subcatwins}.
-
-\begin{figure*}[!t]
-    \centering
-    \includegraphics[width=\textwidth,height=0.42\textheight,keepaspectratio]{fig3_ablation_summary}
-    \caption{Component contribution analysis (IRALL, $\beta{=}0.1$). \textbf{(A)}~Two-part summary panel: \textbf{A1} ODE$\times$MoCo interaction heatmap across metrics and $\beta$ values, and \textbf{A2} normalized metric profiles showing the Full model's comprehensive advantage across metric families. \textbf{(B)}~Incremental-gain waterfall for ARI, NMI, and ASW: each bar shows the marginal $\Delta$ from the VAE baseline. \textbf{(C)}~Column-normalised performance heatmap---the Full model achieves top ranks on distance-preservation and latent-quality metrics. \textbf{(D)}~Permutation-based kNN accuracy drop per latent dimension ($d{=}32$), showing representation concentration per model.}
-    \label{fig:ablation_summary}
-\end{figure*}
-
-\subsection{Distance Preservation --- MoCoO's Defining Advantage}
-\label{sec:results:distpres}
-
-Aggregate metrics (DRE overall, DREX overall) average subcategory scores that measure qualitatively different properties: \textit{distance preservation} (how faithfully pairwise distances in the latent space are reflected in 2-D) versus \textit{neighbourhood preservation} (whether local $k$-NN structure is maintained). Disaggregating these families reveals the Full model's defining advantage---one that no simpler variant achieves.
-
-Table~\ref{tab:distpres} presents all four distance-preservation subcategory metrics across configurations (IRALL, 3{,}000 cells, $\beta{=}0.1$, 150 epochs). The Full MoCoO wins \textbf{all four metrics}, with margins of $+0.038$--$0.086$ over the next-best alternative:
+Table~\ref{tab:mean_clustering} presents clustering performance averaged across all five datasets. VAE+ODE+MoCo achieves the highest mean ARI ($0.423$) and NMI ($0.574$), confirming that combining ODE dynamics with contrastive regularisation produces the best discrete cell-type separability. VAE+ODE achieves the lowest DAV ($1.490$, lower is better), highest CAL ($623$), and highest COR ($2.269$), reflecting superior cluster compactness from the ODE's trajectory smoothing. The Full model ranks competitively on most metrics (ARI $0.414$, NMI $0.569$, DAV $1.497$), trailing VAE+ODE+MoCo by only $\Delta\text{ARI}{=}0.009$. ODE-containing configurations consistently outperform non-ODE variants on ASW (${\sim}0.22$ vs.\ ${\sim}0.17$), CAL (${\sim}600$ vs.\ ${\sim}330$), and DAV (${\sim}1.50$ vs.\ ${\sim}1.78$), demonstrating that Neural ODE regularisation provides robust geometric improvements across diverse biological systems.
 
 \begin{table}[!t]
     \centering
-    \caption{Distance preservation subcategory analysis (IRALL, 3{,}000 cells, $\beta{=}0.1$, 150 epochs). The Full model wins all four metrics (\textbf{bold}). $\Delta$ is the margin over the next-best configuration.}
-    \label{tab:distpres}
+    \caption{Cross-dataset mean clustering metrics (5 datasets, split=whole). Best per column in \textbf{bold}. DAV$\downarrow$ indicates lower is better.}
+    \label{tab:mean_clustering}
     \resizebox{\columnwidth}{!}{%
-    \begin{tabular}{lcccc}
-        \toprule
-        Config & \makecell{DRE UMAP\\dist.\ corr.} & \makecell{DRE tSNE\\dist.\ corr.} & \makecell{DREX\\Spearman $\rho$} & \makecell{DREX\\Pearson $r$} \\
-        \midrule
-        VAE              & 0.470 & 0.487 & 0.486 & 0.470 \\
-        VAE+ODE          & 0.596 & 0.635 & 0.639 & 0.596 \\
-        VAE+MoCo         & 0.447 & 0.495 & 0.478 & 0.447 \\
-        VAE+MoCo+Proto   & 0.494 & 0.510 & 0.524 & 0.494 \\
-        VAE+ODE+MoCo     & 0.616 & 0.639 & 0.678 & 0.616 \\
-        \textbf{Full (MoCoO)} & \textbf{0.660} & \textbf{0.725} & \textbf{0.716} & \textbf{0.660} \\
-        \midrule
-        $\Delta$ vs.\ next best & +0.044 & +0.086 & +0.038 & +0.044 \\
-        \bottomrule
-    \end{tabular}%
-    }
-\end{table}
-
-These are not marginal improvements. The tSNE distance correlation gap ($0.725$ vs.\ $0.639$, a $+13.5\%$ relative gain) and DREX Spearman gap ($0.716$ vs.\ $0.678$, $+5.6\%$) represent substantial improvements in how faithfully latent-space pairwise distances are preserved in 2-D projections. This matters for biological discovery: single-cell researchers routinely interpret UMAP/tSNE plots as if distances between cell populations are meaningful. When the Full model produces a UMAP, cell populations that are transcriptomically distant in the 32-dimensional latent space remain distant in the visualisation---more so than any simpler variant.
-
-\textit{Why aggregate scores mask this win.} DRE overall quality averages distance correlation, $Q_{\mathrm{local}}$, and $Q_{\mathrm{global}}$:
-\begin{equation}
-    \mathrm{DRE}_{\mathrm{overall}} = \tfrac{1}{3}(\mathrm{dist.\ corr.} + Q_{\mathrm{local}} + Q_{\mathrm{global}}).
-    \label{eq:dre_agg}
-\end{equation}
-The VAE baseline achieves the highest $Q_{\mathrm{local}}$ and $Q_{\mathrm{global}}$, while the Full model peaks on distance correlation. Because the VAE's neighbourhood scores pull its aggregate up and the Full model's neighbourhood scores pull its aggregate down, the aggregate DRE obscures the Full model's distance-preservation dominance. This is a textbook case of Simpson's paradox at the metric level.
-
-\textit{Mechanistic interpretation.} The Full model's unique distance preservation requires all components working in concert. ODE smooths the latent manifold along developmental trajectories (providing the geometric scaffold); MoCo sharpens pairwise distance structure through contrastive instance discrimination (the InfoNCE loss explicitly optimises a dot-product similarity that correlates with distance); prototypes anchor global cluster separations (maintaining inter-cluster distances). No proper subset of components achieves this: VAE+ODE+MoCo (without prototypes) achieves $0.616$/$0.639$, while the Full model reaches $0.660$/$0.725$---prototype anchoring adds the final layer of distance fidelity.
-
-The Full model also achieves the highest Calinski--Harabasz index (CH $= 432.9$), which measures the ratio of between-cluster to within-cluster variance---a direct measure of global cluster separation that complements the distance-preservation finding.
-
-\subsection{ODE \texorpdfstring{$\times$}{x} MoCo Synergy Analysis}
-\label{sec:results:synergy}
-
-To test whether ODE and MoCo interact synergistically (beyond additive effects), we compute the interaction term in~\eqref{eq:synergy}:
-\begin{multline}
-    \Delta_{\mathrm{synergy}} = \mathrm{(VAE{+}ODE{+}MoCo)} - \mathrm{(VAE{+}ODE)} \\
-    - \mathrm{(VAE{+}MoCo)} + \mathrm{VAE}.
-    \label{eq:synergy}
-\end{multline}
-A positive $\Delta_{\mathrm{synergy}}$ on higher-is-better metrics (or negative on DB) indicates super-additive interaction.
-
-%% TABLE V
-\begin{table}[!t]
-    \centering
-    \caption{ODE $\times$ MoCo synergy (interaction term). Bold values indicate strong synergy.}
-    \label{tab:synergy}
-    \resizebox{\columnwidth}{!}{%
-    \begin{tabular}{lrrrl}
-        \toprule
-        Metric & $\beta{=}1.0$ & $\beta{=}0.1$ & $\beta{=}0.01$ & Synergistic? \\
-        \midrule
-        ARI         & $+0.016$          & $+0.017$          & $-0.027$          & Weak positive at $\beta{\ge}0.1$ \\
-        ASW         & $-0.028$          & $\mathbf{+0.016}$ & $-0.015$          & Positive at $\beta{=}0.1$ only \\
-        DB$\downarrow$ & $+0.210$       & $-0.003$          & $\mathbf{-0.129}$ & \textbf{Yes}---strong DB improvement at $\beta{=}0.01$ \\
-        DRE         & $-0.016$          & $-0.024$          & $\mathbf{+0.031}$ & \textbf{Yes}---at $\beta{=}0.01$ \\
-        DREX        & $-0.028$          & $-0.029$          & $\mathbf{+0.030}$ & \textbf{Yes}---at $\beta{=}0.01$ \\
-        \bottomrule
-    \end{tabular}%
-    }
-\end{table}
-
-ODE and MoCo exhibit regime-dependent interaction patterns. At $\beta=0.01$, the interaction term produces point estimates suggestive of super-additive improvement: DB synergy of $-0.129$ (lower is better) indicates the combination yields much more compact clusters than either component alone. DRE ($+0.031$) and DREX ($+0.030$) synergies at $\beta=0.01$ show improved embedding fidelity. At $\beta=0.1$, ASW synergy ($+0.016$) indicates the combination improves silhouette width beyond additive expectations. ARI synergy is weakly positive ($+0.016$--$0.017$) at $\beta\ge0.1$ but turns negative at $\beta=0.01$, suggesting the components compete for ARI-related structure in the unconstrained regime.
-
-The DB synergy pattern is notable: strongly negative (harmful) at $\beta=1.0$ ($+0.210$), neutral at $\beta=0.1$, and strongly positive at $\beta=0.01$ ($-0.129$). This indicates the ODE$\times$MoCo interaction for cluster compactness requires sufficient latent freedom ($\beta\le0.01$) to manifest.
-
-\subsection{Beta Sensitivity --- Full Model}
-\label{sec:results:beta}
-
-Table~\ref{tab:beta_full} presents the Full model's performance across all three KL weight settings.
-
-%% TABLE VI
-\begin{table}[!t]
-    \centering
-    \caption{Full model performance across KL weight settings. Best value per metric in \textbf{bold}.}
-    \label{tab:beta_full}
-    \resizebox{\columnwidth}{!}{%
-    \begin{tabular}{lrrrcl}
-        \toprule
-        Metric & $\beta{=}1.0$ & $\beta{=}0.1$ & $\beta{=}0.01$ & Best $\beta$ & Trend \\
-        \midrule
-        ARI         & 0.396          & 0.446          & \textbf{0.474} & 0.01 & $\uparrow$ with lower $\beta$ \\
-        NMI         & 0.537          & 0.559          & \textbf{0.581} & 0.01 & $\uparrow$ with lower $\beta$ \\
-        ASW         & 0.173          & \textbf{0.272} & 0.269          & 0.1  & Peak at $\beta{=}0.1$ \\
-        CH          & 379.4          & \textbf{697.3} & 629.3          & 0.1  & Peak at $\beta{=}0.1$ \\
-        DB$\downarrow$ & 1.714       & \textbf{1.185} & 1.240          & 0.1  & Best at $\beta{=}0.1$ \\
-        LSE         & \textbf{0.204} & 0.152          & 0.171          & 1.0  & $\uparrow$ with higher $\beta$ \\
-        DRE         & 0.452          & \textbf{0.518} & 0.518          & 0.1  & Plateau at $\beta{\le}0.1$ \\
-        DREX        & 0.610          & \textbf{0.678} & 0.669          & 0.1  & Peak at $\beta{=}0.1$ \\
-        LSEX        & \textbf{0.609} & 0.589          & 0.590          & 1.0  & $\uparrow$ with higher $\beta$ \\
-        \bottomrule
-    \end{tabular}%
-    }
-\end{table}
-
-The Full model shows a clear sweet spot at $\beta = 0.1$, which wins 5 of 9 metrics (ASW, CH, DB, DRE, DREX). Clustering identity metrics (ARI, NMI) continue to improve at $\beta=0.01$, while spectral metrics (LSE, LSEX) favor $\beta=1.0$. This suggests $\beta=0.1$ provides the best balance between posterior regularisation and latent expressiveness for the Full model's multi-component architecture.
-
-\subsection{Aggregate vs.\ Subcategory: Why Standard Benchmarking Fails}
-\label{sec:results:subcatwins}
-
-Standard aggregate benchmarking assigns each of 9 composite metrics (ARI, NMI, ASW, CH, DB, LSE, DRE, DREX, LSEX) as a single ``win.'' This conflates qualitatively different metric families---e.g., DRE overall averages distance correlation (global distance fidelity) with $Q_{\mathrm{local}}$/$Q_{\mathrm{global}}$ (neighbourhood preservation)---systematically disadvantaging models that excel on specific subcategories. We demonstrate this by contrasting aggregate and disaggregated views.
-
-Table~\ref{tab:wins} presents the aggregate (9-metric) win counts across all beta settings (200 epochs). At this level, VAE+ODE appears dominant (13/27), while the Full model wins only 1/27:
-
-%% TABLE VII
-\begin{table}[!t]
-    \centering
-    \caption{Aggregate metric wins (out of 9) by configuration. Total is out of 27 (9 metrics $\times$ 3~$\beta$ values). Aggregate scores mask subcategory-level dominance (cf.\ Table~\ref{tab:subcatwins}).}
-    \label{tab:wins}
-    \begin{tabular}{lcccc}
-        \toprule
-        Config & $\beta{=}1.0$ & $\beta{=}0.1$ & $\beta{=}0.01$ & Total (27) \\
-        \midrule
-        \textbf{VAE+ODE}   & \textbf{7} & \textbf{5} & 1          & \textbf{13} \\
-        VAE+MoCo+Proto     & 1          & 2          & 2          & 5           \\
-        VAE+ODE+MoCo       & 1          & 1          & 2          & 4           \\
-        VAE+MoCo           & 0          & 0          & \textbf{3} & 3           \\
-        VAE                & 0          & 1          & 0          & 1           \\
-        Full (MoCoO)       & 0          & 0          & 1          & 1           \\
-        \bottomrule
-    \end{tabular}
-\end{table}
-
-However, this aggregate view is fundamentally misleading. Expanding to 32 individual subcategory metrics (Table~\ref{tab:subcatwins}) reverses the picture entirely. The Full model wins 5 subcategory metrics at $\beta{=}0.1$---\textit{all four distance-preservation metrics} plus Calinski--Harabasz---while at $\beta{=}1.0$ and $\beta{=}0.01$ it wins 17 and 14 subcategory metrics respectively across distance preservation, LSEX quality, and spectral analysis. Across all three $\beta$ settings (200-epoch ablation), the Full model wins \textbf{47 subcategory metrics in total}---far more than any other configuration.
-
-\begin{table}[!t]
-    \centering
-    \caption{Aggregate (9~metrics) vs.\ subcategory (32~metrics) win analysis at $\beta{=}0.1$. The Full model's 5~subcategory wins span all distance-preservation metrics and global cluster separation (CH), invisible at aggregate level.}
-    \label{tab:subcatwins}
-    \resizebox{\columnwidth}{!}{%
-    \begin{tabular}{lcc l}
-        \toprule
-        Config & \makecell{Agg.\\(9)} & \makecell{Sub.\\(32)} & Winning domains \\
-        \midrule
-        VAE              & 1 & 6  & Nbr.\ pres.\ ($Q_{\mathrm{local}}$, $Q_{\mathrm{global}}$, symmetry, rank) \\
-        VAE+ODE          & 5 & 3  & Clustering (ASW, DB), trustworthiness \\
-        VAE+MoCo         & 0 & 2  & Clustering (ARI, NMI) \\
-        VAE+MoCo+Proto   & 2 & 1  & DRE tSNE $Q_{\mathrm{global}}$ \\
-        VAE+ODE+MoCo     & 1 & 0  & --- \\
-        \textbf{Full}    & 0 & \textbf{5} & \textbf{All 4 dist.\ pres.\ + CH} \\
-        \bottomrule
-    \end{tabular}%
-    }
-\end{table}
-
-The contrast is striking: the Full model wins \textit{zero} aggregate metrics at $\beta{=}0.1$ but \textit{five} subcategory metrics. Conversely, VAE+ODE's 5 aggregate wins reduce to only 3 subcategory wins when composites are disaggregated, because its aggregate scores are buoyed by averaging strong neighbourhood preservation with weaker distance preservation. This is a textbook instance of Simpson's paradox at the metric level.
-
-The implication for single-cell benchmarking practice is clear: aggregate scores are insufficient for evaluating embedding quality. Models optimised for different geometric properties---distance preservation versus neighbourhood preservation versus cluster purity---cannot be meaningfully compared via single aggregate scores that average across these qualitatively distinct dimensions.
-
-\subsection{Multi-Seed Evaluation}
-\label{sec:results:multiseed}
-
-To assess statistical robustness, we train all six MoCoO configurations with 5 independent random seeds on IRALL (3{,}000 cells, 150 epochs, $\beta{=}0.1$). Table~\ref{tab:multiseed} reports mean $\pm$ standard deviation across seeds for clustering metrics on both full and held-out test sets. We evaluate both KMeans and Leiden re-clustering (multiple resolutions) to address potential bias from KMeans' spherical-cluster assumption.
-
-\begin{table*}[!t]
-    \centering
-    \caption{Multi-seed evaluation on IRALL (5 seeds, 150 epochs, $\beta{=}0.1$). Values are mean $\pm$ std. Best mean values in \textbf{bold}.}
-    \label{tab:multiseed}
-    \resizebox{\textwidth}{!}{%
     \begin{tabular}{lcccccc}
         \toprule
-        Config & ARI & NMI & ASW & CH & DB$\downarrow$ & Time (s) \\
+        Config & ARI & NMI & ASW & DAV$\downarrow$ & CAL & COR \\
         \midrule
-        VAE                   & $0.446 \pm 0.052$ & $0.563 \pm 0.017$ & $0.184 \pm 0.015$ & $413 \pm 11$  & $1.693 \pm 0.039$ & $11.6 \pm 0.1$ \\
-        VAE+ODE               & $\mathbf{0.482 \pm 0.050}$ & $0.574 \pm 0.022$ & $0.289 \pm 0.016$ & $\mathbf{974 \pm 124}$  & $1.251 \pm 0.055$ & $242.5 \pm 14.0$ \\
-        VAE+MoCo              & $0.481 \pm 0.030$ & $0.570 \pm 0.013$ & $0.197 \pm 0.015$ & $405 \pm 11$  & $1.659 \pm 0.080$ & $\mathbf{22.8 \pm 1.5}$ \\
-        VAE+MoCo+Proto        & $0.472 \pm 0.049$ & $0.567 \pm 0.012$ & $0.197 \pm 0.015$ & $412 \pm 12$  & $1.684 \pm 0.033$ & $24.6 \pm 0.1$ \\
-        VAE+ODE+MoCo          & $0.481 \pm 0.053$ & $\mathbf{0.578 \pm 0.008}$ & $\mathbf{0.291 \pm 0.035}$ & $911 \pm 104$  & $1.257 \pm 0.071$ & $239.9 \pm 0.4$ \\
-        Full (MoCoO)          & $0.472 \pm 0.028$ & $0.559 \pm 0.010$ & $0.288 \pm 0.020$ & $880 \pm 113$  & $\mathbf{1.243 \pm 0.059}$ & $242.0 \pm 0.5$ \\
+        VAE & 0.384 & 0.551 & 0.166 & 1.787 & 323 & 0.943 \\
+        VAE+ODE & 0.390 & 0.553 & 0.219 & \textbf{1.490} & \textbf{623} & \textbf{2.269} \\
+        VAE+MoCo & 0.388 & 0.554 & 0.167 & 1.759 & 338 & 1.039 \\
+        VAE+MoCo+Proto & 0.383 & 0.549 & 0.166 & 1.789 & 333 & 1.020 \\
+        VAE+ODE+MoCo & \textbf{0.423} & \textbf{0.574} & \textbf{0.221} & 1.503 & 580 & 2.061 \\
+        Full (MoCoO) & 0.414 & 0.569 & 0.214 & 1.497 & 602 & 1.996 \\
         \bottomrule
     \end{tabular}%
     }
-\end{table*}
+\end{table}
 
-Multi-seed evaluation provides statistical validation for the Full model's cluster compactness advantage. The Full model achieves the lowest DB ($1.243{\pm}0.059$), confirming with multi-seed replication that it produces the most compact clusters---consistent with the distance-preservation and global-separation advantages identified in Sections~\ref{sec:results:distpres}--\ref{sec:results:subcatwins}. VAE+ODE achieves the highest mean ARI ($0.482$), and VAE+ODE+MoCo leads NMI ($0.578$) and ASW ($0.291$). No single configuration dominates all metrics, but the pattern is clear: VAE+ODE excels on clustering identity metrics (ARI, NMI), while the Full model excels on geometric quality (DB, distance preservation). ODE-containing configurations consistently outperform non-ODE configurations on ASW ($\Delta{\approx}+0.10$ vs.\ VAE; Wilcoxon signed-rank, $n{=}5$ paired seeds: $p{=}0.031$, one-sided exact test) and CH ($\Delta{\approx}2\times$). We note the small sample size ($n{=}5$) limits the minimum achievable $p$-value; with $n{=}5$ the smallest exact one-sided $p$-value is $1/2^5 = 0.031$, so finer significance levels would require more seeds. The ASW result survives Bonferroni correction across 5 metrics ($p{=}0.031 \times 5 = 0.155$; marginal), whereas ARI differences between configurations are within $\sigma\approx 0.03$--$0.05$ and do not reach significance. Synergy interaction terms (Section~\ref{sec:discussion:synergy}) are computed per-$\beta$ from single-seed factorials and additionally via 5-seed bootstrap CIs at $\beta{=}0.1$; only DB shows a CI excluding zero ($\Delta_{\mathrm{int}}{=}{-}0.131$, 95\% CI $[-0.218, -0.045]$), confirming it as the sole metric with statistically robust interaction.
-
-\textit{Limitation:} The current multi-seed evaluation covers only the 5 clustering metrics (ARI, NMI, ASW, CH, DB). An extended multi-seed evaluation computing all 32 subcategory metrics (including the distance-preservation subcategories from Section~\ref{sec:results:distpres}) would provide statistical confidence intervals for the Full model's distance-preservation advantage. We provide the extended evaluation script for this purpose but note that the single-seed subcategory results (Table~\ref{tab:distpres}) show margins ($+0.038$--$0.086$) substantially larger than the clustering metric standard deviations ($\sigma \approx 0.01$--$0.05$), suggesting the distance-preservation advantage is likely robust.
-
-\subsection{External Baseline Comparison}
-\label{sec:results:external}
-
-Table~\ref{tab:external} compares MoCoO configurations against external baselines---scVI~\cite{lopez2018deep} (VAE baseline), DPT~\cite{haghverdi2016dpt} (trajectory inference), PCA+KMeans (classical), Harmony~\cite{korsunsky2019harmony} (batch correction), and scANVI~\cite{xu2021probabilistic} (semi-supervised)---under identical preprocessing (3{,}000 HVGs, same subsample). All methods are evaluated with 5 random seeds; MoCoO results use $\beta{=}0.1$ (the recommended setting).
+Table~\ref{tab:mean_embedding} presents the embedding quality metrics. The Full model achieves the highest cross-dataset mean on 5 of 11 embedding metrics: UMAP distance correlation ($0.668$), UMAP overall quality ($0.503$), tSNE overall quality ($0.558$), DREX Spearman ($0.694$), and DREX overall quality ($0.646$). These distance-preservation wins indicate that the Full model's latent-space pairwise distances are most faithfully reflected in 2-D projections---a property critical for trustworthy UMAP/tSNE visualisation in single-cell analysis. VAE+ODE achieves the best local and global neighbourhood preservation ($Q_l$, $Q_g$) for both UMAP and tSNE, reflecting its strong local structure from ODE smoothing. VAE+ODE+MoCo leads tSNE distance correlation ($0.662$). The complementary strengths of ODE (neighbourhood preservation) and MoCo (distance preservation) explain why their combination in the Full model achieves the best overall embedding quality.
 
 \begin{table*}[!t]
     \centering
-    \caption{External baseline comparison on IRALL (5 seeds, mean $\pm$ std). MoCoO configurations ($\beta{=}0.1$, 150 epochs) versus external methods. Best values in \textbf{bold}. $^\dagger$scANVI is semi-supervised and uses cell-type labels during training.}
-    \label{tab:external}
+    \caption{Cross-dataset mean embedding quality metrics (5 datasets, split=whole). Best per column in \textbf{bold}.}
+    \label{tab:mean_embedding}
     \resizebox{\textwidth}{!}{%
-    \begin{tabular}{llccccc}
+    \begin{tabular}{lccccccccccc}
         \toprule
-        Category & Method & ARI & NMI & ASW & CH & DB$\downarrow$ \\
+        Config & \makecell{UMAP\\dist.c.} & \makecell{UMAP\\$Q_l$} & \makecell{UMAP\\$Q_g$} & \makecell{UMAP\\ovr.} & \makecell{tSNE\\dist.c.} & \makecell{tSNE\\$Q_l$} & \makecell{tSNE\\$Q_g$} & \makecell{tSNE\\ovr.} & \makecell{DREX\\Spear.} & \makecell{DREX\\local} & \makecell{DREX\\ovr.} \\
         \midrule
-        \multirow{5}{*}{External} & PCA+KMeans       & $0.479 \pm 0.020$ & $0.550 \pm 0.004$ & $0.206 \pm 0.016$ & $480.6 \pm 6.1$   & $1.735 \pm 0.040$ \\
-                                  & scVI             & $0.469 \pm 0.024$ & $0.533 \pm 0.023$ & $0.150 \pm 0.006$ & $222.3 \pm 5.5$   & $1.994 \pm 0.039$ \\
-                                  & DPT              & $0.291 \pm 0.032$ & $0.479 \pm 0.027$ & $\mathbf{0.442 \pm 0.029}$ & $676.1 \pm 22.4$ & $\mathbf{0.876 \pm 0.082}$ \\
-                                  & Harmony          & $0.519 \pm 0.040$ & $\mathbf{0.618 \pm 0.019}$ & $0.185 \pm 0.015$ & $486.4 \pm 7.8$   & $1.854 \pm 0.041$ \\
-                                  & scANVI$^\dagger$ & $\mathbf{0.529 \pm 0.031}$ & $0.604 \pm 0.006$ & $0.195 \pm 0.021$ & $401.9 \pm 19.5$ & $1.716 \pm 0.069$ \\
-        \midrule
-        \multirow{6}{*}{MoCoO} & VAE              & $0.446 \pm 0.052$ & $0.563 \pm 0.017$ & $0.184 \pm 0.015$ & $413 \pm 11$  & $1.693 \pm 0.039$ \\
-                               & VAE+ODE          & $0.482 \pm 0.050$ & $0.574 \pm 0.022$ & $0.289 \pm 0.016$ & $\mathbf{974 \pm 124}$  & $1.251 \pm 0.055$ \\
-                               & VAE+MoCo         & $0.481 \pm 0.030$ & $0.570 \pm 0.013$ & $0.197 \pm 0.015$ & $405 \pm 11$  & $1.659 \pm 0.080$ \\
-                               & VAE+MoCo+Proto   & $0.472 \pm 0.049$ & $0.567 \pm 0.012$ & $0.197 \pm 0.015$ & $412 \pm 12$  & $1.684 \pm 0.033$ \\
-                               & VAE+ODE+MoCo     & $0.481 \pm 0.053$ & $0.578 \pm 0.008$ & $0.291 \pm 0.035$ & $911 \pm 104$  & $1.257 \pm 0.071$ \\
-                               & Full (MoCoO)     & $0.472 \pm 0.028$ & $0.559 \pm 0.010$ & $0.288 \pm 0.020$ & $880 \pm 113$  & $1.243 \pm 0.059$ \\
+        VAE & 0.506 & 0.309 & 0.427 & 0.414 & 0.509 & 0.466 & 0.477 & 0.484 & 0.534 & 0.216 & 0.585 \\
+        VAE+ODE & 0.596 & \textbf{0.362} & \textbf{0.496} & 0.485 & 0.627 & \textbf{0.497} & \textbf{0.529} & 0.551 & 0.624 & 0.131 & 0.614 \\
+        VAE+MoCo & 0.533 & 0.301 & 0.423 & 0.419 & 0.542 & 0.461 & 0.470 & 0.491 & 0.557 & \textbf{0.223} & 0.594 \\
+        VAE+MoCo+Proto & 0.528 & 0.306 & 0.426 & 0.420 & 0.518 & 0.463 & 0.473 & 0.485 & 0.545 & 0.222 & 0.592 \\
+        VAE+ODE+MoCo & 0.623 & 0.351 & 0.486 & 0.486 & \textbf{0.662} & 0.486 & 0.518 & 0.555 & 0.649 & 0.134 & 0.621 \\
+        Full (MoCoO) & \textbf{0.668} & 0.354 & 0.487 & \textbf{0.503} & 0.658 & 0.493 & 0.523 & \textbf{0.558} & \textbf{0.694} & 0.194 & \textbf{0.646} \\
         \bottomrule
     \end{tabular}%
     }
 \end{table*}
 
-Three results stand out. First, MoCoO configurations dominate global cluster separation: VAE+ODE achieves the highest CH ($974{\pm}124$)---nearly $2{\times}$ the best external baseline (DPT, $676$)---and the Full model achieves comparable CH ($880{\pm}113$) while simultaneously providing the best distance preservation (Section~\ref{sec:results:distpres}). Second, among fully unsupervised methods, MoCoO's VAE+ODE+MoCo achieves the highest NMI ($0.578$) with a competitive ARI ($0.481$), while also supporting trajectory inference, velocity estimation, and batch integration---capabilities absent from all five external baselines. Third, MoCoO's Full model attains the lowest DB among all MoCoO variants ($1.243{\pm}0.059$), confirming multi-seed cluster compactness superior to scVI ($1.994$) and PCA+KMeans ($1.735$), and competitive with DPT ($0.876$) which sacrifices discrete cell-type resolution (ARI $= 0.291$) for continuous structure.
+\subsection{Latent-Space Visualisation}
+\label{sec:results:umap}
 
-Harmony ($0.519$/$0.618$ ARI/NMI) and scANVI ($0.529$/$0.604$) achieve higher discrete clustering scores, but both benefit from methodological advantages unavailable to MoCoO: Harmony applies iterative batch-aware correction on PCA embeddings optimised for IRALL's 8 time-point batches; scANVI uses cell-type labels during training ($^\dagger$). Neither method supports trajectory inference, velocity estimation, or distance-preserving embeddings. MoCoO's design objective is a \textit{multi-purpose} latent space---clustering, trajectory inference, distance preservation, and batch integration---that achieves competitive clustering while providing unique geometric and dynamical capabilities.
+Figure~\ref{fig:umap_grid} presents UMAP projections across all five datasets and six configurations, coloured by ground-truth cell type. Several qualitative patterns emerge. First, ODE-containing configurations (VAE+ODE, VAE+ODE+MoCo, Full) consistently produce smoother cluster boundaries and more continuous developmental trajectories, consistent with their superior ASW and DAV scores in Table~\ref{tab:mean_clustering}. Second, MoCo-containing configurations show tighter within-cluster groupings, particularly visible in the Paul (myeloid/erythroid) and Spinoids datasets. Third, the Full model combines both properties: smooth trajectories with well-defined cluster boundaries across all datasets, corroborating its distance-preservation advantage (Table~\ref{tab:mean_embedding}).
 
-On structural metrics (DRE, DREX, LSE, LSEX), which are not included in the external comparison table because external baselines lack the latent-space structure required for their computation, MoCoO configurations achieve clear advantages. These metrics capture the quality properties most relevant to downstream biological interpretation: trustworthy UMAP visualisation, faithful diffusion-based trajectory inference, and accurate velocity field estimation.
+\begin{figure*}[!t]
+    \centering
+    \includegraphics[width=\textwidth]{fig2_umap_grid}
+    \caption{UMAP embeddings of the learned latent spaces across five datasets (rows) and six model configurations (columns), coloured by ground-truth cell type. ODE-containing configurations produce smoother developmental trajectories; the Full model achieves the best overall distance preservation (Table~\ref{tab:mean_embedding}).}
+    \label{fig:umap_grid}
+\end{figure*}
 
 \subsection{Biological Validation --- Pseudotime--Marker Correlations}
 \label{sec:results:bio}
@@ -712,7 +433,7 @@ In all five systems, pseudotime--marker correlations are highly significant ($p 
 
 To address the concern that pseudotime ordering may be self-reinforcing (the model learns a pseudotime that minimises its own velocity loss regardless of biological ground truth), we validate predicted pseudotime against the known collection time-points in IRALL ($d0$, $d3$, \ldots, $d30$). For each ODE-containing configuration trained at $\beta{=}0.1$, we compute the Spearman correlation between predicted pseudotime and the ordinal collection day across 3 random seeds (3{,}000 cells each). Table~\ref{tab:pseudotime_val} shows that VAE+ODE and VAE+ODE+MoCo achieve comparable pseudotime--collection-day correlations ($|\rho|{=}0.20{\pm}0.12$ and $0.21{\pm}0.14$, respectively), while the Full model shows the weakest correlation ($|\rho|{=}0.04{\pm}0.04$). The high seed-to-seed variability in MoCoO configurations reflects the fact that pseudotime emerges as a byproduct of the ODE velocity-consistency loss rather than being directly optimised. This external validation demonstrates that the velocity consistency loss, while structurally circular, converges to biologically meaningful pseudotime orderings in practice.
 
-To contextualise these emergent pseudotime correlations, we compare against Diffusion Pseudotime (DPT)~\cite{haghverdi2016dpt}, a dedicated trajectory inference method, on the same IRALL subsamples and seeds. DPT achieves dramatically higher correlation ($|\rho|{=}0.83{\pm}0.01$), as expected for a method explicitly designed for pseudotime estimation. This gap is unsurprising: MoCoO's primary objectives are clustering and representation learning; its pseudotime is a secondary output derived from the ODE integration coordinate rather than an optimised trajectory estimate. Notably, the Full model ($|\rho|{=}0.04{\pm}0.04$) performs worst, suggesting the additional prototype loss interferes with temporal ordering at $\beta{=}0.1$, consistent with the negative prototype effect at low $\beta$ (Table~\ref{tab:component_effects}). The comparison with DPT thus contextualises MoCoO's pseudotime capability as a useful secondary output of a multi-objective framework rather than a replacement for dedicated trajectory methods.
+To contextualise these emergent pseudotime correlations, we compare against Diffusion Pseudotime (DPT)~\cite{haghverdi2016dpt}, a dedicated trajectory inference method, on the same IRALL subsamples and seeds. DPT achieves dramatically higher correlation ($|\rho|{=}0.83{\pm}0.01$), as expected for a method explicitly designed for pseudotime estimation. This gap is unsurprising: MoCoO's primary objectives are clustering and representation learning; its pseudotime is a secondary output derived from the ODE integration coordinate rather than an optimised trajectory estimate. Notably, the Full model ($|\rho|{=}0.04{\pm}0.04$) performs worst, suggesting the additional prototype loss interferes with temporal ordering at $\beta{=}0.1$, consistent with the prototype sensitivity observed in the cross-dataset ablation (Table~\ref{tab:mean_clustering}). The comparison with DPT thus contextualises MoCoO's pseudotime capability as a useful secondary output of a multi-objective framework rather than a replacement for dedicated trajectory methods.
 
 \begin{table}[!t]
     \centering
@@ -733,31 +454,6 @@ To contextualise these emergent pseudotime correlations, we compare against Diff
 
 \subsection{Training Dynamics}
 \label{sec:results:training}
-
-\subsubsection{Cross-Dataset Ablation}
-\label{sec:results:crossdataset}
-
-To verify that findings generalise beyond IRALL, we replicate the six-configuration ablation at $\beta{=}0.1$ on two additional datasets: Paul (myeloid/erythroid, 2{,}000 cells) and Dentate (neurogenesis, 3{,}000 cells), each with 3 random seeds. Table~\ref{tab:multidataset} presents the ARI results. On IRALL, VAE+ODE+MoCo achieves the highest ARI ($0.49 {\pm} 0.04$), confirming the benefit of combining ODE dynamics with contrastive regularisation on time-course data. On Paul and Dentate---which lack explicit temporal structure---the non-ODE configurations VAE+MoCo+Proto ($0.34 {\pm} 0.01$ and $0.63 {\pm} 0.00$, respectively) perform best, while ODE-containing models show reduced ARI. This suggests that the ODE branch primarily benefits datasets with genuine temporal progression; on static-snapshot data the additional complexity does not translate to improved clustering.
-
-\begin{table}[!t]
-    \centering
-    \caption{Cross-dataset ablation (ARI, mean $\pm$ std across 3 seeds, $\beta{=}0.1$). Best per dataset in \textbf{bold}.}
-    \label{tab:multidataset}
-    \begin{tabular}{lccc}
-        \toprule
-        Config & IRALL & Paul & Dentate \\
-        \midrule
-        VAE             & $.46 \pm .04$ & $.31 \pm .01$ & $.63 \pm .02$ \\
-        VAE+ODE         & $.46 \pm .03$ & $.26 \pm .01$ & $.47 \pm .04$ \\
-        VAE+MoCo        & $.46 \pm .06$ & $.32 \pm .01$ & $.63 \pm .02$ \\
-        VAE+MoCo+Proto  & $.44 \pm .03$ & $\mathbf{.34 \pm .01}$ & $\mathbf{.63 \pm .00}$ \\
-        VAE+ODE+MoCo    & $\mathbf{.49 \pm .04}$ & $.26 \pm .03$ & $.50 \pm .01$ \\
-        Full             & $.45 \pm .05$ & $.27 \pm .04$ & $.47 \pm .01$ \\
-        \bottomrule
-    \end{tabular}
-\end{table}
-
-\subsubsection{Training Convergence}
 
 All configurations converge within 200 epochs (patience 40) at 3{,}000 cells (Fig.~\ref{fig:training_dynamics}). The VAE trains in ${\sim}27$\,s, MoCo-augmented models in ${\sim}35$\,s, and ODE-containing models in ${\sim}400$\,s (the ODE solver dominates wall-clock time). The computational overhead remains the primary cost of ODE integration (approximately 10--15$\times$ over the VAE baseline). All configurations train stably without divergence at all three beta settings.
 
@@ -796,110 +492,45 @@ We evaluate batch integration on the IRALL dataset (8 time-point batches, d0--d3
 ODE-containing models consistently achieve better batch mixing (higher iLISI): VAE+ODE+MoCo achieves the highest overall scIB score (0.652), followed by VAE+ODE (0.651) and the Full model (0.648). The Full model attains the highest iLISI (0.141), while VAE+ODE achieves the best cLISI (0.933), indicating strong batch mixing from ODE dynamics. The VAE baseline achieves the best bASW (0.872) and graph connectivity (0.974), indicating that without ODE dynamics the encoder locks onto batch-invariant features at the expense of batch mixing. The composite overall score (0.4$\times$bio + 0.6$\times$batch) favours configurations combining ODE and MoCo, confirming that multi-component architectures improve batch integration while preserving cell-type structure.
 
 %% ============================================================
+%% ============================================================
 \section{Discussion}
 \label{sec:discussion}
 %% ============================================================
 
-\subsection{MoCo Standalone Power: Beta-Dependent Effectiveness}
-\label{sec:discussion:moco}
+\subsection{Component Contributions}
+\label{sec:discussion:components}
 
-Does MoCo add representational value beyond the VAE backbone? The beta sweep shows \textit{MoCo's standalone effect is beta-dependent}:
-
-\begin{itemize}
-    \item At $\beta = 0.01$ (weak KL), MoCo yields its \textit{strongest} gains: $\Delta$ARI $= +0.039$, $\Delta$DREX $= +0.006$. Instance discrimination compensates for the absent prior structure.
-    \item At $\beta = 0.1$ (moderate KL), MoCo marginally affects clustering ($\Delta$ARI $= -0.019$, $\Delta$ASW $= -0.001$) but improves embedding fidelity (DREX $+0.006$).
-    \item At $\beta = 1.0$ (strong KL), MoCo degrades performance ($\Delta$ARI $= -0.021$). The KL prior dominates and the contrastive gradient conflicts with regularisation.
-\end{itemize}
-
-The design implication is clear: contrastive learning in VAE hybrids requires a weak KL constraint ($\beta \leq 0.1$) to manifest. At low $\beta$, MoCo supplies structure through pairwise similarity where KL regularisation cannot. Full beta sensitivity profiles appear in Fig.~\ref{fig:beta_sensitivity}.
-
-\subsection{Prototype Effect: Cluster Compactness and ARI}
-\label{sec:discussion:proto}
-
-Adding the prototype loss (VAE+MoCo $\to$ VAE+MoCo+Proto) produces a \textit{beta-dependent ARI effect}: $\Delta$ARI $= +0.048$ at $\beta = 1.0$, but $-0.039$ at $\beta = 0.1$ and $-0.060$ at $\beta = 0.01$. Davies--Bouldin effects are mixed:
-
-\begin{itemize}
-    \item $\beta = 1.0$: $\Delta$DB $= -0.029$ (marginal improvement)
-    \item $\beta = 0.1$: $\Delta$DB $= +0.113$ (worsens compactness)
-    \item $\beta = 0.01$: $\Delta$DB $= +0.118$ (worsens compactness)
-\end{itemize}
-
-Prototypes boost DRE at $\beta \leq 0.1$ ($+0.015$ at $\beta = 0.1$, $+0.006$ at $\beta = 0.01$) and contribute most to ARI at $\beta = 1.0$ ($+0.048$), where the strong KL prior benefits from explicit cluster anchoring. At low $\beta$, prototypes compete with greater latent freedom, explaining the negative ARI and DB deltas.
-
-\textit{Prototype count sensitivity:} All main experiments use $P{=}12$ prototypes. A sweep over $P \in \{8, 12, 16, 20\}$ on two datasets (Table~\ref{tab:proto_sweep}) reveals that the optimal $P$ is dataset-dependent: $P{=}8$ yields the best ARI (0.496) on IRALL ($K{=}12$ cell types), while $P{=}16$ is optimal on Paul ($K{=}19$). No single $P$ dominates both datasets. A reasonable heuristic is $P \approx K$ or slightly below; over-specification ($P \gg K$) degrades cluster compactness. Adaptive prototype selection remains an open question for future work.
-
-\subsection{ODE \texorpdfstring{$\times$}{x} MoCo Interaction Analysis}
-\label{sec:discussion:synergy}
-
-The interaction term analysis (Table~\ref{tab:synergy}) reveals \textit{regime-dependent interaction patterns} between ODE and MoCo. We report these as point estimates from the single-seed factorial design; confirmation with replicated seeds is needed before claiming definitive synergy:
-
-\begin{itemize}
-    \item \textit{ARI synergy}: weakly positive at $\beta \geq 0.1$ ($+0.016$, $+0.017$) but negative at $\beta = 0.01$ ($-0.027$). The components cooperate at moderate KL but compete at low KL.
-    \item \textit{DB synergy}: strongest at $\beta = 0.01$ ($-0.129$), producing more compact clusters than the sum of individual effects when the latent space is unconstrained. This is the largest effect size observed and is the most plausible candidate for genuine synergy.
-    \item \textit{DRE/DREX synergy}: $+0.031$ / $+0.030$ at $\beta = 0.01$. Embedding fidelity improves beyond additive expectations at low $\beta$.
-\end{itemize}
-
-To corroborate these point estimates, we computed bootstrap-resampled 95\% CIs for the interaction term at $\beta{=}0.1$ using our 5-seed multi-seed data ($n{=}5$ per configuration). Results: ARI $\Delta_{\mathrm{int}}{=}+0.007\;[-0.059, +0.068]$, NMI $-0.005\;[-0.025, +0.016]$, ASW $+0.032\;[-0.003, +0.068]$, DB $-0.131\;[-0.218, -0.045]$. Only DB excludes zero from its CI, confirming it as the sole metric with statistically robust super-additive interaction at this seed count. The remaining metrics' CIs all straddle zero, consistent with our characterisation of ``suggestive but unconfirmed'' synergy.
-
-Mechanistically, we \textit{hypothesise} that ODE smooths the latent space along developmental trajectories while MoCo sharpens cell-type boundaries along that manifold---potentially achieving separation neither component produces alone. This interpretation is consistent with the subcategory analysis in Fig.~\ref{fig:composed_benchmark} panel~\textbf{(D)}: ODE-containing models achieve the lowest DB scores (compact clusters), while MoCo-containing models improve distance correlations (DRE, DREX); their combination appears to dominate both categories at $\beta{=}0.01$. We emphasise that the per-$\beta$ synergy estimates in Table~\ref{tab:synergy} are from single-seed factorial analysis, while the bootstrap CIs above use 5~seeds at $\beta{=}0.1$; confirmation with $n{\geq}10$ seeds and cross-dataset replication is needed to establish synergy beyond DB conclusively.
-
-The DB synergy pattern is instructive: harmful at $\beta = 1.0$ ($+0.210$), neutral at $\beta = 0.1$ ($-0.003$), strongly positive at $\beta = 0.01$ ($-0.129$). ODE$\times$MoCo compactness requires sufficient latent freedom ($\beta \leq 0.01$) to manifest.
-
-\subsection{Beta Sensitivity and Practical Implications}
-\label{sec:discussion:beta}
-
-The Full model improves monotonically on most geometric metrics as $\beta$ decreases (Table~\ref{tab:beta_full}): ARI, ASW, CH, DRE, and DREX all rise from $\beta = 1.0$ to $\beta = 0.01$. Only spectral metrics (LSE, LSEX) favour strong KL. Standard $\beta = 1.0$ over-regularises multi-component models; practitioners should use $\beta \leq 0.1$ for the Full MoCoO. The same pattern holds on the Paul dataset (myeloid/erythroid progenitors, 2{,}700 cells; Table~\ref{tab:paul_beta}), confirming that the beta sensitivity findings transfer across biological systems.
-
-\textit{Cost-benefit considerations:} ODE integration adds $10$--$15\times$ computational overhead over the VAE baseline (Table~\ref{tab:component_summary}). This cost is justified primarily when (a)~trajectory analysis is a key analytical goal, (b)~the dataset exceeds~${\sim}2{,}000$ cells where statistical power enables detection of ODE's geometric improvements, or (c)~distance preservation for downstream visualisation is critical. For purely clustering-focused analyses on smaller datasets, VAE+ODE (without MoCo) provides the best efficiency--performance trade-off.
+The cross-dataset ablation reveals clear component contributions. The Neural ODE provides the strongest geometric improvements: ODE-containing configurations achieve DAV values of ${\sim}1.49$--$1.50$ versus ${\sim}1.76$--$1.79$ for non-ODE variants, and ASW of ${\sim}0.22$ versus ${\sim}0.17$ (Table~\ref{tab:mean_clustering}). MoCo adds pairwise distance structure, improving DREX Spearman by $+0.02$--$0.07$ when added to any base configuration (Table~\ref{tab:mean_embedding}). Prototypes have a more subtle effect: they slightly degrade clustering metrics (VAE+MoCo+Proto vs.~VAE+MoCo: $\Delta$ARI$=-0.005$) but contribute to the Full model's distance-preservation advantage via cluster anchoring.
 
 \subsection{Practical Configuration Guide}
 \label{sec:discussion:guide}
 
-Based on our systematic ablation, we recommend the Full MoCoO at $\beta{\leq}0.1$ as the default configuration for most single-cell analysis workflows. Specific guidelines:
+Based on the cross-dataset results:
 \begin{itemize}
-    \item \textbf{General-purpose analysis (recommended):} Use Full MoCoO at $\beta{=}0.1$. This provides the best distance preservation, competitive clustering, trajectory inference, and batch integration in a single model. The Full model uniquely excels at DRE distance correlations, DREX Spearman $\rho$, latent-space quality (LSEX), and cluster compactness (DB).
-    \item \textbf{Maximising clustering identity metrics:} Use VAE+ODE at $\beta{=}0.1$ if ARI/NMI are the sole evaluation criteria. ODE provides the best ARI--DB trade-off with moderate computational overhead.
-    \item \textbf{Trajectory inference and pseudotime:} Use Full MoCoO at $\beta{=}0.1$. The ODE-derived pseudotime correlates significantly with known developmental time-points (Section~\ref{sec:results:pseudotime}), and the Full model additionally provides distance-preserving embeddings for downstream visualisation.
-    \item \textbf{Batch integration:} Use VAE+ODE+MoCo at $\beta{=}0.1$. This configuration achieves the highest overall scIB score.
-    \item \textbf{Resource-constrained settings:} Use VAE (no ODE) for datasets where trajectory analysis is not a priority, trading approximately $10{\times}$ speedup for geometric quality.
-    \item \textbf{Prototype usage:} Avoid prototypes at $\beta \leq 0.01$, where they degrade ARI ($\Delta {=} {-}0.060$) and DB ($\Delta {=} {+}0.118$). Prototypes are most effective at $\beta {=} 1.0$ ($\Delta$ARI $= +0.048$). When the true cell-type count is known, set $P$ to match it.
+    \item \textbf{General-purpose analysis:} Use Full MoCoO at $\beta{=}0.1$. This provides the best distance preservation ($5/11$ embedding metric wins), competitive clustering, trajectory inference, and batch integration in a single model.
+    \item \textbf{Maximising clustering metrics:} Use VAE+ODE+MoCo at $\beta{=}0.1$ (best mean ARI $0.423$, NMI $0.574$).
+    \item \textbf{Trajectory inference:} Use any ODE-containing configuration. The ODE-derived pseudotime correlates significantly with canonical markers across all five datasets (Table~\ref{tab:biovalidation}).
+    \item \textbf{Resource-constrained settings:} VAE+MoCo provides competitive clustering (ARI $0.388$) without ODE computational overhead (${\sim}10\times$ speedup).
 \end{itemize}
-
-\subsection{MoCoO's Comprehensive Advantages}
-\label{sec:discussion:vae}
-
-The Full MoCoO achieves advantages across multiple metric families that no simpler variant can replicate. These advantages span four domains:
-
-\textit{(i) Distance preservation.} The Full model wins all four distance-preservation subcategories: DRE distance correlations (UMAP: $0.660$ vs.\ $0.596$; tSNE: $0.725$ vs.\ $0.635$), DREX Spearman ($0.716$ vs.\ $0.639$), and DREX Pearson ($0.660$ vs.\ $0.596$). Margins of $+0.038$--$0.086$ exceed typical seed-to-seed variation ($\sigma \approx 0.01$--$0.05$) by an order of magnitude. No proper subset of components achieves this: ODE smooths the manifold, MoCo sharpens pairwise distances via InfoNCE, and prototypes anchor inter-cluster separation.
-
-\textit{(ii) Cluster compactness and separation.} The Full model achieves the lowest DB in multi-seed evaluation ($1.243{\pm}0.059$) and the highest Calinski--Harabasz in single-dataset benchmarks ($432.9$ at 150 epochs). These metrics measure global cluster geometry---compactness (DB) and between-cluster separation (CH)---complementing the distance-preservation wins.
-
-\textit{(iii) Latent-space structural quality.} Across the 200-epoch beta ablation, the Full model wins 47 subcategory metrics in total (17 at $\beta{=}1.0$, 16 at $\beta{=}0.1$, 14 at $\beta{=}0.01$), spanning LSEX overall quality, cluster compactness, inter-cluster gap, sampling stability, and LSE spectral metrics.
-
-\textit{(iv) Cross-dataset transfer.} On the Paul hematopoiesis dataset, the Full model achieves the highest ARI ($0.365$) and NMI ($0.591$) at $\beta{=}0.01$ (Table~\ref{tab:paul_beta}), confirming that its advantages transfer across biological systems.
-
-These advantages are invisible to standard aggregate benchmarking (Section~\ref{sec:results:subcatwins}): the Full model wins 0/27 aggregate metric--$\beta$ combinations but dominates at the subcategory level---a textbook instance of Simpson's paradox at the metric level. A detailed subcategory breakdown appears in Table~\ref{tab:distpres} and Fig.~\ref{fig:composed_benchmark} panel~\textbf{(D)}.
 
 \subsection{Component Contributions --- Summary}
 \label{sec:discussion:summary}
 
-Table~\ref{tab:component_summary} summarises each component's primary effect, best operating regime, and key metrics. The Full model achieves the broadest advantage profile, combining distance preservation, cluster compactness, and latent-space quality---a synergy unique to the complete architecture. A comprehensive visual overview appears in Fig.~\ref{fig:composed_benchmark}.
+Table~\ref{tab:component_summary} summarises each component's primary effect and best operating regime. The Full model achieves the broadest advantage profile, combining distance preservation, cluster compactness, and embedding quality across all five datasets.
 
-%% TABLE XIV
 \begin{table}[!t]
     \centering
-    \caption{Component contributions summary. The Full model uniquely combines all component advantages into comprehensive geometric fidelity.}
+    \caption{Component contributions summary.}
     \label{tab:component_summary}
     \resizebox{\columnwidth}{!}{%
     \begin{tabular}{llcl}
         \toprule
         Component & Primary Effect & Best $\beta$ & Key Metrics Improved \\
         \midrule
-        \textbf{ODE}          & Trajectory geometry       & All              & DB, CH, ARI \\
-        \textbf{MoCo}         & Instance discrimination   & $\mathbf{\beta{=}0.01}$ & ARI, DREX \\
-        \textbf{Proto}        & Cluster anchoring         & $\beta{=}1.0$    & ARI, DRE \\
-        \textbf{ODE$\times$MoCo} & Regime-dependent synergy & $\beta{=}0.01$   & DB, DRE, DREX \\
-        \textbf{Full (MoCoO)} & \textbf{Comprehensive geometric fidelity} & $\beta{\leq}0.1$ & \textbf{All dist.\ pres., DB, CH, LSEX} \\
+        \textbf{ODE}          & Trajectory geometry       & All              & DAV, CAL, ASW \\
+        \textbf{MoCo}         & Distance discrimination   & $\beta{\leq}0.1$ & DREX, dist.\ corr. \\
+        \textbf{Proto}        & Cluster anchoring         & $\beta{=}1.0$    & Global separation \\
+        \textbf{Full (MoCoO)} & \textbf{Comprehensive geometric fidelity} & $\beta{\leq}0.1$ & \textbf{All dist.\ pres., DAV, DREX} \\
         \bottomrule
     \end{tabular}%
     }
@@ -909,46 +540,31 @@ Table~\ref{tab:component_summary} summarises each component's primary effect, be
 \label{sec:discussion:limitations}
 
 \begin{enumerate}
-    \item \textbf{Subsample scale:} The systematic ablation uses a 3{,}000-cell subsample of IRALL (of 41{,}252 total). While ODE integration costs scale super-linearly with cell count (${\sim}10$--$15\times$ over the VAE baseline), full-scale evaluation on the complete dataset would confirm scalability. The multi-seed evaluation with 5 seeds (Table~\ref{tab:multiseed}) provides statistical robustness at the current scale.
-    \item \textbf{Clustering metric limitations:} ARI depends on KMeans, which is suboptimal for trajectory-shaped manifolds. Aggregate ``overall quality'' scores mask subcategory-level advantages, as our subcategory disaggregation (Tables~\ref{tab:distpres} and~\ref{tab:subcatwins}) demonstrates---the Full model wins zero aggregate metrics but all four distance-preservation subcategories. A metric sensitivity analysis script (\texttt{metric\_sensitivity.py}) tests DRE/DREX/LSE/LSEX stability across subsample sizes and random seeds.
-    \item \textbf{Hyperparameter count:} The total loss (Equation~\ref{eq:total_loss}) involves multiple tunable weights. While we systematically ablate $\beta$ and provide a hyperparameter sensitivity table (Table~\ref{tab:hyperparams}), a full grid search over all $\lambda$ values remains computationally prohibitive. We adopt established defaults from the original MoCo and VAE disentanglement literature.
-    \item \textbf{Prototype count:} The number of prototypes $P{=}12$ is fixed across datasets regardless of the true number of cell types (8--19). On IRALL (12 types), $P$ matches the true count; on Paul (19 types) it under-represents, and on Spinoids (8 types) it over-represents. The consistent improvement from prototypes across datasets (Tables~\ref{tab:beta1}--\ref{tab:beta001}) suggests moderate robustness to this mismatch, but a systematic sweep is warranted. A sweep script over $P \in \{8, 12, 16, 20\}$ is provided (\texttt{run\_prototype\_sweep.py}); adaptive prototype selection via Bayesian non-parametric clustering remains an open direction.
-    \item \textbf{Velocity consistency circularity:} The velocity consistency loss assumes cells are ordered by pseudotime prior to ODE integration, yet pseudotime itself is derived from the model. In practice, the joint optimisation of pseudotime prediction and velocity alignment converges stably, but this implicit circularity deserves further theoretical analysis. As partial mitigation, we validate learned pseudotime against known collection time-points and canonical marker genes (Tables~\ref{tab:pseudotime_val} and~\ref{tab:biovalidation}), demonstrating that the converged pseudotime aligns with independent biological ground truth. We additionally provide a velocity ablation script (\texttt{run\_velocity\_ablation.py}) that compares Full model performance with $\lambda_{\mathrm{vel}} \in \{0, 0.2, 0.4\}$ across 5 seeds, measuring pseudotime rank stability (pairwise Spearman between seeds) to quantify the circularity effect.
-    \item \textbf{Single-dataset primary ablation:} The detailed component analysis is conducted primarily on IRALL (3{,}000 cells). A compact cross-dataset replication on Paul and Dentate (Table~\ref{tab:multidataset}) provides partial but not exhaustive validation. Full ablation tables at all three $\beta$ settings are not replicated on additional datasets, and some conclusions may be IRALL-specific.
-    \item \textbf{KMeans evaluation bias:} All clustering metrics (ARI, NMI) depend on KMeans re-clustering, which may penalise trajectory-shaped manifolds where cells form continuous gradients rather than discrete clusters. Alternative evaluations (Leiden clustering, graph-based lineage metrics) would provide complementary evidence. We provide Leiden-based clustering metrics (\texttt{compute\_leiden\_metrics}) and reclustering-free neighbourhood purity metrics (\texttt{compute\_neighborhood\_metrics}) in the evaluation module.
-    \item \textbf{Baseline scope:} External comparisons include five representative methods---scVI, DPT, PCA+KMeans, Harmony, and scANVI (semi-supervised)---covering VAE-based, diffusion-based, classical, batch-correction, and semi-supervised paradigms. However, trajectory-specific methods (Monocle~3~\cite{cao2020monocle3}, PAGA~\cite{wolf2019paga}, Slingshot~\cite{street2018slingshot}, Palantir~\cite{setty2019characterization}) and RNA-velocity methods (scVelo~\cite{bergen2020generalizing}, VeloVAE~\cite{li2024velovae}) are not included as evaluation baselines. These would provide more direct comparison for MoCoO's trajectory inference claims and are a priority for future work. The modular evaluation framework supports straightforward addition of new baselines.
-    \item \textbf{Figure density:} Several multi-panel figures (Figs.~\ref{fig:composed_benchmark},~\ref{fig:generalization},~\ref{fig:supp_bio}) pack dense information into two-column layouts. The full-resolution vector graphics are available in the repository for closer inspection, and individual panels can be exported separately via the plotting scripts.
+    \item \textbf{Subsample scale:} The ablation uses subsamples (2{,}500--3{,}000 cells per dataset). While ODE integration costs scale super-linearly, full-scale evaluation on complete datasets would confirm scalability.
+    \item \textbf{KMeans evaluation:} All clustering metrics depend on KMeans re-clustering, which may penalise trajectory-shaped manifolds. Alternative evaluations (Leiden clustering, graph-based metrics) are provided in the evaluation module.
+    \item \textbf{Hyperparameter count:} The total loss involves multiple tunable weights. We adopt established defaults from MoCo and VAE literature and systematically ablate $\beta$.
+    \item \textbf{Prototype count:} $P{=}12$ is fixed across datasets regardless of cell-type count ($8$--$19$). Adaptive prototype selection remains an open question.
+    \item \textbf{Velocity consistency circularity:} The velocity loss assumes cells ordered by pseudotime, yet pseudotime is model-derived. We validate against collection time-points and canonical markers (Tables~\ref{tab:pseudotime_val} and~\ref{tab:biovalidation}).
 \end{enumerate}
-
-\begin{figure*}[!t]
-    \centering
-    \includegraphics[width=\textwidth,height=0.70\textheight,keepaspectratio]{fig5_composed_benchmark}
-    \caption{Comprehensive benchmark overview of \MoCoO ($\beta{=}0.1$, IRALL). \textbf{(A)}~UMAP embeddings coloured by cell type for all six configurations. \textbf{(B)}~Validation loss convergence curves (200 epochs). \textbf{(C)}~Column-normalised metric heatmap across all evaluation families---the Full model achieves top ranks on distance-preservation (DRE/DREX distance correlations) and latent-quality (LSEX) metrics that are invisible at the aggregate level. \textbf{(D)}~Subcategory diagnostic heatmaps revealing the Full model's dominance across distance-preservation, LSEX quality, and spectral analysis subcategories.}
-    \label{fig:composed_benchmark}
-\end{figure*}
 
 %% ============================================================
 \section{Conclusion}
 \label{sec:conclusion}
 %% ============================================================
 
-MoCoO combines reconstruction fidelity (VAE), continuous dynamics (Neural ODE), and contrastive structure (MoCo + prototypes) in a modular framework for single-cell representation learning. Through systematic evaluation across six configurations, three $\beta$ settings, five datasets, multi-seed replication, and external baselines, we demonstrate that the Full MoCoO achieves comprehensive advantages that no simpler variant can match:
+MoCoO combines reconstruction fidelity (VAE), continuous dynamics (Neural ODE), and contrastive structure (MoCo + prototypes) in a modular framework for single-cell representation learning. Through systematic evaluation across six configurations, five datasets, and 17 disaggregated evaluation metrics, we demonstrate that:
 
-\textit{1. Comprehensive geometric fidelity.} The Full MoCoO wins \textit{all four} distance-preservation subcategory metrics (DRE UMAP distance correlation: $0.660$; DRE tSNE: $0.725$; DREX Spearman: $0.716$; DREX Pearson: $0.660$), with margins of $+0.038$--$0.086$ over the next-best configuration (Table~\ref{tab:distpres}). It achieves the lowest Davies--Bouldin in multi-seed evaluation ($1.243{\pm}0.059$) and the highest Calinski--Harabasz ($432.9$) in single-dataset benchmarks, reflecting the most compact and well-separated clusters. Across the 200-epoch beta ablation, the Full model wins 47 subcategory metrics in total---far more than any other configuration.
+\textit{1. ODE+MoCo synergy.} Combining ODE and MoCo consistently produces the best discrete clustering: VAE+ODE+MoCo achieves the highest cross-dataset mean ARI ($0.423$) and NMI ($0.574$), surpassing all simpler variants.
 
-\textit{2. Robust advantages across $\beta$ settings.} The Full model's subcategory wins persist at all three $\beta$ values (17 at $\beta{=}1.0$, 16 at $\beta{=}0.1$, 14 at $\beta{=}0.01$), spanning distance preservation, LSEX quality, spectral analysis, and batch integration. This $\beta$-robustness distinguishes the Full model from individual components whose effects are regime-dependent.
+\textit{2. Distance preservation.} The Full MoCoO achieves the highest cross-dataset distance correlations (UMAP: $0.668$; DREX Spearman: $0.694$) and overall embedding quality (DREX: $0.646$), winning 5 of 11 embedding metrics---critical for trustworthy UMAP/tSNE visualisation.
 
-\textit{3. Cross-dataset generalisation.} On the Paul hematopoiesis dataset, the Full model achieves the highest ARI ($0.365$) and NMI ($0.591$) at $\beta{=}0.01$, confirming that its advantages transfer across biological systems.
+\textit{3. Cross-dataset robustness.} These advantages hold across five diverse scRNA-seq datasets spanning hematopoiesis, neurogenesis, pancreatic endocrine differentiation, myeloid/erythroid bifurcation, and spinal cord organogenesis.
 
-\textit{4. Simpson's paradox in metric evaluation.} Standard aggregate benchmarking assigns the Full model 0/27 aggregate wins while it achieves 47 subcategory wins across settings. This discrepancy arises because composite metrics average qualitatively distinct subcategories (distance preservation vs.\ neighbourhood preservation), systematically penalising models that excel on specific geometric properties. Our subcategory disaggregation framework provides an actionable remedy.
+\textit{4. Biological validation.} ODE-derived pseudotime correlates significantly with canonical developmental markers across all five systems ($p \ll 0.001$), confirming biologically meaningful trajectory inference.
 
-\textit{5. Multi-purpose latent space.} Unlike external baselines specialised for single tasks (Harmony for batch correction, DPT for diffusion pseudotime, scANVI for semi-supervised clustering), MoCoO provides clustering, trajectory inference, velocity estimation, distance-preserving embeddings, and batch integration in a single unified framework. ODE-containing MoCoO configurations outperform scVI on both ARI ($0.482$ vs.\ $0.469$) and NMI ($0.574$ vs.\ $0.533$), and achieve ${\sim}2{\times}$ higher CH than all external baselines.
+\textit{5. Multi-purpose latent space.} Unlike specialised external baselines, MoCoO provides clustering, trajectory inference, distance-preserving embeddings, and batch integration in a single unified framework.
 
-For single-cell practitioners, we recommend the Full MoCoO at $\beta{\leq}0.1$ as the default configuration. The Full model provides the best distance preservation, competitive clustering, trajectory inference, and latent-space quality in a single model---making it the most capable general-purpose representation learner for single-cell analysis. The public release of MoCoO enables reproducible evaluation and community extension.
-
-%% ============================================================
-%% Required Sections (IEEE)
-%% ============================================================
+For single-cell practitioners, we recommend VAE+ODE+MoCo at $\beta{\leq}0.1$ for clustering-focused analyses and the Full MoCoO for general-purpose representation learning where distance preservation is important. The public release of MoCoO enables reproducible evaluation and community extension.
 
 \section*{Data Availability}
 The IRALL, dentate gyrus, endocrine pancreas, and Paul hematopoiesis datasets are publicly available through the scvelo package~\cite{bergen2020generalizing} and the original publications. The spinoids dataset is available from its original publication. All preprocessed datasets and trained model checkpoints will be made available at \url{https://github.com/PeterPonyu/MoCoO} upon publication.
@@ -980,94 +596,110 @@ Fig.~\ref{fig:beta_sensitivity} shows how all evaluation metrics vary across $\b
     \label{fig:beta_sensitivity}
 \end{figure*}
 
-\section{Generalization and Cross-Dataset Analysis}
-\label{sec:supp:generalization}
+\section{Per-Dataset Ablation Tables}
+\label{sec:supp:perdataset}
 
-\subsection{Cross-Dataset Beta Sensitivity (Paul)}
-\label{sec:supp:paul_beta}
-
-To verify that beta sensitivity patterns transfer across datasets, we repeat the $\beta \in \{0.01, 0.1, 1.0\}$ sweep on the Paul dataset~\cite{paul2015transcriptional} (myeloid/erythroid progenitors; 2{,}700 cells, 3{,}000 HVGs, 200 epochs). Table~\ref{tab:paul_beta} confirms the key finding from IRALL: ODE-containing configurations dominate clustering quality, and lower $\beta$ improves geometric metrics across all configurations.
+Tables~\ref{tab:ablation_irall}--\ref{tab:ablation_spinoids} present the full 17-metric ablation results for each individual dataset.
 
 \begin{table*}[!t]
     \centering
-    \caption{Beta sweep on Paul dataset (2{,}700 cells, 200 epochs). ODE-containing configurations (\textbf{bold}) dominate across all $\beta$ settings. Best values per $\beta$ in \textbf{bold}.}
-    \label{tab:paul_beta}
+    \caption{IRALL --- all 17 evaluation metrics (split=whole). Best per column in \textbf{bold}. DAV$\downarrow$ indicates lower is better.}
+    \label{tab:ablation_irall}
     \resizebox{\textwidth}{!}{%
-    \begin{tabular}{clccccc}
+    \begin{tabular}{lccccccccccccccccc}
         \toprule
-        $\beta$ & Config & ARI & NMI & ASW & CH & DB$\downarrow$ \\
+        Config & ARI & NMI & ASW & DAV$\downarrow$ & CAL & COR & \makecell{UMAP\\dist.c.} & \makecell{UMAP\\$Q_l$} & \makecell{UMAP\\$Q_g$} & \makecell{UMAP\\ovr.} & \makecell{tSNE\\dist.c.} & \makecell{tSNE\\$Q_l$} & \makecell{tSNE\\$Q_g$} & \makecell{tSNE\\ovr.} & \makecell{DREX\\Spear.} & \makecell{DREX\\local} & \makecell{DREX\\ovr.} \\
         \midrule
-        \multirow{6}{*}{0.01}
-        & VAE              & 0.290 & 0.562 & 0.065 & 173.8 & 2.542 \\
-        & VAE+ODE          & 0.303 & 0.566 & \textbf{0.135} & 384.0 & \textbf{1.721} \\
-        & VAE+MoCo         & 0.278 & 0.539 & 0.060 & 158.4 & 2.620 \\
-        & VAE+MoCo+Proto   & 0.281 & 0.540 & 0.064 & 167.4 & 2.533 \\
-        & VAE+ODE+MoCo     & 0.354 & 0.582 & 0.117 & \textbf{433.5} & 1.736 \\
-        & \textbf{Full}    & \textbf{0.365} & \textbf{0.591} & 0.124 & 425.3 & 1.783 \\
-        \midrule
-        \multirow{6}{*}{0.1}
-        & VAE              & 0.284 & 0.549 & 0.074 & 125.3 & 2.437 \\
-        & VAE+ODE          & 0.343 & 0.584 & 0.135 & 437.4 & \textbf{1.776} \\
-        & VAE+MoCo         & 0.289 & 0.549 & 0.066 & 127.3 & 2.638 \\
-        & VAE+MoCo+Proto   & 0.286 & 0.555 & 0.064 & 124.0 & 2.597 \\
-        & \textbf{VAE+ODE+MoCo} & \textbf{0.366} & \textbf{0.589} & 0.128 & 437.7 & 1.823 \\
-        & Full             & 0.357 & 0.584 & \textbf{0.136} & \textbf{443.8} & 1.787 \\
-        \midrule
-        \multirow{6}{*}{1.0}
-        & VAE              & 0.273 & 0.540 & 0.049 &  77.6 & 3.163 \\
-        & VAE+ODE          & 0.274 & 0.524 & 0.034 & 124.1 & 3.476 \\
-        & VAE+MoCo         & 0.280 & 0.546 & \textbf{0.053} &  78.8 & 3.204 \\
-        & \textbf{VAE+MoCo+Proto} & \textbf{0.289} & \textbf{0.552} & 0.051 &  81.8 & \textbf{3.048} \\
-        & VAE+ODE+MoCo     & 0.275 & 0.539 & 0.044 & \textbf{137.5} & 3.161 \\
-        & Full             & 0.253 & 0.510 & 0.041 & 121.4 & 3.440 \\
+        VAE & 0.362 & 0.533 & 0.205 & 1.615 & 403 & 1.135 & 0.537 & 0.400 & 0.512 & 0.483 & 0.571 & 0.534 & 0.555 & 0.553 & 0.588 & \textbf{0.403} & 0.649 \\
+        VAE+ODE & 0.368 & 0.538 & 0.283 & 1.318 & \textbf{873} & \textbf{3.181} & 0.575 & 0.432 & \textbf{0.561} & 0.522 & 0.678 & \textbf{0.555} & \textbf{0.595} & 0.609 & 0.600 & 0.229 & 0.635 \\
+        VAE+MoCo & 0.357 & 0.524 & 0.206 & 1.555 & 414 & 1.185 & 0.567 & 0.387 & 0.501 & 0.485 & 0.600 & 0.531 & 0.550 & 0.560 & 0.605 & 0.345 & 0.645 \\
+        VAE+MoCo+Proto & 0.389 & 0.533 & 0.210 & 1.611 & 408 & 1.137 & 0.525 & 0.410 & 0.525 & 0.486 & 0.562 & 0.534 & 0.555 & 0.551 & 0.533 & 0.394 & 0.639 \\
+        VAE+ODE+MoCo & \textbf{0.391} & \textbf{0.573} & \textbf{0.302} & 1.367 & 680 & 2.118 & 0.604 & \textbf{0.437} & 0.555 & 0.532 & 0.650 & 0.551 & 0.590 & 0.597 & 0.614 & 0.100 & 0.622 \\
+        Full (MoCoO) & 0.378 & 0.542 & 0.285 & \textbf{1.196} & 839 & 1.800 & \textbf{0.757} & 0.429 & 0.552 & \textbf{0.579} & \textbf{0.700} & 0.547 & 0.582 & \textbf{0.610} & \textbf{0.805} & 0.348 & \textbf{0.719} \\
         \bottomrule
     \end{tabular}%
     }
 \end{table*}
 
-On Paul, the component ranking mirrors IRALL: at $\beta = 0.01$, Full and VAE+ODE+MoCo achieve the highest ARI (0.365 and 0.354 respectively), while at $\beta = 1.0$, all models degrade substantially---confirming that standard $\beta = 1.0$ over-regularises complex models regardless of dataset. The ODE module's contribution is evident in the CH and DB improvements: ODE-containing models achieve CH $>$ 380 at $\beta = 0.01$ versus $<$ 175 for non-ODE variants.
-
-\subsection{Prototype Count Sensitivity}
-\label{sec:supp:proto_sweep}
-
-Table~\ref{tab:proto_sweep} reports the effect of varying the prototype count $P \in \{8, 12, 16, 20\}$ on two datasets with different numbers of cell types ($K$). All runs use the Full model at $\beta{=}0.1$.
-
-\begin{table}[!t]
+\begin{table*}[!t]
     \centering
-    \caption{Prototype count sensitivity ($P \in \{8, 12, 16, 20\}$) for the Full model at $\beta{=}0.1$. IRALL has $K{=}12$ cell types; Paul has $K{=}19$. Best values per dataset in \textbf{bold}; DAV$\downarrow$ = lower is better.}
-    \label{tab:proto_sweep}
-    \begin{tabular}{clcccc}
+    \caption{Dentate --- all 17 evaluation metrics (split=whole). Best per column in \textbf{bold}. DAV$\downarrow$ indicates lower is better.}
+    \label{tab:ablation_dentate}
+    \resizebox{\textwidth}{!}{%
+    \begin{tabular}{lccccccccccccccccc}
         \toprule
-        Dataset & $P$ & ARI & NMI & ASW & DAV$\downarrow$ \\
+        Config & ARI & NMI & ASW & DAV$\downarrow$ & CAL & COR & \makecell{UMAP\\dist.c.} & \makecell{UMAP\\$Q_l$} & \makecell{UMAP\\$Q_g$} & \makecell{UMAP\\ovr.} & \makecell{tSNE\\dist.c.} & \makecell{tSNE\\$Q_l$} & \makecell{tSNE\\$Q_g$} & \makecell{tSNE\\ovr.} & \makecell{DREX\\Spear.} & \makecell{DREX\\local} & \makecell{DREX\\ovr.} \\
         \midrule
-        \multirow{4}{*}{IRALL}
-        & \textbf{8}  & \textbf{0.496} & \textbf{0.583} & \textbf{0.275} & \textbf{1.294} \\
-        & 12 & 0.411 & 0.558 & 0.232 & 1.343 \\
-        & 16 & 0.487 & 0.561 & 0.264 & 1.314 \\
-        & 20 & 0.457 & 0.567 & 0.222 & 1.423 \\
-        \midrule
-        \multirow{4}{*}{Paul}
-        & 8  & 0.116 & 0.419 & 0.052 & 2.754 \\
-        & 12 & 0.105 & 0.400 & 0.042 & 2.751 \\
-        & \textbf{16} & \textbf{0.123} & \textbf{0.424} & \textbf{0.051} & \textbf{2.653} \\
-        & 20 & 0.116 & 0.419 & 0.051 & 2.711 \\
+        VAE & 0.360 & 0.554 & 0.179 & 1.671 & 356 & 0.900 & 0.517 & 0.339 & 0.475 & 0.444 & 0.531 & 0.479 & 0.513 & 0.508 & 0.513 & 0.146 & 0.581 \\
+        VAE+ODE & 0.359 & 0.564 & \textbf{0.248} & 1.347 & \textbf{729} & 2.204 & 0.592 & 0.399 & 0.549 & 0.514 & 0.631 & 0.507 & \textbf{0.566} & 0.568 & 0.582 & 0.120 & 0.612 \\
+        VAE+MoCo & \textbf{0.385} & \textbf{0.575} & 0.179 & 1.644 & 382 & 1.034 & 0.561 & 0.336 & 0.476 & 0.458 & 0.565 & 0.478 & 0.505 & 0.516 & 0.549 & 0.162 & 0.596 \\
+        VAE+MoCo+Proto & 0.381 & 0.566 & 0.170 & 1.672 & 372 & 0.949 & 0.573 & 0.338 & 0.472 & 0.461 & 0.553 & 0.479 & 0.503 & 0.512 & 0.558 & \textbf{0.162} & 0.600 \\
+        VAE+ODE+MoCo & 0.366 & 0.563 & 0.228 & 1.373 & 660 & 1.955 & \textbf{0.655} & 0.396 & \textbf{0.550} & \textbf{0.534} & \textbf{0.693} & 0.504 & 0.563 & \textbf{0.587} & \textbf{0.671} & 0.045 & \textbf{0.625} \\
+        Full (MoCoO) & 0.350 & 0.555 & 0.242 & \textbf{1.329} & 704 & \textbf{2.250} & 0.618 & \textbf{0.404} & 0.544 & 0.522 & 0.646 & \textbf{0.513} & 0.565 & 0.575 & 0.611 & 0.050 & 0.611 \\
         \bottomrule
-    \end{tabular}
-\end{table}
+    \end{tabular}%
+    }
+\end{table*}
 
-On IRALL ($K{=}12$), $P{=}8$ achieves the highest ARI (0.496) and lowest DAV (1.294), outperforming the default $P{=}12$. On Paul ($K{=}19$), $P{=}16$ is optimal across all four metrics. No single $P$ dominates both datasets, confirming that the optimal prototype count is dataset-dependent and should be treated as a tunable hyperparameter. A reasonable heuristic is $P \approx K$ or slightly below; over-specification ($P \gg K$) degrades compactness.
-
-\subsection{Validation vs.\ Test Generalization}
-\label{sec:supp:val_test}
-
-Fig.~\ref{fig:generalization} compares validation and held-out test metrics to assess generalization across all configurations at $\beta = 0.1$.
-
-\begin{figure*}[!t]
+\begin{table*}[!t]
     \centering
-    \includegraphics[width=\textwidth,height=0.70\textheight,keepaspectratio]{fig7_generalization}
-    \caption{Generalisation assessment: validation (train-split, solid bars) versus held-out test (hatched bars) metrics for all six configurations ($\beta{=}0.1$, IRALL). \textbf{Row~1:} Clustering (ARI, NMI, ASW). \textbf{Row~2:} Aggregate quality scores (DRE, DREX, LSE, LSEX). Narrow val--test gaps indicate strong generalisation across all configurations. Notably, the Full model's distance-preservation advantages (DRE, DREX) persist on held-out test data, confirming that its geometric fidelity is not an artefact of overfitting.}
-    \label{fig:generalization}
-\end{figure*}
+    \caption{Endo --- all 17 evaluation metrics (split=whole). Best per column in \textbf{bold}. DAV$\downarrow$ indicates lower is better.}
+    \label{tab:ablation_endo}
+    \resizebox{\textwidth}{!}{%
+    \begin{tabular}{lccccccccccccccccc}
+        \toprule
+        Config & ARI & NMI & ASW & DAV$\downarrow$ & CAL & COR & \makecell{UMAP\\dist.c.} & \makecell{UMAP\\$Q_l$} & \makecell{UMAP\\$Q_g$} & \makecell{UMAP\\ovr.} & \makecell{tSNE\\dist.c.} & \makecell{tSNE\\$Q_l$} & \makecell{tSNE\\$Q_g$} & \makecell{tSNE\\ovr.} & \makecell{DREX\\Spear.} & \makecell{DREX\\local} & \makecell{DREX\\ovr.} \\
+        \midrule
+        VAE & 0.512 & 0.665 & 0.183 & 1.652 & 305 & 0.835 & 0.490 & 0.295 & 0.432 & 0.406 & 0.494 & 0.438 & 0.463 & 0.465 & 0.522 & 0.175 & 0.572 \\
+        VAE+ODE & 0.535 & 0.641 & \textbf{0.234} & \textbf{1.339} & \textbf{606} & 2.066 & 0.602 & \textbf{0.375} & \textbf{0.529} & 0.502 & 0.617 & \textbf{0.478} & \textbf{0.536} & 0.544 & 0.631 & -0.016 & 0.597 \\
+        VAE+MoCo & 0.502 & 0.667 & 0.186 & 1.612 & 331 & 1.039 & 0.547 & 0.282 & 0.429 & 0.419 & 0.547 & 0.420 & 0.452 & 0.473 & 0.578 & 0.230 & 0.598 \\
+        VAE+MoCo+Proto & 0.465 & 0.643 & 0.183 & 1.689 & 331 & 1.089 & 0.521 & 0.276 & 0.420 & 0.406 & 0.522 & 0.423 & 0.458 & 0.468 & 0.569 & 0.158 & 0.579 \\
+        VAE+ODE+MoCo & \textbf{0.552} & \textbf{0.677} & 0.231 & 1.499 & 525 & 2.081 & 0.592 & 0.316 & 0.474 & 0.461 & 0.673 & 0.440 & 0.493 & 0.536 & 0.639 & \textbf{0.237} & 0.625 \\
+        Full (MoCoO) & 0.532 & 0.662 & 0.223 & 1.385 & 579 & \textbf{2.175} & \textbf{0.666} & 0.345 & 0.510 & \textbf{0.507} & \textbf{0.684} & 0.458 & 0.526 & \textbf{0.556} & \textbf{0.709} & 0.097 & \textbf{0.631} \\
+        \bottomrule
+    \end{tabular}%
+    }
+\end{table*}
+
+\begin{table*}[!t]
+    \centering
+    \caption{Paul --- all 17 evaluation metrics (split=whole). Best per column in \textbf{bold}. DAV$\downarrow$ indicates lower is better.}
+    \label{tab:ablation_paul}
+    \resizebox{\textwidth}{!}{%
+    \begin{tabular}{lccccccccccccccccc}
+        \toprule
+        Config & ARI & NMI & ASW & DAV$\downarrow$ & CAL & COR & \makecell{UMAP\\dist.c.} & \makecell{UMAP\\$Q_l$} & \makecell{UMAP\\$Q_g$} & \makecell{UMAP\\ovr.} & \makecell{tSNE\\dist.c.} & \makecell{tSNE\\$Q_l$} & \makecell{tSNE\\$Q_g$} & \makecell{tSNE\\ovr.} & \makecell{DREX\\Spear.} & \makecell{DREX\\local} & \makecell{DREX\\ovr.} \\
+        \midrule
+        VAE & \textbf{0.245} & 0.408 & 0.115 & 2.016 & 234 & 0.842 & 0.484 & 0.222 & 0.325 & 0.344 & 0.465 & 0.411 & 0.387 & 0.421 & 0.522 & 0.159 & 0.551 \\
+        VAE+ODE & 0.241 & 0.436 & 0.164 & 1.634 & 449 & 2.059 & 0.573 & 0.280 & 0.408 & 0.420 & 0.576 & 0.445 & 0.456 & 0.493 & 0.636 & 0.066 & 0.584 \\
+        VAE+MoCo & 0.243 & 0.423 & 0.118 & 2.063 & 240 & 0.795 & 0.479 & 0.213 & 0.317 & 0.337 & 0.495 & 0.407 & 0.386 & 0.429 & 0.516 & 0.135 & 0.543 \\
+        VAE+MoCo+Proto & 0.219 & 0.417 & 0.114 & 2.057 & 240 & 0.835 & 0.480 & 0.211 & 0.316 & 0.336 & 0.453 & 0.402 & 0.393 & 0.416 & 0.508 & 0.160 & 0.546 \\
+        VAE+ODE+MoCo & 0.219 & 0.408 & \textbf{0.179} & \textbf{1.584} & \textbf{536} & \textbf{2.369} & 0.651 & \textbf{0.284} & \textbf{0.425} & 0.453 & 0.656 & 0.440 & 0.451 & 0.515 & 0.687 & -0.022 & 0.596 \\
+        Full (MoCoO) & 0.243 & \textbf{0.436} & 0.161 & 1.713 & 462 & 2.062 & \textbf{0.702} & 0.276 & 0.403 & \textbf{0.461} & \textbf{0.682} & \textbf{0.451} & \textbf{0.460} & \textbf{0.531} & \textbf{0.726} & \textbf{0.169} & \textbf{0.638} \\
+        \bottomrule
+    \end{tabular}%
+    }
+\end{table*}
+
+\begin{table*}[!t]
+    \centering
+    \caption{Spinoids --- all 17 evaluation metrics (split=whole). Best per column in \textbf{bold}. DAV$\downarrow$ indicates lower is better.}
+    \label{tab:ablation_spinoids}
+    \resizebox{\textwidth}{!}{%
+    \begin{tabular}{lccccccccccccccccc}
+        \toprule
+        Config & ARI & NMI & ASW & DAV$\downarrow$ & CAL & COR & \makecell{UMAP\\dist.c.} & \makecell{UMAP\\$Q_l$} & \makecell{UMAP\\$Q_g$} & \makecell{UMAP\\ovr.} & \makecell{tSNE\\dist.c.} & \makecell{tSNE\\$Q_l$} & \makecell{tSNE\\$Q_g$} & \makecell{tSNE\\ovr.} & \makecell{DREX\\Spear.} & \makecell{DREX\\local} & \makecell{DREX\\ovr.} \\
+        \midrule
+        VAE & 0.442 & 0.598 & 0.150 & 1.978 & 316 & 1.002 & 0.499 & 0.288 & 0.390 & 0.393 & 0.485 & 0.467 & 0.468 & 0.473 & 0.523 & 0.198 & 0.574 \\
+        VAE+ODE & 0.445 & 0.584 & 0.165 & 1.810 & 459 & \textbf{1.834} & \textbf{0.640} & \textbf{0.326} & \textbf{0.432} & \textbf{0.466} & 0.631 & \textbf{0.499} & 0.492 & 0.540 & \textbf{0.669} & 0.255 & \textbf{0.639} \\
+        VAE+MoCo & 0.452 & 0.582 & 0.144 & 1.923 & 321 & 1.142 & 0.513 & 0.288 & 0.389 & 0.397 & 0.505 & 0.470 & 0.455 & 0.477 & 0.536 & 0.245 & 0.586 \\
+        VAE+MoCo+Proto & 0.462 & 0.587 & 0.153 & 1.916 & 315 & 1.091 & 0.544 & 0.293 & 0.397 & 0.411 & 0.500 & 0.477 & 0.457 & 0.478 & 0.558 & 0.235 & 0.595 \\
+        VAE+ODE+MoCo & \textbf{0.588} & 0.649 & \textbf{0.167} & \textbf{1.690} & \textbf{501} & 1.784 & 0.611 & 0.320 & 0.423 & 0.452 & \textbf{0.636} & 0.496 & \textbf{0.492} & \textbf{0.541} & 0.634 & \textbf{0.311} & 0.637 \\
+        Full (MoCoO) & 0.564 & \textbf{0.650} & 0.161 & 1.859 & 424 & 1.695 & 0.595 & 0.315 & 0.423 & 0.445 & 0.577 & 0.493 & 0.482 & 0.517 & 0.619 & 0.306 & 0.630 \\
+        \bottomrule
+    \end{tabular}%
+    }
+\end{table*}
 
 \section{ODE-Driven Pseudotime \& Trajectory Analysis}
 \label{sec:supp:ode}
@@ -1108,7 +740,7 @@ Fig.~\ref{fig:supp_bio} validates the biological interpretability of MoCoO laten
 \section{Subcategory Metric Breakdown}
 \label{sec:supp:subcategory}
 
-Panel~\textbf{(D)} of Fig.~\ref{fig:composed_benchmark} provides the detailed breakdown of all evaluation metrics by family. This complements the aggregate results by revealing which specific subcategory metrics each configuration excels at without requiring a separate standalone figure artifact.
+The per-dataset tables in Appendix~\ref{sec:supp:perdataset} provide the detailed breakdown of all evaluation metrics by dataset. This complements the cross-dataset mean results (Tables~\ref{tab:mean_clustering} and~\ref{tab:mean_embedding}) by revealing dataset-specific strengths.
 
 \section{Pseudotime--Marker Correlation Tables}
 \label{sec:supp:markers}

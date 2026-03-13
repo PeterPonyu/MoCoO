@@ -70,47 +70,30 @@ class MoCoOModel(scviMixin, dipMixin, betatcMixin, infoMixin):
         else:
             raise ValueError(f"Unknown loss_mode: {self.loss_mode}")
 
-    @staticmethod
-    def _velocity_consistency_loss(q_z, velocity):
-        if q_z.shape[0] < 3:
-            return torch.tensor(0.0, device=q_z.device)
-        
-        displacement = q_z[1:] - q_z[:-1]
-        velocity_mid = velocity[:-1]
-        
-        disp_norm = F.normalize(displacement, dim=-1, eps=1e-8)
-        vel_norm = F.normalize(velocity_mid, dim=-1, eps=1e-8)
-        
-        cosine_sim = (disp_norm * vel_norm).sum(dim=-1)
-        return (1.0 - cosine_sim).mean()
-    
     @torch.no_grad()
     def take_latent(self, state, use_qm=None):
+        """Extract latent representation (scTour-style ODE blending)."""
         state = torch.tensor(state, dtype=torch.float).to(self.device)
         effective_qm = use_qm if use_qm is not None else self.use_qm
 
         if self.use_ode:
             q_z, q_m, q_s, t = self.nn.encoder(state)
-
-            # Sort by time and add jitter for uniqueness (match training)
-            sort_idx = torch.argsort(t)
-            t_sorted = t[sort_idx]
-            z_base = (q_m if effective_qm else q_z)[sort_idx]
+            t = t.cpu()
             
-            # Ensure strictly increasing times
-            eps = 1e-6
-            t_unique = t_sorted.clone()
-            for i in range(1, len(t_unique)):
-                if t_unique[i] <= t_unique[i-1] + eps:
-                    t_unique[i] = t_unique[i-1] + eps
+            # Sort and deduplicate using np.unique (following scTour _get_latentsp)
+            t_sorted, sort_idx, sort_ridx = np.unique(
+                t.numpy(), return_index=True, return_inverse=True)
+            t_sorted = torch.tensor(t_sorted)
             
-            z0 = z_base[0]
-            q_z_ode = self.nn.solve_ode(self.nn.ode_solver, z0, t_unique)
+            z = q_z if not effective_qm else q_m
+            z_sorted = z[sort_idx]
+            z0 = z_sorted[0]
             
-            # Blend and unsort back to original order
-            blended = self.vae_reg * z_base + self.ode_reg * q_z_ode
-            unsort_idx = torch.argsort(sort_idx)
-            return blended[unsort_idx].cpu().numpy()
+            q_z_ode = self.nn.solve_ode(self.nn.ode_solver, z0, t_sorted)
+            q_z_ode = q_z_ode[sort_ridx]  # unsort back to original order
+            
+            blended = self.vae_reg * z + self.ode_reg * q_z_ode
+            return blended.cpu().numpy()
         else:
             q_z, q_m, q_s = self.nn.encoder(state)
             return (q_m if effective_qm else q_z).cpu().numpy()
@@ -137,7 +120,8 @@ class MoCoOModel(scviMixin, dipMixin, betatcMixin, infoMixin):
     def take_grad(self, state):
         states = torch.tensor(state, dtype=torch.float).to(self.device)
         q_z, q_m, q_s, t = self.nn.encoder(states)
-        grads = self.nn.ode_solver(t, q_z).cpu().numpy()
+        ode_device = next(self.nn.ode_solver.parameters()).device
+        grads = self.nn.ode_solver(t.to(ode_device), q_z.to(ode_device)).cpu().numpy()
         return grads
     
     @torch.no_grad()
@@ -145,7 +129,8 @@ class MoCoOModel(scviMixin, dipMixin, betatcMixin, infoMixin):
         states = torch.tensor(state, dtype=torch.float).to(self.device)
         q_z, q_m, q_s, t = self.nn.encoder(states)
         
-        grads = self.nn.ode_solver(t, q_z).cpu().numpy()
+        ode_device = next(self.nn.ode_solver.parameters()).device
+        grads = self.nn.ode_solver(t.to(ode_device), q_z.to(ode_device)).cpu().numpy()
         z_latent = q_z.cpu().numpy()
         z_future = z_latent + 1e-2 * grads
         
@@ -185,22 +170,19 @@ class MoCoOModel(scviMixin, dipMixin, betatcMixin, infoMixin):
             n_sorted = len(out['x_sorted'])
             x_raw_sorted = x_raw_t[sort_idx][:n_sorted]
             
-            # Dual-path reconstruction:
-            # VAE path gets full weight, ODE path scaled by ode_reg
+            # Symmetric dual-path reconstruction (following scTour)
             recon_loss_ec = self._compute_recon_loss(
                 x_raw_sorted, out['pred_x'], out.get('dropout_x'))
             recon_loss_ode = self._compute_recon_loss(
                 x_raw_sorted, out['pred_x_ode'], out.get('dropout_x_ode'))
-            recon_loss = recon_loss_ec + self.ode_reg * recon_loss_ode
+            recon_loss = self.vae_reg * recon_loss_ec + self.ode_reg * recon_loss_ode
             
-            # Unidirectional z_div: ODE learns to match encoder, not vice versa
-            # stop-gradient on q_z prevents ODE trajectory from distorting encoder clusters
-            qz_div = self.ode_reg * F.mse_loss(q_z.detach(), out['q_z_ode'], reduction="none").sum(-1).mean()
-            vel_loss = self._velocity_consistency_loss(q_z.detach(), out['velocity'])
+            # Bidirectional z_div (following scTour): both encoder and ODE
+            # co-adapt toward each other
+            qz_div = F.mse_loss(q_z, out['q_z_ode'], reduction="none").sum(-1).mean()
         else:
             recon_loss = self._compute_recon_loss(x_raw_t, out['pred_x'], out.get('dropout_x'))
             qz_div = torch.tensor(0.0, device=self.device)
-            vel_loss = torch.tensor(0.0, device=self.device)
         
         moco_loss = torch.tensor(0.0, device=self.device)
         cross_loss = torch.tensor(0.0, device=self.device)
@@ -229,7 +211,6 @@ class MoCoOModel(scviMixin, dipMixin, betatcMixin, infoMixin):
         total_loss = (
             self.recon * recon_loss +
             qz_div +
-            self.ode_reg * 0.1 * vel_loss +
             kl_div +
             dip_loss +
             tc_loss +
@@ -252,6 +233,6 @@ class MoCoOModel(scviMixin, dipMixin, betatcMixin, infoMixin):
             mmd_loss.item() if isinstance(mmd_loss, torch.Tensor) else mmd_loss,
             moco_loss.item() if isinstance(moco_loss, torch.Tensor) else moco_loss,
             cross_loss.item() if isinstance(cross_loss, torch.Tensor) else cross_loss,
-            vel_loss.item() if isinstance(vel_loss, torch.Tensor) else vel_loss,
+            qz_div.item() if isinstance(qz_div, torch.Tensor) else qz_div,
             proto_loss.item() if isinstance(proto_loss, torch.Tensor) else proto_loss,
         ))

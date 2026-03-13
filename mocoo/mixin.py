@@ -1,7 +1,5 @@
 """Mixin classes for MoCoO."""
 
-import warnings
-
 import torch
 import torch.nn as nn
 from torchdiffeq import odeint
@@ -160,11 +158,10 @@ class NODEMixin:
         ode_func: nn.Module,
         z0: torch.Tensor,
         t: torch.Tensor,
-        method: str = "rk4",
+        method: str = "euler",
         step_size: Optional[float] = None,
     ) -> torch.Tensor:
-        device = z0.device
-        
+        """Solve ODE on the ODE function's device (CPU following scTour)."""
         options = self.get_step_size(
             step_size,
             t[0].item(),
@@ -172,33 +169,17 @@ class NODEMixin:
             len(t)
         )
         
-        try:
-            # Solve on same device to preserve computation graph
-            pred_z = odeint(
-                ode_func,
-                z0,
-                t,
-                method=method,
-                options=options
-            )
-        except Exception as e:
-            # Fallback: CPU solve (graph-breaking but safe)
-            try:
-                warnings.warn(f"ODE GPU solve failed ({e}), falling back to CPU")
-                cpu_z0 = z0.detach().cpu()
-                cpu_t = t.detach().cpu()
-                ode_func_cpu = ode_func.cpu()
-                pred_z = odeint(
-                    ode_func_cpu, cpu_z0, cpu_t,
-                    method=method, options=options
-                )
-                ode_func.to(device)
-                pred_z = pred_z.to(device)
-            except Exception as e:
-                warnings.warn(f"ODE solving failed: {e}, returning constant trajectory")
-                pred_z = z0.unsqueeze(0).expand(len(t), -1)
+        orig_device = z0.device
+        ode_device = next(ode_func.parameters()).device
+        pred_z = odeint(
+            ode_func,
+            z0.to(ode_device),
+            t.to(ode_device),
+            method=method,
+            options=options
+        ).view(-1, z0.shape[-1])
         
-        return pred_z
+        return pred_z.to(orig_device)
 
 
 class VectorFieldMixin:

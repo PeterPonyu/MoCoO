@@ -388,24 +388,35 @@ def apply_style() -> None:
     matplotlib.rcParams.update(params)
 
 
-def save_figure(fig, path, **extra_kw) -> None:
+def save_figure(fig, path, vcd_label: str | None = None,
+                vcd_verbose: bool = False, **extra_kw):
     """Save figure as both PNG (raster) and PDF (vector) for publication.
 
     Given ``path = 'foo/bar.png'``, saves:
       - ``foo/bar.png``  (300 DPI raster)
       - ``foo/bar.pdf``  (vector for journal submission)
+
+    When ``vcd_label`` is provided, VCD conflict detection is executed as part
+    of the save flow and the resulting issue list is returned.
     """
     from pathlib import Path as _Path
 
     p = _Path(path)
     p.parent.mkdir(parents=True, exist_ok=True)
     kw = dict(SAVEFIG_KW, **extra_kw)
+    issues = []
+    if vcd_label is not None:
+        from vcd import detect_all_conflicts
+
+        print("\n── Conflict Detection ──")
+        issues = detect_all_conflicts(fig, label=vcd_label, verbose=vcd_verbose)
     fig.savefig(str(p), **kw)
     # Also save vector PDF
     pdf_path = p.with_suffix(".pdf")
     pdf_kw = dict(kw)
     pdf_kw.pop("dpi", None)  # PDF is vector; DPI is irrelevant
     fig.savefig(str(pdf_path), **pdf_kw)
+    return issues
 
 
 def get_config_colors() -> Dict[str, str]:

@@ -272,9 +272,9 @@ def test_cross_path_loss_with_ode_moco(sim_adata):
     model.fit(epochs=3, patience=5, val_every=1)
 
     cross_losses = [l[7] for l in model.loss]
-    vel_losses = [l[8] for l in model.loss]
+    qz_div_losses = [l[8] for l in model.loss]
     assert any(c > 0 for c in cross_losses), "Cross-path losses all zero with ODE+MoCo"
-    assert any(v > 0 for v in vel_losses), "Velocity losses all zero with ODE"
+    assert any(v > 0 for v in qz_div_losses), "z_div losses all zero with ODE"
 
 
 # ══════════════════════════════════════════════════════════════════════════════

@@ -6,6 +6,8 @@ Addresses reviewer Concern #8: velocity consistency circularity.
 Trains ODE-containing configs, extracts pseudotime, and computes Spearman
 correlation between predicted pseudotime and known collection day.
 
+All hyperparameters are loaded from the canonical YAML config (default.yaml).
+
 Usage (GPU required):
     python benchmarks/scripts/evaluation/pseudotime_validation.py
 """
@@ -25,39 +27,23 @@ warnings.filterwarnings("ignore")
 _REPO_ROOT = Path(__file__).resolve().parent.parent.parent.parent
 sys.path.insert(0, str(_REPO_ROOT))
 
-BASE_DIR = Path(os.environ.get("MOCOO_DATA_DIR", str(Path.home())))
-
-SHARED = dict(
-    latent_dim=32,
-    hidden_dim=128,
-    i_dim=4,
-    lr=1e-4,
-    batch_size=128,
-    beta=0.1,
-    recon=1.0,
-    loss_mode="nb",
-    train_size=0.7,
-    val_size=0.15,
-    test_size=0.15,
+from mocoo.configs import (
+    load_config,
+    get_shared_params,
+    get_model_configs,
+    get_training_params,
+    get_dataset_paths,
 )
 
-CONFIGS = {
-    "VAE+ODE": dict(
-        use_ode=True, use_moco=False, use_prototype=False,
-        vae_reg=0.6, ode_reg=0.4,
-    ),
-    "VAE+ODE+MoCo": dict(
-        use_ode=True, use_moco=True, use_prototype=False,
-        vae_reg=0.6, ode_reg=0.4,
-        moco_weight=0.3, moco_T=0.2, moco_K=4096,
-    ),
-    "Full": dict(
-        use_ode=True, use_moco=True, use_prototype=True,
-        n_prototypes=12, vae_reg=0.6, ode_reg=0.4,
-        moco_weight=0.3, moco_T=0.2, moco_K=4096,
-        proto_weight=0.1,
-    ),
-}
+# ── Load all params from canonical YAML config ─────────────────────────────
+_CFG = load_config("default")
+SHARED = get_shared_params(_CFG)
+ALL_CONFIGS = get_model_configs(_CFG)
+TRAINING = get_training_params(_CFG)
+DATASETS = get_dataset_paths(_CFG)
+
+# Only ODE-containing configs are relevant for pseudotime validation
+CONFIGS = {k: v for k, v in ALL_CONFIGS.items() if v.get("use_ode", False)}
 
 
 def load_dataset(path, max_cells=3000, hvg=3000, seed=42):
@@ -117,12 +103,14 @@ def get_pseudotime(model):
 
 
 def main():
+    ds_spec = DATASETS.get("IRALL", {})
     parser = argparse.ArgumentParser(description="Pseudotime vs. collection day validation")
     parser.add_argument("--data", type=str,
-                        default=str(BASE_DIR / "LAB" / "scRL" / "IRALL.h5ad"))
+                        default=ds_spec.get("path", "IRALL.h5ad"))
     parser.add_argument("--seeds", type=int, nargs="+", default=[42, 123, 456])
-    parser.add_argument("--epochs", type=int, default=150)
-    parser.add_argument("--max-cells", type=int, default=3000)
+    parser.add_argument("--epochs", type=int, default=TRAINING.get("epochs", 400))
+    parser.add_argument("--patience", type=int, default=TRAINING.get("patience", 60))
+    parser.add_argument("--max-cells", type=int, default=ds_spec.get("max_cells", 3000))
     parser.add_argument("--outdir", type=str,
                         default=str(_REPO_ROOT / "benchmarks" / "results" / "pseudotime_validation"))
     args = parser.parse_args()
@@ -164,7 +152,7 @@ def main():
             model = MoCoO(adata, **params)
 
             t0 = time.time()
-            model.fit(epochs=args.epochs, patience=30, val_every=5)
+            model.fit(epochs=args.epochs, patience=args.patience, val_every=5)
             train_time = time.time() - t0
 
             pt = get_pseudotime(model)

@@ -3,20 +3,17 @@
 Multi-seed benchmark runner for MoCoO ablation study.
 Addresses Major Concern M1: single-seed evaluation.
 
-Wraps the existing run_benchmark.py logic to run each configuration
-across N seeds on each dataset, then outputs seed-level results
-that can be fed into significance_tests.py.
+Runs each configuration across N seeds on each dataset, then outputs
+seed-level results that can be fed into significance_tests.py.
+
+All hyperparameters are loaded from the canonical YAML config
+(default.yaml) via the mocoo.configs API.
 
 Usage (GPU required):
     python run_multiseed.py --seeds 5 --datasets IRALL
-    python run_multiseed.py --seeds 5 --datasets IRALL dentate endo --epochs 300
-
-Estimated GPU time:
-    1 dataset × 6 configs × 5 seeds ≈ 1-2 hours (RTX 4090)
-    3 datasets × 6 configs × 5 seeds ≈ 4-6 hours
+    python run_multiseed.py --seeds 5 --datasets IRALL dentate endo
 """
 import argparse
-import json
 import os
 import sys
 import time
@@ -29,85 +26,23 @@ import pandas as pd
 warnings.filterwarnings("ignore", category=FutureWarning)
 warnings.filterwarnings("ignore", category=UserWarning, module="matplotlib")
 
-# Ensure MoCoO is importable
 _REPO_ROOT = Path(__file__).resolve().parent.parent.parent.parent
 sys.path.insert(0, str(_REPO_ROOT))
 
-# Also ensure pipeline scripts are importable
-sys.path.insert(0, str(_REPO_ROOT / "benchmarks" / "scripts" / "pipeline"))
-
-
-# ── Shared hyperparameters ──────────────────────────────────────────────────
-SHARED = dict(
-    latent_dim=32,
-    hidden_dim=128,
-    i_dim=4,
-    lr=1e-4,
-    batch_size=128,
-    beta=0.1,
-    recon=1.0,
-    loss_mode="nb",
-    train_size=0.7,
-    val_size=0.15,
-    test_size=0.15,
+from mocoo.configs import (
+    load_config,
+    get_shared_params,
+    get_model_configs,
+    get_training_params,
+    get_dataset_paths,
 )
 
-CONFIGS = {
-    "VAE": dict(use_ode=False, use_moco=False, use_prototype=False),
-    "VAE+ODE": dict(
-        use_ode=True, use_moco=False, use_prototype=False,
-        vae_reg=0.6, ode_reg=0.4,
-    ),
-    "VAE+MoCo": dict(
-        use_ode=False, use_moco=True, use_prototype=False,
-        moco_weight=0.5, moco_T=0.2, moco_K=4096,
-    ),
-    "VAE+MoCo+Proto": dict(
-        use_ode=False, use_moco=True, use_prototype=True,
-        n_prototypes=12, moco_weight=0.5, moco_T=0.2, moco_K=4096,
-        proto_weight=0.1,
-    ),
-    "VAE+ODE+MoCo": dict(
-        use_ode=True, use_moco=True, use_prototype=False,
-        vae_reg=0.6, ode_reg=0.4,
-        moco_weight=0.3, moco_T=0.2, moco_K=4096,
-    ),
-    "Full": dict(
-        use_ode=True, use_moco=True, use_prototype=True,
-        n_prototypes=12, vae_reg=0.6, ode_reg=0.4,
-        moco_weight=0.3, moco_T=0.2, moco_K=4096,
-        proto_weight=0.1,
-    ),
-}
-
-BASE_DIR = Path(os.environ.get("MOCOO_DATA_DIR", str(Path.home())))
-
-DATASET_SPECS = {
-    "IRALL": {
-        "path": str(BASE_DIR / "LAB" / "scRL" / "IRALL.h5ad"),
-        "cell_type_col": "cell_type",
-        "batch_col": "batch",
-        "epochs_default": 150,
-    },
-    "dentate": {
-        "path": str(BASE_DIR / "vGAE_LAB" / "data" / "dentate.h5ad"),
-        "cell_type_col": "Clusters",
-        "batch_col": None,
-        "epochs_default": 100,
-    },
-    "endo": {
-        "path": str(BASE_DIR / "vGAE_LAB" / "data" / "endo.h5ad"),
-        "cell_type_col": "clusters_fine",
-        "batch_col": "day",
-        "epochs_default": 100,
-    },
-    "paul": {
-        "path": str(BASE_DIR / "LAB" / "data" / "paul.h5ad"),
-        "cell_type_col": "paul15_clusters",
-        "batch_col": None,
-        "epochs_default": 100,
-    },
-}
+# ── Load all params from canonical YAML config ─────────────────────────────
+_CFG = load_config("default")
+SHARED = get_shared_params(_CFG)
+CONFIGS = get_model_configs(_CFG)
+TRAINING = get_training_params(_CFG)
+DATASET_SPECS = get_dataset_paths(_CFG)
 
 
 def load_dataset(path, max_cells, hvg, seed):
@@ -210,28 +145,28 @@ def main():
     parser.add_argument("--configs", nargs="+", default=None,
                         help="Subset of configs to run (default: all)")
     parser.add_argument("--epochs", type=int, default=None,
-                        help="Override default epochs for all datasets")
-    parser.add_argument("--max-cells", type=int, default=3000)
-    parser.add_argument("--hvg", type=int, default=3000)
-    parser.add_argument("--patience", type=int, default=50)
-    parser.add_argument("--val_every", type=int, default=5)
+                        help="Override epochs (default: from YAML config)")
+    parser.add_argument("--max-cells", type=int, default=None,
+                        help="Override max cells (default: per-dataset from YAML)")
+    parser.add_argument("--hvg", type=int, default=None,
+                        help="Override HVG count (default: per-dataset from YAML)")
+    parser.add_argument("--patience", type=int, default=None)
+    parser.add_argument("--val_every", type=int, default=None)
     parser.add_argument("--output_dir", type=str, default=None)
-    parser.add_argument("--beta", type=float, default=None,
-                        help="Override KL weight beta (default: use SHARED default)")
     parser.add_argument("--resume", action="store_true",
                         help="Skip configs/seeds already in output CSV")
     args = parser.parse_args()
 
     configs_to_run = args.configs or list(CONFIGS.keys())
-    if args.beta is not None:
-        SHARED["beta"] = args.beta
+    epochs = args.epochs or TRAINING.get("epochs", 400)
+    patience = args.patience or TRAINING.get("patience", 60)
+    val_every = args.val_every or TRAINING.get("val_every", 5)
     out_dir = Path(args.output_dir) if args.output_dir else \
-        BASE_DIR / "MoCoO" / "benchmarks" / "results" / "multiseed"
+        _REPO_ROOT / "benchmarks" / "results" / "multiseed"
     out_dir.mkdir(parents=True, exist_ok=True)
 
     for ds_name in args.datasets:
         ds_spec = DATASET_SPECS[ds_name]
-        epochs = args.epochs or ds_spec["epochs_default"]
         out_csv = out_dir / f"multiseed_{ds_name}.csv"
 
         # Resume support
@@ -241,13 +176,14 @@ def main():
             existing = set(zip(prev["config"], prev["seed"]))
             print(f"Resuming: {len(existing)} runs already completed for {ds_name}")
 
+        max_cells = args.max_cells or ds_spec.get("max_cells", 3000)
+        hvg = args.hvg or ds_spec.get("hvg", 3000)
+
         print(f"\n{'='*70}")
         print(f"DATASET: {ds_name} | epochs={epochs} | seeds={args.seeds}")
         print(f"{'='*70}")
 
-        # Load once per dataset (same subsample per seed? No, vary seed)
         all_rows = []
-
         total = len(configs_to_run) * args.seeds
         done = 0
 
@@ -260,14 +196,13 @@ def main():
 
                 print(f"\n  [{done}/{total}] {config_name} seed={seed}")
 
-                # Reload per seed to get different subsample
-                adata = load_dataset(ds_spec["path"], args.max_cells, args.hvg, seed=seed)
+                adata = load_dataset(ds_spec["path"], max_cells, hvg, seed=seed)
                 adata.obs["cell_type"] = adata.obs[ds_spec["cell_type_col"]].values
 
                 try:
                     metrics = train_and_evaluate(
                         adata, config_name, CONFIGS[config_name],
-                        seed, epochs, args.patience, args.val_every
+                        seed, epochs, patience, val_every
                     )
                     metrics["dataset"] = ds_name
                     all_rows.append(metrics)
@@ -301,7 +236,8 @@ def main():
 
     print(f"\nAll results saved to {out_dir}/")
     print("\nNext: Run significance tests:")
-    print(f"  python significance_tests.py --input {out_dir}/multiseed_IRALL.csv")
+    print(f"  python benchmarks/scripts/evaluation/significance_tests.py "
+          f"--input {out_dir}/multiseed_IRALL.csv")
 
 
 if __name__ == "__main__":

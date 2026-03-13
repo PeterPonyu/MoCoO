@@ -9,7 +9,9 @@ Compares pseudotime estimates from:
 3. Palantir
 
 Against the ground truth 'pseudotime' or 'collection_day' column.
-Metric: Spearman rank correlation |ρ|.
+Metric: Spearman rank correlation |rho|.
+
+All MoCoO hyperparameters are loaded from the canonical YAML config.
 
 Usage:
     python benchmarks/scripts/evaluation/trajectory_baselines.py
@@ -27,38 +29,36 @@ warnings.filterwarnings("ignore")
 _REPO_ROOT = Path(__file__).resolve().parent.parent.parent.parent
 sys.path.insert(0, str(_REPO_ROOT))
 
-BASE_DIR = Path(os.environ.get("MOCOO_DATA_DIR", str(Path.home())))
+from mocoo.configs import (
+    load_config,
+    get_shared_params,
+    get_model_configs,
+    get_training_params,
+    get_dataset_paths,
+)
 
+# ── Load all params from canonical YAML config ─────────────────────────────
+_CFG = load_config("default")
+SHARED = get_shared_params(_CFG)
+ALL_CONFIGS = get_model_configs(_CFG)
+TRAINING = get_training_params(_CFG)
+_ALL_DATASETS = get_dataset_paths(_CFG)
 
+# Only ODE-containing configs are relevant for trajectory comparison
+MOCOO_CONFIGS = {k: v for k, v in ALL_CONFIGS.items() if v.get("use_ode", False)}
+
+# IRALL has ground-truth pseudotime
 DATASETS = {
     "IRALL": {
-        "path": str(BASE_DIR / "LAB" / "scRL" / "IRALL.h5ad"),
+        "path": _ALL_DATASETS["IRALL"]["path"],
         "time_col": "pseudotime",
-        "cell_type_col": "cell_type",
-        "max_cells": 3000,
+        "cell_type_col": _ALL_DATASETS["IRALL"]["cell_type_col"],
+        "max_cells": _ALL_DATASETS["IRALL"].get("max_cells", 3000),
     },
 }
 
-SHARED = dict(
-    latent_dim=32, hidden_dim=128, i_dim=4, lr=1e-4,
-    batch_size=128, beta=0.1, recon=1.0, loss_mode="nb",
-    train_size=0.7, val_size=0.15, test_size=0.15,
-)
 
-MOCOO_CONFIGS = {
-    "VAE+ODE": dict(use_ode=True, use_moco=False, use_prototype=False,
-                    vae_reg=0.6, ode_reg=0.4),
-    "VAE+ODE+MoCo": dict(use_ode=True, use_moco=True, use_prototype=False,
-                         vae_reg=0.6, ode_reg=0.4,
-                         moco_weight=0.3, moco_T=0.2, moco_K=4096),
-    "Full": dict(use_ode=True, use_moco=True, use_prototype=True,
-                 n_prototypes=12, vae_reg=0.6, ode_reg=0.4,
-                 moco_weight=0.3, moco_T=0.2, moco_K=4096,
-                 proto_weight=0.1),
-}
-
-
-def load_dataset(path, max_cells, seed=42):
+def load_dataset(path, max_cells, seed=42, hvg=3000):
     import scanpy as sc
     from scipy.sparse import issparse
 
@@ -73,11 +73,12 @@ def load_dataset(path, max_cells, seed=42):
 
     sc.pp.normalize_total(adata, target_sum=1e4)
     sc.pp.log1p(adata)
-    try:
-        sc.pp.highly_variable_genes(adata, n_top_genes=2000, flavor="seurat_v3", layer="counts")
-    except Exception:
-        sc.pp.highly_variable_genes(adata, n_top_genes=2000)
-    adata = adata[:, adata.var["highly_variable"]].copy()
+    if adata.n_vars > hvg:
+        try:
+            sc.pp.highly_variable_genes(adata, n_top_genes=hvg, flavor="seurat_v3", layer="counts")
+        except Exception:
+            sc.pp.highly_variable_genes(adata, n_top_genes=hvg)
+        adata = adata[:, adata.var["highly_variable"]].copy()
     return adata
 
 
@@ -142,9 +143,12 @@ def compute_mocoo_pseudotime(adata, config_name, config, seed=42):
 
     params = {**SHARED, **config, "random_seed": seed}
     model = MoCoO(adata.copy(), **params)
-    model.fit(epochs=150, patience=50, val_every=5)
+    model.fit(
+        epochs=TRAINING.get("epochs", 400),
+        patience=TRAINING.get("patience", 60),
+        val_every=TRAINING.get("val_every", 5),
+    )
 
-    # Extract pseudotime from ODE
     ptime = model.get_pseudotime()
     return ptime
 
