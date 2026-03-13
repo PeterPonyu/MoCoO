@@ -27,8 +27,8 @@ SHELL := /bin/bash
 
 # ── Overridable variables ─────────────────────────────────────────────────
 PYTHON        ?= python
-EPOCHS        ?= 150
-PATIENCE      ?= 30
+EPOCHS        ?= 400
+PATIENCE      ?= 60
 MAX_CELLS     ?= 3000
 HVG           ?= 3000
 DATA_DIR      ?= $(MOCOO_DATA_DIR)
@@ -37,8 +37,8 @@ N_SEEDS       ?= 5
 DATASETS      ?= IRALL dentate endo paul spinoids
 
 # Beta ablation specific (Series 1)
-BETA_EPOCHS   ?= 200
-BETA_PATIENCE ?= 40
+BETA_EPOCHS   ?= 400
+BETA_PATIENCE ?= 60
 BETA_VALUES   ?= 0.01 0.1 1.0
 
 # ── Derived paths (project-relative) ─────────────────────────────────────

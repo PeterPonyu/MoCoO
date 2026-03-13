@@ -15,7 +15,7 @@ class MoCoOModel(scviMixin, dipMixin, betatcMixin, infoMixin):
     
     def __init__(
         self,
-        recon, irecon, beta, dip, tc, info,
+        recon, beta, dip, tc, info,
         state_dim, hidden_dim, latent_dim, i_dim,
         use_ode, use_moco, loss_mode, lr,
         vae_reg, ode_reg, moco_weight, use_qm, moco_T, moco_K,
@@ -29,7 +29,6 @@ class MoCoOModel(scviMixin, dipMixin, betatcMixin, infoMixin):
         self.use_qm = use_qm
         self.loss_mode = loss_mode
         self.recon = recon
-        self.irecon = irecon
         self.beta = beta
         self.dip = dip
         self.tc = tc
@@ -203,14 +202,6 @@ class MoCoOModel(scviMixin, dipMixin, betatcMixin, infoMixin):
             qz_div = torch.tensor(0.0, device=self.device)
             vel_loss = torch.tensor(0.0, device=self.device)
         
-        if self.irecon:
-            x_target = x_raw_sorted if self.use_ode else x_raw_t
-            irecon_loss = self.irecon * self._compute_recon_loss(
-                x_target, out['pred_xl'], out.get('dropout_xl')
-            )
-        else:
-            irecon_loss = torch.tensor(0.0, device=self.device)
-        
         moco_loss = torch.tensor(0.0, device=self.device)
         cross_loss = torch.tensor(0.0, device=self.device)
         proto_loss = torch.tensor(0.0, device=self.device)
@@ -237,7 +228,6 @@ class MoCoOModel(scviMixin, dipMixin, betatcMixin, infoMixin):
         
         total_loss = (
             self.recon * recon_loss +
-            irecon_loss +
             qz_div +
             self.ode_reg * 0.1 * vel_loss +
             kl_div +
@@ -256,7 +246,6 @@ class MoCoOModel(scviMixin, dipMixin, betatcMixin, infoMixin):
         self.loss.append((
             total_loss.item(),
             recon_loss.item(),
-            irecon_loss.item() if isinstance(irecon_loss, torch.Tensor) else irecon_loss,
             kl_div.item(),
             dip_loss.item() if isinstance(dip_loss, torch.Tensor) else dip_loss,
             tc_loss.item() if isinstance(tc_loss, torch.Tensor) else tc_loss,

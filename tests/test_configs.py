@@ -19,7 +19,8 @@ class TestConfigLoading:
         shared = get_shared_params(cfg)
         assert isinstance(shared, dict)
         assert "latent_dim" in shared
-        assert shared["latent_dim"] == 32
+        assert shared["latent_dim"] == 10
+        assert shared["i_dim"] == 2
 
     def test_get_model_configs(self):
         cfg = load_config("default")
@@ -63,12 +64,15 @@ class TestConfigLoading:
     def test_moco_weight_resolution(self):
         cfg = load_config("default")
         configs = get_model_configs(cfg)
-        # VAE+MoCo (no ODE) should get moco_weight_without_ode = 0.5
+        # VAE+MoCo (no ODE) should get the untuned baseline moco weight = 1.0
         vae_moco = configs["VAE+MoCo"]
-        assert vae_moco["moco_weight"] == 0.5
-        # Full (with ODE) should get moco_weight_with_ode = 0.3
+        assert vae_moco["moco_weight"] == 1.0
+        # Full (with ODE) should also get the untuned baseline moco weight = 1.0
         full = configs["Full"]
-        assert full["moco_weight"] == 0.3
+        assert full["moco_weight"] == 1.0
+        assert full["vae_reg"] == 0.5
+        assert full["ode_reg"] == 0.5
+        assert full["proto_weight"] == 1.0
 
     def test_get_training_params(self):
         from mocoo.configs import get_training_params
@@ -121,8 +125,8 @@ class TestConfigLoading:
         from mocoo.configs import get_training_params
         cfg = load_config("beta_ablation")
         training = get_training_params(cfg)
-        assert training["epochs"] == 200
-        assert training["patience"] == 40
+        assert training["epochs"] == 400
+        assert training["patience"] == 60
         assert training["val_every"] == 5
 
     def test_beta_ablation_has_all_configs(self):

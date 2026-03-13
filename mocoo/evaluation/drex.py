@@ -1,7 +1,8 @@
 """Extended Dimensionality Reduction metrics (DREX).
 
+Aligned with PanODE-LAB eval_lib reference implementation.
 Metrics: trustworthiness, continuity, distance correlations (Spearman, Pearson),
-local scale quality, neighborhood symmetry, kNN rank correlation.
+local scale quality, neighborhood symmetry.
 """
 
 import numpy as np
@@ -46,7 +47,7 @@ def compute_drex_metrics(
     projection_2d: np.ndarray,
     k: int = 15,
 ) -> dict:
-    """Compute DREX metrics.
+    """Compute DREX metrics (eval_lib aligned).
 
     Parameters
     ----------
@@ -60,8 +61,7 @@ def compute_drex_metrics(
     dict
         Keys: DREX_trustworthiness, DREX_continuity, DREX_distance_spearman,
         DREX_distance_pearson, DREX_local_scale_quality,
-        DREX_neighborhood_symmetry, DREX_knn_rank_correlation,
-        DREX_overall_quality.
+        DREX_neighborhood_symmetry, DREX_overall_quality.
     """
     latent = np.asarray(latent, dtype=float)
     projection_2d = np.asarray(projection_2d, dtype=float)
@@ -104,43 +104,15 @@ def compute_drex_metrics(
             sym += len(s_h & s_l) / k
         m["DREX_neighborhood_symmetry"] = sym / latent.shape[0]
 
-        # kNN rank correlation: per-point Spearman of neighbor ranks
-        n_rank = min(latent.shape[0], 2000)
-        rank_corr_sum = 0.0
-        rank_count = 0
-        rng = np.random.RandomState(42)
-        rank_idx = (
-            rng.choice(latent.shape[0], n_rank, replace=False)
-            if latent.shape[0] > n_rank
-            else np.arange(latent.shape[0])
-        )
-        for i in rank_idx:
-            nbrs_h = knn_h[i]
-            nbrs_l = knn_l[i]
-            common = set(nbrs_h) & set(nbrs_l)
-            if len(common) >= 3:
-                common_list = sorted(common)
-                rank_h = {v: r for r, v in enumerate(nbrs_h) if v in common}
-                rank_l = {v: r for r, v in enumerate(nbrs_l) if v in common}
-                rh = [rank_h[c] for c in common_list]
-                rl = [rank_l[c] for c in common_list]
-                corr = spearmanr(rh, rl).correlation
-                if np.isfinite(corr):
-                    rank_corr_sum += corr
-                    rank_count += 1
-        m["DREX_knn_rank_correlation"] = (
-            rank_corr_sum / rank_count if rank_count > 0 else 0.0
-        )
-
-        # Weighted overall: downweight near-ceiling trustworthiness/continuity
-        m["DREX_overall_quality"] = float(
-            0.05 * m["DREX_trustworthiness"]
-            + 0.05 * m["DREX_continuity"]
-            + 0.25 * max(0, m["DREX_distance_spearman"])
-            + 0.20 * max(0, m["DREX_distance_pearson"])
-            + 0.20 * max(0, m["DREX_local_scale_quality"])
-            + 0.25 * m["DREX_neighborhood_symmetry"]
-        )
+        # Unweighted mean overall (eval_lib aligned)
+        m["DREX_overall_quality"] = float(np.mean([
+            m["DREX_trustworthiness"],
+            m["DREX_continuity"],
+            max(0, m["DREX_distance_spearman"]),
+            max(0, m["DREX_distance_pearson"]),
+            max(0, m["DREX_local_scale_quality"]),
+            m["DREX_neighborhood_symmetry"],
+        ]))
     except Exception:
         for key in (
             "trustworthiness",
@@ -149,7 +121,6 @@ def compute_drex_metrics(
             "distance_pearson",
             "local_scale_quality",
             "neighborhood_symmetry",
-            "knn_rank_correlation",
             "overall_quality",
         ):
             m[f"DREX_{key}"] = np.nan

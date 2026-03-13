@@ -21,9 +21,9 @@
 # Shared model hyperparameters (constant across all 6 configurations)
 # -----------------------------------------------------------------------------
 shared: &shared
-  latent_dim: 32         # Latent space dimensionality
+  latent_dim: 10         # Latent space dimensionality
   hidden_dim: 128        # Hidden layer width in encoder/decoder
-  i_dim: 4              # Integration (ODE) state dimensionality
+  i_dim: 2               # Bottleneck / integration state dimensionality
   lr: 1.0e-4            # Adam learning rate
   batch_size: 128        # Training mini-batch size
   beta: 1.0             # KL divergence weight
@@ -48,33 +48,27 @@ moco: &moco
 # -----------------------------------------------------------------------------
 # Loss weights for ODE and contrastive components
 # -----------------------------------------------------------------------------
-# These weights control the VAE-ODE loss split and MoCo contribution.
+# These weights use the untuned baseline requested for the next training run.
 #
 # ODE regularization weights (must sum to 1.0):
 #   vae_reg + ode_reg = 1.0
-#   vae_reg=0.6 means 60% of the combined loss comes from the VAE branch,
-#   ode_reg=0.4 means 40% comes from the ODE branch.
+#   vae_reg=0.5 and ode_reg=0.5 give equal weight to both paths.
 #
-# MoCo weight depends on whether ODE is active:
-#   - With ODE:    moco_weight=0.3 (lower to balance three loss terms)
-#   - Without ODE: moco_weight=0.5 (higher since only two loss terms)
-#
-# Prototype weight:
-#   proto_weight=0.1 (additive prototype-contrastive regularizer)
+# MoCo and prototype weights are kept at the unfine-tuned baseline of 1.0.
 loss_weights:
-  vae_reg: 0.6           # VAE loss fraction (in VAE+ODE split)
-  ode_reg: 0.4           # ODE loss fraction (in VAE+ODE split)
-  moco_weight_with_ode: 0.3     # MoCo weight when ODE is enabled
-  moco_weight_without_ode: 0.5  # MoCo weight when ODE is disabled
-  proto_weight: 0.1      # Prototype contrastive loss weight
+  vae_reg: 0.5           # VAE loss fraction (in VAE+ODE split)
+  ode_reg: 0.5           # ODE loss fraction (in VAE+ODE split)
+  moco_weight_with_ode: 1.0     # MoCo weight when ODE is enabled
+  moco_weight_without_ode: 1.0  # MoCo weight when ODE is disabled
+  proto_weight: 1.0      # Prototype contrastive loss weight
 
 
 # -----------------------------------------------------------------------------
 # Training schedule
 # -----------------------------------------------------------------------------
 training: &training
-  epochs: 150            # Maximum training epochs
-  patience: 30           # Early stopping patience (epochs without val improvement)
+  epochs: 400            # Maximum training epochs
+  patience: 60           # Early stopping patience (epochs without val improvement)
   val_every: 5           # Validate every N epochs
 
 
@@ -148,25 +142,25 @@ datasets:
 
 _ode_params: &ode_params
   use_ode: true
-  vae_reg: 0.6
-  ode_reg: 0.4
+  vae_reg: 0.5
+  ode_reg: 0.5
 
 _moco_params_no_ode: &moco_params_no_ode
   use_moco: true
-  moco_weight: 0.5
+  moco_weight: 1.0
   moco_T: 0.2
   moco_K: 4096
 
 _moco_params_with_ode: &moco_params_with_ode
   use_moco: true
-  moco_weight: 0.3
+  moco_weight: 1.0
   moco_T: 0.2
   moco_K: 4096
 
 _proto_params: &proto_params
   use_prototype: true
   n_prototypes: 12
-  proto_weight: 0.1
+  proto_weight: 1.0
 
 
 # -- The 6 ablation configurations -------------------------------------------
@@ -190,18 +184,18 @@ configs:
   VAE+MoCo+Proto:
     <<: [*moco_params_no_ode, *proto_params]
     use_ode: false
-    # moco_params_no_ode sets use_moco: true, moco_weight: 0.5
-    # proto_params sets use_prototype: true, n_prototypes: 12, proto_weight: 0.1
+    # moco_params_no_ode sets use_moco: true, moco_weight: 1.0
+    # proto_params sets use_prototype: true, n_prototypes: 12, proto_weight: 1.0
 
   VAE+ODE+MoCo:
     <<: [*ode_params, *moco_params_with_ode]
     use_prototype: false
-    # ode_params sets use_ode: true, vae_reg: 0.6, ode_reg: 0.4
-    # moco_params_with_ode sets use_moco: true, moco_weight: 0.3
+    # ode_params sets use_ode: true, vae_reg: 0.5, ode_reg: 0.5
+    # moco_params_with_ode sets use_moco: true, moco_weight: 1.0
 
   Full:
     <<: [*ode_params, *moco_params_with_ode, *proto_params]
     # All components enabled:
-    #   use_ode: true, vae_reg: 0.6, ode_reg: 0.4
-    #   use_moco: true, moco_weight: 0.3
-    #   use_prototype: true, n_prototypes: 12, proto_weight: 0.1
+    #   use_ode: true, vae_reg: 0.5, ode_reg: 0.5
+    #   use_moco: true, moco_weight: 1.0
+    #   use_prototype: true, n_prototypes: 12, proto_weight: 1.0

@@ -6,7 +6,7 @@
 # Runs ALL 6 model configurations across beta={0.01, 0.1, 1.0} with
 # sufficient training for complex models (Full MoCoO) to converge.
 #
-#   - 200 epochs with patience 40
+#   - 400 epochs with patience 60
 #   - All 6 configurations
 #   - 3000 cells (matches full-scale protocol)
 # =============================================================================
@@ -16,9 +16,9 @@
 # Shared model hyperparameters (same as default.yaml, beta excluded)
 # -----------------------------------------------------------------------------
 shared: &shared
-  latent_dim: 32
+  latent_dim: 10
   hidden_dim: 128
-  i_dim: 4
+  i_dim: 2
   lr: 1.0e-4
   batch_size: 128
   recon: 1.0
@@ -34,8 +34,8 @@ shared: &shared
 # Training schedule (sufficient for Full model convergence)
 # -----------------------------------------------------------------------------
 training:
-  epochs: 200
-  patience: 40
+  epochs: 400
+  patience: 60
   val_every: 5
 
 
@@ -61,11 +61,11 @@ sweep:
 # Loss weights
 # -----------------------------------------------------------------------------
 loss_weights:
-  vae_reg: 0.6
-  ode_reg: 0.4
-  moco_weight_with_ode: 0.3
-  moco_weight_without_ode: 0.5
-  proto_weight: 0.1
+  vae_reg: 0.5
+  ode_reg: 0.5
+  moco_weight_with_ode: 1.0
+  moco_weight_without_ode: 1.0
+  proto_weight: 1.0
 
 
 # -----------------------------------------------------------------------------
@@ -76,25 +76,25 @@ loss_weights:
 
 _ode_params: &ode_params
   use_ode: true
-  vae_reg: 0.6
-  ode_reg: 0.4
+  vae_reg: 0.5
+  ode_reg: 0.5
 
 _moco_params_no_ode: &moco_params_no_ode
   use_moco: true
-  moco_weight: 0.5
+  moco_weight: 1.0
   moco_T: 0.2
   moco_K: 4096
 
 _moco_params_with_ode: &moco_params_with_ode
   use_moco: true
-  moco_weight: 0.3
+  moco_weight: 1.0
   moco_T: 0.2
   moco_K: 4096
 
 _proto_params: &proto_params
   use_prototype: true
   n_prototypes: 12
-  proto_weight: 0.1
+  proto_weight: 1.0
 
 
 configs:

@@ -380,7 +380,6 @@ class VAE(nn.Module, NODEMixin):
             )
         
         self.latent_encoder = nn.Linear(action_dim, i_dim).to(device)
-        self.latent_decoder = nn.Linear(i_dim, action_dim).to(device)
     
     def _decode(self, z: torch.Tensor) -> dict:
         out = self.decoder(z)
@@ -432,13 +431,9 @@ class VAE(nn.Module, NODEMixin):
             q_z_ode = self.solve_ode(self.ode_solver, z0, t)
             velocity = self.ode_solver(t, q_z)
             
-            le = self.latent_encoder(q_z)
-            ld = self.latent_decoder(le)
-            
             # Dual-path reconstruction: encoder path + ODE path
             vae_dec = self._decode(q_z)          # encoder-derived latent
             ode_dec = self._decode(q_z_ode)      # ODE-derived latent
-            btl_dec = self._decode(ld)
             
             result.update({
                 'q_z': q_z, 'q_m': q_m, 'q_s': q_s,
@@ -446,7 +441,6 @@ class VAE(nn.Module, NODEMixin):
                 'sort_idx': idxs,
                 'pred_x': vae_dec['pred'], 'dropout_x': vae_dec['dropout'],
                 'pred_x_ode': ode_dec['pred'], 'dropout_x_ode': ode_dec['dropout'],
-                'le': le, 'pred_xl': btl_dec['pred'], 'dropout_xl': btl_dec['dropout'],
                 'q_z_ode': q_z_ode,
                 'velocity': velocity,
             })
@@ -464,16 +458,11 @@ class VAE(nn.Module, NODEMixin):
         else:
             q_z, q_m, q_s = self.encoder(x)
             
-            le = self.latent_encoder(q_z)
-            ld = self.latent_decoder(le)
-            
             vae_dec = self._decode(q_z)
-            btl_dec = self._decode(ld)
             
             result.update({
                 'q_z': q_z, 'q_m': q_m, 'q_s': q_s,
                 'pred_x': vae_dec['pred'], 'dropout_x': vae_dec['dropout'],
-                'le': le, 'pred_xl': btl_dec['pred'], 'dropout_xl': btl_dec['dropout'],
             })
             
             if self.use_moco and x_q is not None and x_k is not None:

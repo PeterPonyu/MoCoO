@@ -24,7 +24,6 @@ class Env(MoCoOModel, envMixin):
         adata,
         layer: str,
         recon: float,
-        irecon: float,
         beta: float,
         dip: float,
         tc: float,
@@ -72,7 +71,6 @@ class Env(MoCoOModel, envMixin):
         
         super().__init__(
             recon=recon,
-            irecon=irecon,
             beta=beta,
             dip=dip,
             tc=tc,
@@ -121,16 +119,15 @@ class Env(MoCoOModel, envMixin):
         X_norm = np.log1p(X_raw).astype(np.float32)
         
         if 'cell_type' in adata.obs.columns:
-            self.labels = LabelEncoder().fit_transform(adata.obs['cell_type'])
-            print(f"✓ Using 'cell_type' labels: {len(np.unique(self.labels))} types")
-        else:
-            print(f"⚠ Generating KMeans pseudo-labels with {latent_dim} clusters...")
-            self.labels = KMeans(
-                n_clusters=latent_dim,
-                n_init=10,
-                max_iter=300,
-                random_state=self.random_seed
-            ).fit_predict(X_norm)
+            print(f"  ℹ 'cell_type' column found but using KMeans pseudo-labels for consistency")
+        n_clusters = latent_dim
+        print(f"  Generating KMeans pseudo-labels with {n_clusters} clusters...")
+        self.labels = KMeans(
+            n_clusters=n_clusters,
+            n_init=10,
+            max_iter=300,
+            random_state=self.random_seed
+        ).fit_predict(X_norm)
         
         np.random.seed(self.random_seed)
         indices = np.random.permutation(self.n_obs)
@@ -278,18 +275,11 @@ class Env(MoCoOModel, envMixin):
         else:
             recon_loss = recon_loss_ec
         
-        if self.irecon > 0:
-            irecon_loss = self.irecon * self._compute_recon_loss(
-                x_target, out['pred_xl'], out.get('dropout_xl')
-            )
-        else:
-            irecon_loss = torch.tensor(0.0, device=self.device)
-        
         p_m = torch.zeros_like(q_m)
         p_s = torch.zeros_like(q_s)
         kl_loss = self.beta * self._normal_kl(q_m, q_s, p_m, p_s).sum(dim=-1).mean()
         
-        return self.recon * recon_loss + irecon_loss + kl_loss
+        return self.recon * recon_loss + kl_loss
     
     def check_early_stopping(self, val_loss: float, patience: int = 25) -> Tuple[bool, bool]:
         if val_loss < self.best_val_loss:

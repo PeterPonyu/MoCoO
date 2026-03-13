@@ -213,7 +213,7 @@ def test_config_loss_history(sim_adata, use_ode, use_moco, loss_mode):
     model.fit(epochs=2, patience=5, val_every=1)
 
     assert len(model.loss) > 0, "No loss entries recorded"
-    assert len(model.loss[-1]) == 11, f"Expected 11-tuple, got {len(model.loss[-1])}"
+    assert len(model.loss[-1]) == 10, f"Expected 10-tuple, got {len(model.loss[-1])}"
 
     for i, val in enumerate(model.loss[-1]):
         assert np.isfinite(val), f"Loss component {i} is not finite: {val}"
@@ -262,7 +262,7 @@ def test_moco_loss_nonzero(sim_adata):
     model = _build_model(sim_adata, use_ode=False, use_moco=True, loss_mode='nb')
     model.fit(epochs=3, patience=5, val_every=1)
 
-    moco_losses = [l[7] for l in model.loss]
+    moco_losses = [l[6] for l in model.loss]
     assert any(m > 0 for m in moco_losses), "All MoCo losses are zero"
 
 
@@ -271,8 +271,8 @@ def test_cross_path_loss_with_ode_moco(sim_adata):
     model = _build_model(sim_adata, use_ode=True, use_moco=True, loss_mode='nb')
     model.fit(epochs=3, patience=5, val_every=1)
 
-    cross_losses = [l[8] for l in model.loss]
-    vel_losses = [l[9] for l in model.loss]
+    cross_losses = [l[7] for l in model.loss]
+    vel_losses = [l[8] for l in model.loss]
     assert any(c > 0 for c in cross_losses), "Cross-path losses all zero with ODE+MoCo"
     assert any(v > 0 for v in vel_losses), "Velocity losses all zero with ODE"
 
@@ -436,8 +436,7 @@ def test_metrics_table_all_configs(sim_adata):
     ("dip", {"dip": 1.0}),
     ("tc", {"tc": 1.0}),
     ("info", {"info": 1.0}),
-    ("irecon", {"irecon": 1.0}),
-    ("combined", {"dip": 0.5, "tc": 0.5, "info": 0.5, "irecon": 0.5}),
+    ("combined", {"dip": 0.5, "tc": 0.5, "info": 0.5}),
 ])
 def test_regularizer_configs(sim_adata, reg_name, reg_kwargs):
     """Each disentanglement regularizer should train without error."""

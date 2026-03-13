@@ -24,7 +24,7 @@ class MoCoO(Env, VectorFieldMixin):
         Annotated data matrix
     layer : str, default='counts'
         Layer containing raw counts
-    recon, irecon, beta, dip, tc, info : float
+    recon, beta, dip, tc, info : float
         Loss weights
     hidden_dim : int, default=128
         Hidden layer size
@@ -73,7 +73,6 @@ class MoCoO(Env, VectorFieldMixin):
         adata: AnnData,
         layer: str = 'counts',
         recon: float = 1.0,
-        irecon: float = 0.0,
         beta: float = 1.0,
         dip: float = 0.0,
         tc: float = 0.0,
@@ -85,14 +84,14 @@ class MoCoO(Env, VectorFieldMixin):
         use_moco: bool = False,
         loss_mode: str = 'nb',
         lr: float = 1e-4,
-        vae_reg: float = 0.6,
-        ode_reg: float = 0.4,
-        moco_weight: float = 0.5,
+        vae_reg: float = 0.5,
+        ode_reg: float = 0.5,
+        moco_weight: float = 1.0,
         moco_T: float = 0.2,
         moco_K: int = 4096,
         use_prototype: bool = False,
         n_prototypes: int = 12,
-        proto_weight: float = 0.1,
+        proto_weight: float = 1.0,
         aug_prob: float = 0.5,
         mask_prob: float = 0.1,
         noise_prob: float = 0.1,
@@ -127,7 +126,6 @@ class MoCoO(Env, VectorFieldMixin):
             adata=adata,
             layer=layer,
             recon=recon,
-            irecon=irecon,
             beta=beta,
             dip=dip,
             tc=tc,

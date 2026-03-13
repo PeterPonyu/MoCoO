@@ -83,7 +83,7 @@ _DISPLAY_NAMES: Dict[str, str] = {
     "VAE+MoCo+Proto": "VAE+MoCo+Proto",
     "VAE_ODE_MoCo": "VAE+ODE+MoCo",
     "VAE+ODE+MoCo": "VAE+ODE+MoCo",
-    "Full": "Full",
+    "Full": "MoCoO",
 }
 
 # Ultra-short abbreviations for tight x-tick labels

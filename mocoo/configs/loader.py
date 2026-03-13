@@ -15,7 +15,7 @@ get_shared_params(config) -> dict
 get_model_configs(config) -> dict[str, dict]
     Build the 6 ablation configurations, each ready to be unpacked as
     ``MoCoO(adata, **shared | config_params)``.  Automatically resolves
-    the conditional moco_weight (0.3 with ODE, 0.5 without ODE).
+    the conditional moco_weight (1.0 for both ODE and non-ODE configs).
 
 get_training_params(config) -> dict
     Extract training schedule parameters (epochs, patience, val_every).
@@ -75,9 +75,9 @@ except ImportError:
 # These mirror the canonical values in default.yaml exactly.
 
 _BUILTIN_SHARED = dict(
-    latent_dim=32,
+    latent_dim=10,
     hidden_dim=128,
-    i_dim=4,
+    i_dim=2,
     lr=1e-4,
     batch_size=128,
     beta=1.0,
@@ -97,16 +97,16 @@ _BUILTIN_MOCO = dict(
 )
 
 _BUILTIN_LOSS_WEIGHTS = dict(
-    vae_reg=0.6,
-    ode_reg=0.4,
-    moco_weight_with_ode=0.3,
-    moco_weight_without_ode=0.5,
-    proto_weight=0.1,
+    vae_reg=0.5,
+    ode_reg=0.5,
+    moco_weight_with_ode=1.0,
+    moco_weight_without_ode=1.0,
+    proto_weight=1.0,
 )
 
 _BUILTIN_TRAINING = dict(
-    epochs=150,
-    patience=30,
+    epochs=400,
+    patience=60,
     val_every=5,
 )
 
@@ -159,27 +159,27 @@ _BUILTIN_CONFIGS = {
     ),
     "VAE+ODE": dict(
         use_ode=True, use_moco=False, use_prototype=False,
-        vae_reg=0.6, ode_reg=0.4,
+        vae_reg=0.5, ode_reg=0.5,
     ),
     "VAE+MoCo": dict(
         use_ode=False, use_moco=True, use_prototype=False,
-        moco_weight=0.5, moco_T=0.2, moco_K=4096,
+        moco_weight=1.0, moco_T=0.2, moco_K=4096,
     ),
     "VAE+MoCo+Proto": dict(
         use_ode=False, use_moco=True, use_prototype=True,
-        moco_weight=0.5, moco_T=0.2, moco_K=4096,
-        n_prototypes=12, proto_weight=0.1,
+        moco_weight=1.0, moco_T=0.2, moco_K=4096,
+        n_prototypes=12, proto_weight=1.0,
     ),
     "VAE+ODE+MoCo": dict(
         use_ode=True, use_moco=True, use_prototype=False,
-        vae_reg=0.6, ode_reg=0.4,
-        moco_weight=0.3, moco_T=0.2, moco_K=4096,
+        vae_reg=0.5, ode_reg=0.5,
+        moco_weight=1.0, moco_T=0.2, moco_K=4096,
     ),
     "Full": dict(
         use_ode=True, use_moco=True, use_prototype=True,
-        vae_reg=0.6, ode_reg=0.4,
-        moco_weight=0.3, moco_T=0.2, moco_K=4096,
-        n_prototypes=12, proto_weight=0.1,
+        vae_reg=0.5, ode_reg=0.5,
+        moco_weight=1.0, moco_T=0.2, moco_K=4096,
+        n_prototypes=12, proto_weight=1.0,
     ),
 }
 
@@ -200,13 +200,13 @@ def _builtin_beta_ablation() -> dict:
     """Return the built-in beta ablation config as a plain dict.
 
     Proper experimental settings for the beta ablation study (Tables I-V):
-    - 200 epochs (sufficient for Full model convergence)
-    - patience 40
+    - 400 epochs (sufficient for Full model convergence)
+    - patience 60
     - All 6 model configurations
     """
     return {
         "shared": {k: v for k, v in _BUILTIN_SHARED.items() if k != "beta"},
-        "training": dict(epochs=200, patience=40, val_every=5),
+        "training": dict(epochs=400, patience=60, val_every=5),
         "sweep": dict(parameter="beta", values=[0.01, 0.1, 1.0]),
         "loss_weights": copy.deepcopy(_BUILTIN_LOSS_WEIGHTS),
         "configs": copy.deepcopy(_BUILTIN_CONFIGS),
@@ -347,11 +347,11 @@ def get_model_configs(config: dict) -> Dict[str, dict]:
     returns a dict of model-specific parameters that can be merged with
     the shared params via ``{**shared, **model_cfg}``.
 
-    The conditional ``moco_weight`` logic is handled automatically:
-    - If a config has ``use_ode=True`` and ``use_moco=True`` but no
-      explicit ``moco_weight``, it gets ``moco_weight_with_ode`` (0.3).
-    - If a config has ``use_ode=False`` and ``use_moco=True`` but no
-      explicit ``moco_weight``, it gets ``moco_weight_without_ode`` (0.5).
+        The conditional ``moco_weight`` logic is handled automatically:
+        - If a config has ``use_ode=True`` and ``use_moco=True`` but no
+            explicit ``moco_weight``, it gets ``moco_weight_with_ode`` (1.0).
+        - If a config has ``use_ode=False`` and ``use_moco=True`` but no
+            explicit ``moco_weight``, it gets ``moco_weight_without_ode`` (1.0).
 
     Parameters
     ----------
@@ -377,11 +377,11 @@ def get_model_configs(config: dict) -> Dict[str, dict]:
         if uses_moco and "moco_weight" not in resolved:
             if uses_ode:
                 resolved["moco_weight"] = loss_weights.get(
-                    "moco_weight_with_ode", 0.3
+                    "moco_weight_with_ode", 1.0
                 )
             else:
                 resolved["moco_weight"] = loss_weights.get(
-                    "moco_weight_without_ode", 0.5
+                    "moco_weight_without_ode", 1.0
                 )
 
         result[name] = resolved

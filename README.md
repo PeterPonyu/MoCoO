@@ -33,7 +33,6 @@ MoCoO is a unified deep learning framework that combines Variational Autoencoder
 - **VAE-based dimensionality reduction** with multiple count-based likelihoods (MSE, NB, ZINB, Poisson, ZIP)
 - **Neural ODE** for continuous trajectory modeling and pseudotime inference
 - **Momentum Contrast (MoCo)** for contrastive representation learning
-- **Information bottleneck** for hierarchical feature extraction
 - **Disentanglement losses** (DIP-VAE, beta-TC-VAE, InfoVAE) for interpretable latents
 - **Novel evaluation metrics** (DRE, LSE) for latent space quality assessment
 
@@ -82,7 +81,7 @@ model = MoCoO(
     loss_mode="nb",
     batch_size=256,
 )
-model.fit(epochs=400, patience=25)
+model.fit(epochs=400, patience=60)
 
 latent = model.get_latent()          # latent embeddings
 velocity = model.get_velocity()      # RNA velocity (ODE)
@@ -221,7 +220,6 @@ Requires a TeX distribution (e.g., TeX Live). Bibliography is compiled via BibTe
 | `MoCoO(adata, ...)` | Initialize model with AnnData and hyperparameters |
 | `.fit(epochs, patience, val_every)` | Train the model |
 | `.get_latent()` | Extract latent embeddings |
-| `.get_bottleneck()` | Extract bottleneck features |
 | `.get_time()` | Extract pseudotime (ODE only) |
 | `.get_velocity()` | Extract RNA velocity (ODE only) |
 | `.get_transition(top_k)` | Compute transition matrix (ODE only) |
@@ -237,7 +235,6 @@ Requires a TeX distribution (e.g., TeX Live). Bibliography is compiled via BibTe
 | `layer` | str | `'counts'` | Layer containing raw counts |
 | `loss_mode` | str | `'nb'` | Likelihood: `'mse'`, `'nb'`, `'zinb'`, `'poisson'`, `'zip'` |
 | `latent_dim` | int | `10` | Latent space dimension |
-| `i_dim` | int | `2` | Bottleneck dimension |
 | `use_ode` | bool | `False` | Enable Neural ODE |
 | `use_moco` | bool | `False` | Enable Momentum Contrast |
 | `moco_K` | int | `4096` | MoCo queue size |

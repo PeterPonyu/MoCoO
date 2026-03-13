@@ -45,7 +45,6 @@ EXT_METRICS_DREX = [
     ("DREX_distance_pearson", "DREX Pearson \u2191", True),
     ("DREX_local_scale_quality", "DREX LocScale \u2191", True),
     ("DREX_neighborhood_symmetry", "DREX NbrSym \u2191", True),
-    ("DREX_knn_rank_correlation", "DREX RankCorr \u2191", True),
     ("DREX_overall_quality", "DREX Overall \u2191", True),
 ]
 
@@ -53,10 +52,7 @@ EXT_METRICS_LSEX = [
     ("LSEX_two_hop_connectivity", "LSEX 2Hop \u2191", True),
     ("LSEX_radial_concentration", "LSEX RadConc \u2191", True),
     ("LSEX_local_curvature", "LSEX LocCurv \u2191", True),
-    ("LSEX_cluster_compactness", "LSEX Compact \u2191", True),
-    ("LSEX_neighbor_purity", "LSEX NbrPurity \u2191", True),
-    ("LSEX_sampling_stability", "LSEX SampStab \u2191", True),
-    ("LSEX_inter_cluster_gap", "LSEX Gap \u2191", True),
+    ("LSEX_entropy_stability", "LSEX EntStab \u2191", True),
     ("LSEX_overall_quality", "LSEX Overall \u2191", True),
 ]
 
