@@ -484,3 +484,82 @@ class MoCoO(Env, VectorFieldMixin):
             'DB': score_array[:, 4],
             'Corr': score_array[:, 5],
         }
+
+    # ------------------------------------------------------------------ #
+    #  Phase-2: Latent Flow Matching                                      #
+    # ------------------------------------------------------------------ #
+
+    def train_fm(
+        self,
+        epochs: int = 200,
+        lr: float = 1e-3,
+        hidden_dim: int = 128,
+        batch_size: Optional[int] = None,
+    ) -> 'MoCoO':
+        """Phase-2: train a conditional flow-matching velocity network on
+        the frozen VAE encoder's posterior means.
+
+        Parameters
+        ----------
+        epochs : int
+            FM training epochs.
+        lr : float
+            Learning rate for the velocity network.
+        hidden_dim : int
+            Hidden width of the velocity MLP.
+        batch_size : int, optional
+            Mini-batch size (defaults to Phase-1 batch_size).
+        """
+        if batch_size is None:
+            batch_size = self.batch_size
+
+        # Initialise velocity net (freezes VAE automatically)
+        self.fm_init(lr=lr, hidden_dim=hidden_dim)
+
+        # Pre-compute all posterior means once (frozen encoder)
+        z_all = self._encode_targets(self.X_train_norm)
+        n = z_all.shape[0]
+
+        bar_fmt = '{l_bar}{bar:30}{r_bar}'
+        with tqdm.tqdm(total=epochs, desc='  FM', bar_format=bar_fmt,
+                       dynamic_ncols=True) as pbar:
+            for epoch in range(epochs):
+                perm = torch.randperm(n, device=self.device)
+                epoch_loss = 0.0
+                n_batches = 0
+                for start in range(0, n, batch_size):
+                    idx = perm[start:start + batch_size]
+                    loss = self.fm_update(z_all[idx])
+                    epoch_loss += loss
+                    n_batches += 1
+                avg = epoch_loss / max(n_batches, 1)
+                pbar.set_postfix(loss=f'{avg:.4f}')
+                pbar.update(1)
+
+        # Re-enable VAE gradients (in case user resumes Phase-1 later)
+        for p in self.nn.parameters():
+            p.requires_grad_(True)
+
+        return self
+
+    def get_fm_latent(self, t_start: float = 0.9, steps: int = 100) -> np.ndarray:
+        """Get FM-refined latent for all cells.
+
+        Parameters
+        ----------
+        t_start : float
+            Flow starting time (0.9 = light smoothing, 0.5 = heavy denoising).
+        steps : int
+            Euler integration steps.
+        """
+        return self.take_fm_refined(self.X, t_start=t_start, steps=steps)
+
+    def get_fm_sample(self, n: int = 100, steps: int = 100) -> np.ndarray:
+        """Generate *n* new cell latents from pure noise via FM."""
+        return self.take_fm_sample(n, steps=steps)
+
+    def get_fm_loss_history(self) -> np.ndarray:
+        """Return per-step FM training loss."""
+        if not hasattr(self, 'fm_loss_history'):
+            return np.array([])
+        return np.array(self.fm_loss_history)

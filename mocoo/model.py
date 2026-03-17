@@ -7,7 +7,7 @@ import torch.nn.functional as F
 import numpy as np
 from sklearn.metrics.pairwise import pairwise_distances
 from .mixin import scviMixin, dipMixin, betatcMixin, infoMixin
-from .module import VAE
+from .module import VAE, FlowMatchingVelocity
 
 
 class MoCoOModel(scviMixin, dipMixin, betatcMixin, infoMixin):
@@ -236,3 +236,112 @@ class MoCoOModel(scviMixin, dipMixin, betatcMixin, infoMixin):
             qz_div.item() if isinstance(qz_div, torch.Tensor) else qz_div,
             proto_loss.item() if isinstance(proto_loss, torch.Tensor) else proto_loss,
         ))
+
+    # ------------------------------------------------------------------ #
+    #  Phase-2: Latent Flow Matching                                      #
+    # ------------------------------------------------------------------ #
+
+    def fm_init(self, lr: float = 1e-3, hidden_dim: int = 128,
+                time_emb_dim: int = 32):
+        """Initialize the flow-matching velocity network and optimizer.
+
+        Call *after* Phase-1 training has converged.  The VAE encoder is
+        frozen automatically — only the velocity network is trained.
+        """
+        latent_dim = self.nn.encoder.action_dim
+        self.fm_net = FlowMatchingVelocity(
+            latent_dim, hidden_dim, time_emb_dim,
+        ).to(self.device)
+        self.fm_optimizer = optim.Adam(self.fm_net.parameters(), lr=lr)
+        self.fm_loss_history: list[float] = []
+
+        # Freeze encoder (and full VAE) during FM training
+        for p in self.nn.parameters():
+            p.requires_grad_(False)
+
+    @torch.no_grad()
+    def _encode_targets(self, x_norm: np.ndarray) -> torch.Tensor:
+        """Encode data to posterior means μ(x) (frozen encoder)."""
+        x = torch.tensor(x_norm, dtype=torch.float32, device=self.device)
+        if self.nn.encoder.use_ode:
+            _, q_m, _, _ = self.nn.encoder(x)
+        else:
+            _, q_m, _ = self.nn.encoder(x)
+        return q_m
+
+    def fm_update(self, z_data: torch.Tensor) -> float:
+        """One conditional-FM training step.
+
+        Parameters
+        ----------
+        z_data : (B, D) tensor of target latents (posterior means).
+
+        Returns
+        -------
+        loss : scalar FM loss value.
+        """
+        B, D = z_data.shape
+
+        # Sample noise and time
+        eps = torch.randn_like(z_data)
+        t = torch.rand(B, device=z_data.device)
+
+        # Linear OT interpolation: z_t = (1-t)·eps + t·z_data
+        z_t = (1 - t).unsqueeze(-1) * eps + t.unsqueeze(-1) * z_data
+
+        # Conditional vector field target: u_t = z_data - eps
+        target = z_data - eps
+
+        pred = self.fm_net(z_t, t)
+        loss = F.mse_loss(pred, target)
+
+        self.fm_optimizer.zero_grad()
+        loss.backward()
+        torch.nn.utils.clip_grad_norm_(self.fm_net.parameters(), self.grad_clip)
+        self.fm_optimizer.step()
+
+        loss_val = loss.item()
+        self.fm_loss_history.append(loss_val)
+        return loss_val
+
+    @torch.no_grad()
+    def take_fm_sample(self, n: int, steps: int = 100) -> np.ndarray:
+        """Generate *n* new cell latents by integrating noise → data.
+
+        Uses Euler integration of v_θ from t=0 to t=1.
+        """
+        D = self.nn.encoder.action_dim
+        z = torch.randn(n, D, device=self.device)
+        dt = 1.0 / steps
+        for i in range(steps):
+            t_val = torch.full((n,), i * dt, device=self.device)
+            z = z + self.fm_net(z, t_val) * dt
+        return z.cpu().numpy()
+
+    @torch.no_grad()
+    def take_fm_refined(self, state: np.ndarray, t_start: float = 0.5,
+                        steps: int = 100) -> np.ndarray:
+        """Refine existing latents by partial FM integration.
+
+        Adds noise at level (1 - t_start) and integrates from t_start → 1.
+        Higher t_start = less noise = more identity-preserving.
+
+        Parameters
+        ----------
+        state : (N, G) raw gene-expression matrix (log1p-normalised).
+        t_start : float in (0, 1]
+            Flow starting time.  0.9 ≈ light smoothing, 0.5 ≈ heavy denoising.
+        steps : int
+            Euler integration steps from t_start to 1.
+        """
+        z_data = self._encode_targets(state)
+        N = z_data.shape[0]
+        eps = torch.randn_like(z_data)
+
+        # Construct z at t_start on the OT path
+        z = (1 - t_start) * eps + t_start * z_data
+        dt = (1.0 - t_start) / steps
+        for i in range(steps):
+            t_val = torch.full((N,), t_start + i * dt, device=self.device)
+            z = z + self.fm_net(z, t_val) * dt
+        return z.cpu().numpy()

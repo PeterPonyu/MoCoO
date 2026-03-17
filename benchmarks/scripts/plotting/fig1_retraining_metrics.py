@@ -37,7 +37,7 @@ from mocoo.visualization.style import (
     FS_TICK,
     apply_style,
     get_config_colors,
-    get_config_order,
+    get_base_config_order,
     get_legend_name,
     get_tick_name,
     save_figure,
@@ -46,9 +46,15 @@ from mocoo.visualization.style import (
 setup_fonts()
 apply_style()
 
-_CONFIGS = get_config_order()
+_CONFIGS = get_base_config_order()
 _CONFIG_COLORS = get_config_colors()
-_DATASET_ORDER = ["IRALL", "dentate", "endo", "paul", "spinoids"]
+_DATASET_ORDER = [
+    "endo", "setty",                        # Stem cell / early development
+    "paul", "IRALL",                         # Hematopoietic / immune
+    "dentate", "spinoids",                   # Neural development
+    "lung", "retina", "teeth",               # Organ-specific development
+    "hepatoblastoma",                        # Cancer
+]
 
 # Layout: 2 panels (a, b), each with upper + lower metric blocks.
 # fmt: off
@@ -145,13 +151,14 @@ def _load_dataset_summaries(results_dir: Path):
     return datasets, data
 
 
-def _metric_bounds(data, metric_key):
+def _metric_bounds(data, metric_key, split=None):
     values = []
+    splits_to_check = [split] if split else _SPLITS
     for dataset_data in data.values():
         for config_data in dataset_data.values():
-            for split in _SPLITS:
-                if split in config_data:
-                    v = config_data[split].get(metric_key, np.nan)
+            for s in splits_to_check:
+                if s in config_data:
+                    v = config_data[s].get(metric_key, np.nan)
                     if np.isfinite(v):
                         values.append(float(v))
     if not values:
@@ -216,7 +223,7 @@ def _plot_boxplot(ax, datasets, data, split_name, metric_key,
 
     ax.set_xlim(-0.5, len(_CONFIGS) - 0.5)
     ax.set_ylim(*y_limits)
-    ax.yaxis.set_major_locator(MaxNLocator(nbins=2, prune="both"))
+    ax.yaxis.set_major_locator(MaxNLocator(nbins=3, prune="both"))
     ax.set_xticks(positions)
     if show_xticklabels:
         ax.set_xticklabels(
@@ -252,7 +259,7 @@ def _build_composed_axes(fig):
     top_edge = 0.92
     bottom_edge = 0.075
 
-    panel_gap = 0.025       # horizontal gap between panel a and b
+    panel_gap = 0.035       # horizontal gap between panel a and b
     block_gap = 0.090       # vertical gap between upper and lower blocks
     col_gap = 0.005         # gap between columns within a block
     row_gap = 0.012         # gap between split rows within a block
@@ -318,7 +325,8 @@ def build_figure(results_dir: Path, outdir: Path):
     metric_limits = {}
     for _, metrics in _ALL_BLOCKS:
         for mk, _ in metrics:
-            metric_limits[mk] = _metric_bounds(data, mk)
+            for split in _SPLITS:
+                metric_limits[(mk, split)] = _metric_bounds(data, mk, split)
 
     # Panel (a) = blocks 0,1;  Panel (b) = blocks 2,3
     panel_info = [
@@ -336,7 +344,7 @@ def build_figure(results_dir: Path, outdir: Path):
                     data,
                     split_name,
                     mk,
-                    metric_limits[mk],
+                    metric_limits[(mk, split_name)],
                     show_title=(row_idx == 0),
                     show_xticklabels=is_bottom_row_of_block,
                     show_ylabel=(col_idx == 0),
@@ -367,6 +375,7 @@ def build_figure(results_dir: Path, outdir: Path):
             pos.x0, pos.y1 + 0.040,
             label,
             fontsize=_FS_TITLE + 1,
+            fontweight="bold",
             ha="left",
             va="bottom",
         )
@@ -389,7 +398,7 @@ def build_figure(results_dir: Path, outdir: Path):
     fig.legend(
         handles=legend_patches,
         loc="center left",
-        fontsize=8,
+        fontsize=9,
         frameon=False,
         ncol=1,
         bbox_to_anchor=(legend_x, legend_y),

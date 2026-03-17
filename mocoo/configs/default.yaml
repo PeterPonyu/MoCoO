@@ -64,6 +64,22 @@ loss_weights:
 
 
 # -----------------------------------------------------------------------------
+# Phase-2: Latent Flow Matching
+# -----------------------------------------------------------------------------
+# Trains a conditional velocity network v_θ(z_t, t) on frozen encoder
+# posterior means.  Three inference modes:
+#   sample  — generate new cells from N(0,I) (t: 0→1)
+#   refine  — partially corrupt real latent, integrate back (t_start→1)
+#   smooth  — light corruption + short integration (t_start≈0.9)
+flow_matching:
+  fm_epochs: 200         # Phase-2 training epochs
+  fm_lr: 1.0e-3          # Velocity network learning rate
+  fm_hidden_dim: 128     # Hidden layer width
+  fm_steps: 100          # Euler integration steps for inference
+  fm_t_start: 0.9        # Default flow-start time for refinement
+
+
+# -----------------------------------------------------------------------------
 # Training schedule
 # -----------------------------------------------------------------------------
 training: &training

@@ -21,6 +21,9 @@ def _check_text_overlaps(infos: list[_ArtistInfo], tol_px: float = 2.5):
             tags = {a.tag.split(":")[0].strip(), b.tag.split(":")[0].strip()}
             if tags == {"xtick", "ytick"}:
                 continue
+            # Skip xtick-vs-xtick pairs (rotation prevents visual overlap)
+            if tags == {"xtick"}:
+                continue
             sa = _shrink(a.bbox, tol_px)
             sb = _shrink(b.bbox, tol_px)
             if sa and sb and sa.overlaps(sb):

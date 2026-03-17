@@ -42,6 +42,7 @@ from __future__ import annotations
 # Style API
 from .style import (
     apply_style,
+    get_base_config_order,
     get_config_colors,
     get_config_order,
     get_display_name,
@@ -81,6 +82,7 @@ from .pipeline import FigurePipeline, FIGURE_NAMES
 __all__ = [
     # Style
     "apply_style",
+    "get_base_config_order",
     "get_config_colors",
     "get_config_order",
     "get_display_name",

@@ -8,6 +8,7 @@ matplotlib.use("Agg")
 
 from mocoo.visualization.style import (
     apply_style,
+    get_base_config_order,
     get_config_colors,
     get_config_order,
     get_display_name,
@@ -33,16 +34,26 @@ class TestStyle:
         colors = get_config_colors()
         assert "VAE" in colors
         assert "Full" in colors
-        assert len(colors) == 6
+        assert len(colors) == 12
+        assert "Full+FM" in colors
+        assert "VAE+FM" in colors
 
     def test_config_order_is_list(self):
         order = get_config_order()
         assert isinstance(order, list)
-        assert len(order) == 6
+        assert len(order) == 12
+
+    def test_base_config_order(self):
+        base = get_base_config_order()
+        assert isinstance(base, list)
+        assert len(base) == 6
+        for c in base:
+            assert "+FM" not in c
 
     def test_config_display_maps(self):
         assert get_display_name("VAE") == "VAE"
-        assert get_display_name("Full") == "Full"
+        assert get_display_name("Full") == "MoCoO"
+        assert get_display_name("Full+FM") == "MoCoO+FM"
         assert get_display_name("VAE_ODE") == "VAE+ODE"
 
 

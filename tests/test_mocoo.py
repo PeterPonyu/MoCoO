@@ -493,3 +493,76 @@ def test_batchnorm_projection_heads(sim_adata):
     has_batchnorm = any(isinstance(m, torch.nn.BatchNorm1d) for m in proj_head.modules())
     assert has_batchnorm, "Projection heads should use BatchNorm1d"
 
+
+# ── Phase-2: Flow Matching tests ──────────────────────────────────────────────
+
+class TestFlowMatching:
+
+    @pytest.fixture(autouse=True)
+    def _trained_model(self, sim_adata):
+        """Phase-1 trained VAE (minimal epochs)."""
+        self.model = _build_model(sim_adata, use_ode=False, use_moco=False,
+                                  loss_mode='mse')
+        self.model.fit(epochs=5, patience=100, val_every=5, track_metrics=False)
+        self.adata = sim_adata
+
+    def test_train_fm_runs(self):
+        self.model.train_fm(epochs=3, lr=1e-3, hidden_dim=32)
+        assert hasattr(self.model, 'fm_net')
+        assert len(self.model.fm_loss_history) > 0
+
+    def test_fm_loss_decreases(self):
+        self.model.train_fm(epochs=20, lr=1e-3, hidden_dim=32)
+        losses = self.model.get_fm_loss_history()
+        # Compare first-quarter mean to last-quarter mean
+        q = len(losses) // 4
+        assert losses[-q:].mean() < losses[:q].mean(), \
+            "FM loss should generally decrease over training"
+
+    def test_fm_sample_shape(self):
+        self.model.train_fm(epochs=3, hidden_dim=32)
+        samples = self.model.get_fm_sample(n=10, steps=20)
+        assert samples.shape == (10, COMMON_KWARGS['latent_dim'])
+
+    def test_fm_sample_finite(self):
+        self.model.train_fm(epochs=3, hidden_dim=32)
+        samples = self.model.get_fm_sample(n=10, steps=20)
+        assert np.all(np.isfinite(samples)), "FM samples should be finite"
+
+    def test_fm_refine_shape(self):
+        self.model.train_fm(epochs=3, hidden_dim=32)
+        refined = self.model.get_fm_latent(t_start=0.9, steps=20)
+        assert refined.shape == (self.adata.n_obs, COMMON_KWARGS['latent_dim'])
+
+    def test_fm_refine_identity_preserving(self):
+        """With t_start close to 1, refined latents should stay near originals."""
+        self.model.train_fm(epochs=10, hidden_dim=32)
+        original = self.model.get_latent()
+        refined = self.model.get_fm_latent(t_start=0.99, steps=50)
+        dists = np.linalg.norm(original - refined, axis=1)
+        assert np.median(dists) < np.linalg.norm(original, axis=1).mean(), \
+            "Light refinement should keep latents relatively close"
+
+    def test_fm_heavy_denoise_differs(self):
+        """With t_start=0.5, latents should change substantially."""
+        self.model.train_fm(epochs=3, hidden_dim=32)
+        original = self.model.get_latent()
+        denoised = self.model.get_fm_latent(t_start=0.5, steps=20)
+        assert not np.allclose(original, denoised, atol=1e-3), \
+            "Heavy denoising should noticeably change latents"
+
+    def test_fm_with_ode_model(self, sim_adata):
+        """FM should work on top of ODE-enabled models too."""
+        model = _build_model(sim_adata, use_ode=True, use_moco=False,
+                             loss_mode='mse')
+        model.fit(epochs=5, patience=100, val_every=5, track_metrics=False)
+        model.train_fm(epochs=3, hidden_dim=32)
+        samples = model.get_fm_sample(n=5, steps=10)
+        assert samples.shape == (5, COMMON_KWARGS['latent_dim'])
+
+    def test_vae_unfrozen_after_fm(self):
+        """After train_fm(), VAE parameters should be re-enabled."""
+        self.model.train_fm(epochs=3, hidden_dim=32)
+        for p in self.model.nn.parameters():
+            assert p.requires_grad, "VAE params should be unfrozen after FM training"
+

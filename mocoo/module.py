@@ -146,6 +146,64 @@ class LatentODEfunc(nn.Module):
         return out
 
 
+class SinusoidalTimeEmbedding(nn.Module):
+    """Sinusoidal positional embedding for scalar time t ∈ [0, 1]."""
+
+    def __init__(self, dim: int):
+        super().__init__()
+        self.dim = dim
+
+    def forward(self, t: torch.Tensor) -> torch.Tensor:
+        half = self.dim // 2
+        freqs = torch.exp(
+            -torch.arange(half, device=t.device, dtype=torch.float32)
+            * (torch.log(torch.tensor(10000.0)) / half)
+        )
+        args = t.unsqueeze(-1) * freqs
+        emb = torch.cat([torch.sin(args), torch.cos(args)], dim=-1)
+        if self.dim % 2:
+            emb = torch.cat([emb, torch.zeros_like(emb[:, :1])], dim=-1)
+        return emb
+
+
+class FlowMatchingVelocity(nn.Module):
+    """Conditional velocity network v_θ(z_t, t) for latent flow matching.
+
+    Learns the OT-conditional vector field that transports N(0,I) → data
+    latent distribution along the linear interpolation path
+        z_t = (1-t)·ε + t·z_data,    u_t = z_data − ε.
+
+    Architecture: sinusoidal time embedding concatenated with z_t,
+    followed by a 3-layer MLP with layer-norm and ELU activations.
+    """
+
+    def __init__(self, latent_dim: int, hidden_dim: int = 128, time_emb_dim: int = 32):
+        super().__init__()
+        self.time_emb = SinusoidalTimeEmbedding(time_emb_dim)
+        in_dim = latent_dim + time_emb_dim
+        self.net = nn.Sequential(
+            nn.Linear(in_dim, hidden_dim),
+            nn.LayerNorm(hidden_dim),
+            nn.ELU(),
+            nn.Linear(hidden_dim, hidden_dim),
+            nn.LayerNorm(hidden_dim),
+            nn.ELU(),
+            nn.Linear(hidden_dim, latent_dim),
+        )
+        self.net.apply(_init_weights)
+
+    def forward(self, z_t: torch.Tensor, t: torch.Tensor) -> torch.Tensor:
+        """Predict velocity v_θ(z_t, t).
+
+        Parameters
+        ----------
+        z_t : (B, D) noisy latent at flow time t
+        t   : (B,) scalar flow time in [0, 1]
+        """
+        t_emb = self.time_emb(t)
+        return self.net(torch.cat([z_t, t_emb], dim=-1))
+
+
 class MoCo(nn.Module):
     """Enhanced Momentum Contrast integrating scAGCL + scGPCL strategies.
     

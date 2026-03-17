@@ -52,20 +52,32 @@ FS_SMALL = 8     # Annotations / heatmap cells (≥6pt for readability)
 # ---------------------------------------------------------------------------
 _CONFIG_ORDER: List[str] = [
     "VAE",
+    "VAE+FM",
     "VAE+ODE",
+    "VAE+ODE+FM",
     "VAE+MoCo",
+    "VAE+MoCo+FM",
     "VAE+MoCo+Proto",
+    "VAE+MoCo+Proto+FM",
     "VAE+ODE+MoCo",
+    "VAE+ODE+MoCo+FM",
     "Full",
+    "Full+FM",
 ]
 
 _PALETTE: List[str] = [
-    "#0072B2",  # VAE            — blue (Wong)
-    "#E69F00",  # VAE+ODE        — orange (Wong)
-    "#009E73",  # VAE+MoCo       — bluish green (Wong)
-    "#CC79A7",  # VAE+MoCo+Proto — reddish purple (Wong)
-    "#56B4E9",  # VAE+ODE+MoCo   — sky blue (Wong)
-    "#D55E00",  # Full           — vermilion (Wong)
+    "#0072B2",  # VAE                — blue (Wong)
+    "#59A3CD",  # VAE+FM             — light blue
+    "#E69F00",  # VAE+ODE            — orange (Wong)
+    "#EEC059",  # VAE+ODE+FM         — light orange
+    "#009E73",  # VAE+MoCo           — bluish green (Wong)
+    "#59BFA4",  # VAE+MoCo+FM        — light green
+    "#CC79A7",  # VAE+MoCo+Proto     — reddish purple (Wong)
+    "#DDA7C5",  # VAE+MoCo+Proto+FM  — light purple
+    "#56B4E9",  # VAE+ODE+MoCo       — sky blue (Wong)
+    "#91CEF0",  # VAE+ODE+MoCo+FM    — light sky blue
+    "#D55E00",  # Full               — vermilion (Wong)
+    "#E39659",  # Full+FM            — light vermilion
 ]
 
 _CONFIG_COLORS: Dict[str, str] = OrderedDict(
@@ -75,25 +87,43 @@ _CONFIG_COLORS: Dict[str, str] = OrderedDict(
 # Display name mapping (internal key -> label used in figures)
 _DISPLAY_NAMES: Dict[str, str] = {
     "VAE": "VAE",
+    "VAE_FM": "VAE+FM",
+    "VAE+FM": "VAE+FM",
     "VAE_ODE": "VAE+ODE",
     "VAE+ODE": "VAE+ODE",
+    "VAE_ODE_FM": "VAE+ODE+FM",
+    "VAE+ODE+FM": "VAE+ODE+FM",
     "VAE_MoCo": "VAE+MoCo",
     "VAE+MoCo": "VAE+MoCo",
+    "VAE_MoCo_FM": "VAE+MoCo+FM",
+    "VAE+MoCo+FM": "VAE+MoCo+FM",
     "VAE_MoCo_Proto": "VAE+MoCo+Proto",
     "VAE+MoCo+Proto": "VAE+MoCo+Proto",
+    "VAE_MoCo_Proto_FM": "VAE+MoCo+Proto+FM",
+    "VAE+MoCo+Proto+FM": "VAE+MoCo+Proto+FM",
     "VAE_ODE_MoCo": "VAE+ODE+MoCo",
     "VAE+ODE+MoCo": "VAE+ODE+MoCo",
+    "VAE_ODE_MoCo_FM": "VAE+ODE+MoCo+FM",
+    "VAE+ODE+MoCo+FM": "VAE+ODE+MoCo+FM",
     "Full": "MoCoO",
+    "Full_FM": "MoCoO+FM",
+    "Full+FM": "MoCoO+FM",
 }
 
 # Ultra-short abbreviations for tight x-tick labels
 _SHORT_NAMES: Dict[str, str] = {
     "VAE": "VAE",
+    "VAE+FM": "V.f",
     "VAE+ODE": "V+O",
+    "VAE+ODE+FM": "VO.f",
     "VAE+MoCo": "V+M",
+    "VAE+MoCo+FM": "VM.f",
     "VAE+MoCo+Proto": "V+MP",
+    "VAE+MoCo+Proto+FM": "VMP.f",
     "VAE+ODE+MoCo": "V+OM",
+    "VAE+ODE+MoCo+FM": "VOM.f",
     "Full": "Full",
+    "Full+FM": "F.f",
 }
 
 # ---------------------------------------------------------------------------
@@ -133,16 +163,22 @@ FMT_DELTA = "+.3f"       # Signed delta annotations
 # Per-config line styles for training curve differentiation
 _LINE_STYLES: Dict[str, object] = {
     "VAE": "-",
+    "VAE+FM": (0, (1, 1)),
     "VAE+ODE": "--",
+    "VAE+ODE+FM": (0, (1, 1)),
     "VAE+MoCo": "-.",
+    "VAE+MoCo+FM": (0, (1, 1)),
     "VAE+MoCo+Proto": ":",
+    "VAE+MoCo+Proto+FM": (0, (1, 1)),
     "VAE+ODE+MoCo": (0, (3, 1, 1, 1)),
+    "VAE+ODE+MoCo+FM": (0, (1, 1)),
     "Full": (0, (5, 1)),       # long-dash (distinct from VAE solid)
+    "Full+FM": (0, (1, 1)),     # dotted (FM variants)
 }
 
-# Per-config line widths (Full model gets emphasis)
+# Per-config line widths (Full/FM variants get slight emphasis)
 _LINE_WIDTHS: Dict[str, float] = {
-    c: (2.2 if c == "Full" else 1.4) for c in _CONFIG_ORDER
+    c: (2.2 if c in ("Full", "Full+FM") else 1.4) for c in _CONFIG_ORDER
 }
 
 
@@ -440,6 +476,11 @@ def get_config_order() -> List[str]:
         ['VAE', 'VAE+ODE', 'VAE+MoCo', 'VAE+MoCo+Proto', 'VAE+ODE+MoCo', 'Full']
     """
     return list(_CONFIG_ORDER)
+
+
+def get_base_config_order() -> List[str]:
+    """Return only the 6 base model configurations (no +FM variants)."""
+    return [c for c in _CONFIG_ORDER if "+FM" not in c]
 
 
 def get_display_name(config: str) -> str:

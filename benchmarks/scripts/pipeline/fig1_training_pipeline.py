@@ -181,6 +181,82 @@ DATASET_SPECS = {
         "max_cells": 3000,
         "hvg": 3000,
     },
+    "lung": {
+        "path": "Downloads/DevelopmentDatasets/lung.h5ad",
+        "max_cells": 3000,
+        "hvg": 3000,
+    },
+    "setty": {
+        "path": "Downloads/DevelopmentDatasets/setty.h5ad",
+        "max_cells": 3000,
+        "hvg": 3000,
+    },
+    "retina": {
+        "path": "Downloads/DevelopmentDatasets2/GSE165784_RetinaHmDev.h5ad",
+        "max_cells": 3000,
+        "hvg": 3000,
+    },
+    "teeth": {
+        "path": "Downloads/DevelopmentDatasets2/GSE275119_TeethMmDev.h5ad",
+        "max_cells": 3000,
+        "hvg": 3000,
+    },
+    "hepatoblastoma": {
+        "path": "Downloads/CancerDatasets2/GSE283205_hepatoblastomaCancer.h5ad",
+        "max_cells": 3000,
+        "hvg": 3000,
+    },
+    # ── New datasets (round 2) ──
+    "hemato": {
+        "path": "Downloads/DevelopmentDatasets/hemato.h5ad",
+        "max_cells": 3000,
+        "hvg": 3000,
+    },
+    "hESCtime": {
+        "path": "Downloads/DevelopmentDatasets/GSE192857_hESCHmTimes.h5ad",
+        "max_cells": 3000,
+        "hvg": 3000,
+    },
+    "pituitary": {
+        "path": "Downloads/DevelopmentDatasets2/GSE142653pitHmDev.h5ad",
+        "max_cells": 3000,
+        "hvg": 3000,
+    },
+    "spine": {
+        "path": "Downloads/DevelopmentDatasets/GSE167597_spineMm.h5ad",
+        "max_cells": 3000,
+        "hvg": 3000,
+    },
+    "astrocyte": {
+        "path": "Downloads/DevelopmentDatasets2/GSE189070_astrocytesSCIMmDev.h5ad",
+        "max_cells": 3000,
+        "hvg": 3000,
+    },
+    "melanoma": {
+        "path": "Downloads/CancerDatasets2/GSE120575_melanomaHmCancer.h5ad",
+        "max_cells": 3000,
+        "hvg": 3000,
+    },
+    "gastric": {
+        "path": "Downloads/CancerDatasets/GSE183904_GastricHmCancer.h5ad",
+        "max_cells": 3000,
+        "hvg": 3000,
+    },
+    "brainmet": {
+        "path": "Downloads/CancerDatasets/GSE143423_lbm_CancerBrainHm.h5ad",
+        "max_cells": 3000,
+        "hvg": 3000,
+    },
+    "breast": {
+        "path": "Downloads/CancerDatasets2/GSE168181_BreastHmCancer.h5ad",
+        "max_cells": 3000,
+        "hvg": 3000,
+    },
+    "livercancer": {
+        "path": "Downloads/CancerDatasets2/GSE138709_LiverCancer.h5ad",
+        "max_cells": 3000,
+        "hvg": 3000,
+    },
 }
 
 
