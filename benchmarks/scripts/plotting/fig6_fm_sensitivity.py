@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-"""MoCoO Figure 5 — FM hyperparameter sensitivity analysis.
+"""MoCoO Figure 6 — FM hyperparameter sensitivity analysis.
 
 Panel layout: 7 rows × 5 columns (fm_t_start, fm_epochs, fm_lr,
 fm_hidden_dim, fm_steps).  Each subplot shows thin grey lines per dataset
@@ -7,7 +7,7 @@ and a bold coloured mean line with \u00b1 1 s.d. shading.  A vertical dashed
 line marks the default value.
 
 Reads: benchmarks/results/fm_sensitivity/sensitivity.csv
-Writes: benchmarks/figures/fig5_fm_sensitivity.{png,pdf}
+Writes: benchmarks/figures/fig6_fm_sensitivity.{png,pdf}
 """
 from __future__ import annotations
 
@@ -151,7 +151,7 @@ def main(csv_path: Path, outdir: Path, results_dir: Path | None = None):
 
     nrows, ncols = len(_METRICS), len(_PARAM_ORDER)
     rect = (0.07, 0.06, 0.88, 0.86)
-    axes = grid_of_axes(fig, nrows, ncols, rect, hgap=0.03, wgap=0.05)
+    axes = grid_of_axes(fig, nrows, ncols, rect, hgap=0.035, wgap=0.05)
 
     for ri, metric in enumerate(_METRICS):
         for ci, param in enumerate(_PARAM_ORDER):
@@ -214,7 +214,7 @@ def main(csv_path: Path, outdir: Path, results_dir: Path | None = None):
             if ci == 0:
                 ax.set_ylabel(_METRIC_LABELS[metric], fontsize=_FS_AXIS)
             ax.tick_params(labelsize=_FS_TICK)
-            ax.yaxis.set_major_locator(plt.MaxNLocator(4))
+            ax.yaxis.set_major_locator(plt.MaxNLocator(4, prune="both"))
             ax.set_ylim(bottom=0)
 
             # Tighten log-scale lr ticks to avoid cross-axes bleed
@@ -257,13 +257,13 @@ def main(csv_path: Path, outdir: Path, results_dir: Path | None = None):
                ncol=3, fontsize=FS_LEGEND, frameon=False,
                bbox_to_anchor=(0.5, 0.98))
 
-    outpath = outdir / "fig5_fm_sensitivity.png"
+    outpath = outdir / "fig6_fm_sensitivity.png"
     issues = save_figure(fig, outpath, vcd_label="fm_sensitivity",
                          vcd_verbose=True)
     n_err = sum(1 for i in issues if i.get("severity") == "error")
     plt.close(fig)
 
-    print(f"\n\u2713 fig5_fm_sensitivity saved to {outpath}")
+    print(f"\n\u2713 fig6_fm_sensitivity saved to {outpath}")
     print(f"  VCD: {len(issues)} issues, {n_err} errors")
     return n_err
 

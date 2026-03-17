@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-"""MoCoO Figure 3 — FM-enhanced comparison boxplots.
+"""MoCoO Figure 4 — FM-enhanced comparison boxplots.
 
 Same layout as Figure 1 but includes all 12 configurations (6 base + 6 FM
 variants). Highlights the effect of Phase-2 Flow Matching refinement on
@@ -106,7 +106,7 @@ _FIGURE_SIZE = (22.0, 11.0)  # slightly wider to fit 7 configs
 
 _FS_TITLE = FS_TITLE + 2
 _FS_AXIS = FS_AXIS + 2
-_FS_TICK = FS_TICK + 2
+_FS_TICK = FS_TICK
 _FS_LEGEND = FS_LEGEND + 2
 
 
@@ -373,7 +373,7 @@ def build_figure(results_dir: Path, outdir: Path):
         labelspacing=0.25,
     )
 
-    outpath = outdir / "fig3_fm_comparison.png"
+    outpath = outdir / "fig4_fm_comparison.png"
     issues = save_figure(
         fig, outpath, vcd_label="fm_comparison", vcd_verbose=True,
     )

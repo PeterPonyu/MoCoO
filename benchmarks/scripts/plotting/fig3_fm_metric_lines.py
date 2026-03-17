@@ -1,9 +1,9 @@
 #!/usr/bin/env python
-"""MoCoO Figure 2 — Per-dataset metric profiles (whole split, all metrics).
+"""MoCoO Figure 3 — FM-enhanced per-dataset metric profiles (whole split).
 
-Line-plot figure showing ALL non-diagnostic metrics across datasets
-(whole split only).  Each row is one metric family; columns are the
-individual metrics within that family.
+Same layout as Figure 2 but includes all 12 configurations (6 base + 6 FM
+variants).  Highlights the effect of Phase-2 Flow Matching refinement on
+all metric families across datasets.
 
 Layout:  6 rows × 7 columns  (33 metrics, some cells blank)
   Row 1: NMI, ARI, ASW, DAV, CAL, COR              (Clustering, 6)
@@ -14,7 +14,7 @@ Layout:  6 rows × 7 columns  (33 metrics, some cells blank)
   Row 6: LSEX 5 metrics                             (LSEX, 5)
 
 x-axis = datasets in biological-context order, y-axis = metric value,
-coloured lines = model configurations.
+coloured lines = model configurations (base + FM variants).
 """
 from __future__ import annotations
 
@@ -43,17 +43,18 @@ from mocoo.visualization.style import (
     FS_TICK,
     apply_style,
     get_config_colors,
-    get_base_config_order,
+    get_config_order,
     get_legend_name,
     get_line_style,
     get_line_width,
+    grid_of_axes,
     save_figure,
 )
 
 setup_fonts()
 apply_style()
 
-_CONFIGS = get_base_config_order()
+_CONFIGS = get_config_order()           # all 12 configs (6 base + 6 FM)
 _CONFIG_COLORS = get_config_colors()
 
 _DATASET_ORDER = [
@@ -128,14 +129,14 @@ _ROWS = [
 ]
 # fmt: on
 
-_MARKERS = ["o", "s", "^", "D", "v", "P", "X"]
+_MARKERS = ["o", "s", "^", "D", "v", "P", "X", "*", "h", "p", "H", "8"]
 
 _FIGURE_SIZE = (26.0, 16.0)
 
 _FS_TITLE = FS_TITLE + 2
-_FS_AXIS = FS_AXIS
+_FS_AXIS = FS_AXIS + 1
 _FS_TICK = FS_TICK - 2
-_FS_LEGEND = FS_LEGEND + 1
+_FS_LEGEND = FS_LEGEND
 
 
 def _safe_float(value: str) -> float:
@@ -146,7 +147,7 @@ def _safe_float(value: str) -> float:
 
 
 def _load_whole_metrics(results_dir: Path):
-    """Load whole-split metrics for all datasets."""
+    """Load whole-split metrics for all datasets (all 12 configs)."""
     all_metric_keys = [mk for _, metrics in _ROWS for mk, _ in metrics]
     data: dict[str, dict[str, dict[str, float]]] = {}
     datasets: list[str] = []
@@ -250,8 +251,7 @@ def build_figure(results_dir: Path, outdir: Path):
     ncols = max(len(metrics) for _, metrics in _ROWS)
 
     fig = plt.figure(figsize=_FIGURE_SIZE)
-    from mocoo.visualization.style import grid_of_axes
-    rect = (0.055, 0.07, 0.84, 0.88)
+    rect = (0.055, 0.07, 0.82, 0.88)
     axes = grid_of_axes(fig, nrows, ncols, rect, hgap=0.04, wgap=0.025)
 
     for ri, (row_label, metrics) in enumerate(_ROWS):
@@ -268,7 +268,7 @@ def build_figure(results_dir: Path, outdir: Path):
             else:
                 axes[ri][ci].set_visible(False)
 
-    # Legend on the right margin
+    # Legend on the right margin — 12 configs need two columns
     active_configs = [c for c in _CONFIGS if any(c in data[ds] for ds in datasets)]
     legend_handles = [
         Line2D(
@@ -290,15 +290,15 @@ def build_figure(results_dir: Path, outdir: Path):
         fontsize=_FS_LEGEND,
         frameon=False,
         ncol=1,
-        bbox_to_anchor=(0.98, 0.5),
+        bbox_to_anchor=(0.99, 0.5),
         handlelength=2.0,
         handletextpad=0.4,
-        labelspacing=0.5,
+        labelspacing=0.4,
     )
 
-    outpath = outdir / "fig2_metric_lines.png"
+    outpath = outdir / "fig3_fm_metric_lines.png"
     issues = save_figure(
-        fig, outpath, vcd_label="metric_lines", vcd_verbose=True,
+        fig, outpath, vcd_label="fm_metric_lines", vcd_verbose=True,
     )
     n_warn = sum(1 for i in issues if i.get("severity") == "warning")
     n_err = sum(1 for i in issues if i.get("severity") == "error")

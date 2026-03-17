@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-"""MoCoO Figure 4 — FM refinement effect across model variants.
+"""MoCoO Figure 5 — FM refinement effect across model variants.
 
 Shows the per-metric delta (FM – base) for each of the 6 base model
 configurations, aggregated across all 10 datasets.  Each dot is one
@@ -9,7 +9,7 @@ For DAV lower is better, so the delta sign is flipped.
 Panels: 5 rows × 2 columns of 10 metrics.
 
 Reads:  benchmarks/results/<dataset>/summary_expanded.csv
-Writes: benchmarks/figures/fig4_fm_effect.{png,pdf}
+Writes: benchmarks/figures/fig5_fm_effect.{png,pdf}
 """
 from __future__ import annotations
 
@@ -75,7 +75,7 @@ _DATASET_ORDER = [
 
 _NCOLS = 2
 _NROWS = 5   # ceil(10 / 2)
-_FIGURE_SIZE = (14.0, 16.0)
+_FIGURE_SIZE = (14.0, 13.0)
 _FS_TITLE_L = FS_TITLE + 2
 _FS_AXIS_L = FS_AXIS
 _FS_TICK_L = FS_TICK - 1
@@ -195,12 +195,12 @@ def main(results_dir: Path, outdir: Path) -> int:
         fontsize=_FS_TITLE_L + 2, fontweight="bold", y=0.98,
     )
 
-    outpath = outdir / "fig4_fm_effect.png"
+    outpath = outdir / "fig5_fm_effect.png"
     issues = save_figure(fig, outpath, vcd_label="fm_effect", vcd_verbose=True)
     n_err = sum(1 for i in issues if i.get("severity") == "error")
     plt.close(fig)
 
-    print(f"\n\u2713 fig4_fm_effect saved to {outpath}")
+    print(f"\n\u2713 fig5_fm_effect saved to {outpath}")
     print(f"  VCD: {len(issues)} issues, {n_err} errors")
     return n_err
 
