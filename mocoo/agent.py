@@ -262,7 +262,56 @@ class MoCoO(Env, VectorFieldMixin):
         self.peak_memory_gb = torch.cuda.max_memory_allocated() / 1e9 if use_cuda else 0.0
         
         return self
-    
+
+    # ------------------------------------------------------------------ #
+    #  Model persistence                                                  #
+    # ------------------------------------------------------------------ #
+
+    def save_model(self, path: str) -> None:
+        """Save model weights and config to disk.
+
+        Parameters
+        ----------
+        path : str
+            File path for the checkpoint (e.g. ``"model.pt"``).
+        """
+        checkpoint = {
+            'state_dict': self.nn.state_dict(),
+            'config': {
+                'use_ode': self.use_ode,
+                'use_moco': self.use_moco,
+                'loss_mode': self.loss_mode,
+                'vae_reg': self.vae_reg,
+                'ode_reg': self.ode_reg,
+            },
+        }
+        if hasattr(self, 'fm_net'):
+            checkpoint['fm_state_dict'] = self.fm_net.state_dict()
+            checkpoint['config']['fm_hidden_dim'] = self.fm_net.net[0].out_features
+        torch.save(checkpoint, path)
+
+    def load_model(self, path: str) -> None:
+        """Load model weights from a checkpoint.
+
+        Parameters
+        ----------
+        path : str
+            File path to the checkpoint saved by :meth:`save_model`.
+        """
+        checkpoint = torch.load(path, map_location=self.device, weights_only=True)
+        self.nn.load_state_dict(checkpoint['state_dict'])
+        self.best_model_state = {
+            k: v.cpu().clone() for k, v in self.nn.state_dict().items()
+        }
+        if 'fm_state_dict' in checkpoint:
+            if not hasattr(self, 'fm_net'):
+                hd = checkpoint.get('config', {}).get('fm_hidden_dim', 128)
+                self.fm_init(hidden_dim=hd)
+                # Unfreeze VAE so user can resume Phase-1 if desired
+                for p in self.nn.parameters():
+                    p.requires_grad_(True)
+            self.fm_net.load_state_dict(checkpoint['fm_state_dict'])
+
     def get_latent(self) -> np.ndarray:
         """Extract latent representations."""
         return self.take_latent(self.X)
@@ -563,3 +612,160 @@ class MoCoO(Env, VectorFieldMixin):
         if not hasattr(self, 'fm_loss_history'):
             return np.array([])
         return np.array(self.fm_loss_history)
+
+    # ------------------------------------------------------------------ #
+    #  Downstream analysis API                                            #
+    # ------------------------------------------------------------------ #
+
+    def get_gene_jacobian(self, batch_size: int = 128) -> np.ndarray:
+        """Decoder Jacobian dmu/dz per cell.
+
+        Returns
+        -------
+        np.ndarray, shape (N, G, D)
+            J[i, g, d] = partial mu_g / partial z_d at cell i.
+        """
+        return self.take_gene_jacobian(self.X, batch_size=batch_size)
+
+    def get_gene_velocity(self, batch_size: int = 128) -> np.ndarray:
+        """Gene-space velocity: v_gene = (dmu/dz) * (dz/dt).
+
+        Returns
+        -------
+        np.ndarray, shape (N, G)
+        """
+        if not self.use_ode:
+            raise RuntimeError("get_gene_velocity() requires use_ode=True")
+        return self.take_gene_velocity(self.X, batch_size=batch_size)
+
+    def get_decoded(self, z: Optional[np.ndarray] = None) -> np.ndarray:
+        """Decode latent z to gene-space proportions.
+
+        Parameters
+        ----------
+        z : np.ndarray (N, D), optional
+            If None, decodes the standard VAE latent of all cells.
+
+        Returns
+        -------
+        np.ndarray, shape (N, G)
+        """
+        if z is None:
+            z = self.get_latent_qm()
+        return self.take_decoded(z)
+
+    def get_divergence(self, batch_size: int = 128) -> np.ndarray:
+        """ODE velocity divergence trace(df/dz) per cell.
+
+        Returns
+        -------
+        np.ndarray, shape (N,)
+        """
+        if not self.use_ode:
+            raise RuntimeError("get_divergence() requires use_ode=True")
+        return self.take_divergence(self.X, batch_size=batch_size)
+
+    def generate_cells(self, n: int = 100, steps: int = 100,
+                       decode: bool = True) -> np.ndarray:
+        """Generate *n* new cells via FM, optionally decoded to gene space.
+
+        Parameters
+        ----------
+        n : int
+        steps : int
+            FM Euler integration steps.
+        decode : bool
+            If True, return gene-space proportions (N, G).
+            If False, return latent (N, D).
+
+        Returns
+        -------
+        np.ndarray
+        """
+        if not hasattr(self, 'fm_net'):
+            raise RuntimeError("Call train_fm() before generate_cells()")
+        z = self.take_fm_sample(n, steps)
+        if not decode:
+            return z
+        return self.take_decoded(z)
+
+    def get_uncertainty(self, n_samples: int = 50) -> Dict[str, np.ndarray]:
+        """Posterior sampling uncertainty per cell.
+
+        Returns
+        -------
+        dict
+            - ``latent_std``: (N, D) per-dim std across samples.
+            - ``uncertainty``: (N,) mean std.
+        """
+        from mocoo.evaluation.uncertainty import posterior_uncertainty
+        return posterior_uncertainty(
+            self.nn.encoder, self.X,
+            n_samples=n_samples, device=self.device,
+        )
+
+    def annotate_cells(
+        self,
+        query_data: Optional[np.ndarray] = None,
+        reference_data: Optional[np.ndarray] = None,
+        reference_labels: Optional[np.ndarray] = None,
+        method: str = 'prototype',
+        k: int = 15,
+    ) -> Dict:
+        """Annotate cells via prototype assignment or kNN transfer.
+
+        Parameters
+        ----------
+        query_data : np.ndarray (N_q, G), optional
+            Log1p-normalised query expression. If None, uses self.X.
+        reference_data : np.ndarray (N_r, G), optional
+            Expression for kNN reference cells. If None, uses self.X.
+        reference_labels : np.ndarray, optional
+            Labels for reference cells (needed for kNN).
+        method : {'prototype', 'knn'}
+        k : int
+            Number of neighbors for kNN.
+
+        Returns
+        -------
+        dict with 'labels', 'confidence', and method-specific keys.
+        """
+        from mocoo.evaluation.annotation_transfer import (
+            annotate_by_prototype, annotate_by_knn,
+        )
+
+        if method == 'prototype':
+            if not (self.use_moco and hasattr(self.nn, 'moco')
+                    and self.nn.moco.use_prototype):
+                raise RuntimeError(
+                    "Prototype annotation requires use_moco=True and "
+                    "use_prototype=True"
+                )
+            latent = self.get_latent_qm() if query_data is None else self.take_latent(query_data, use_qm=True)
+            # Project latent into prototype space (proj_head_q + L2-norm)
+            # to match how prototype_contrastive_loss() uses them.
+            with torch.no_grad():
+                z_t = torch.tensor(latent, dtype=torch.float).to(self.device)
+                h = self.nn.moco.proj_head_q(z_t)
+                h = torch.nn.functional.normalize(h, dim=1)
+                projected = h.cpu().numpy()
+                protos = torch.nn.functional.normalize(
+                    self.nn.moco.prototypes, dim=1,
+                ).cpu().numpy()
+            return annotate_by_prototype(projected, protos, reference_labels)
+
+        elif method == 'knn':
+            if reference_labels is None:
+                raise ValueError("kNN annotation requires reference_labels")
+            if reference_data is not None:
+                ref_latent = self.take_latent(reference_data, use_qm=True)
+            else:
+                ref_latent = self.get_latent_qm()
+            if query_data is not None:
+                q_latent = self.take_latent(query_data, use_qm=True)
+            else:
+                q_latent = ref_latent
+            return annotate_by_knn(q_latent, ref_latent, reference_labels, k=k)
+
+        else:
+            raise ValueError(f"Unknown method: {method!r}. Use 'prototype' or 'knn'.")

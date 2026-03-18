@@ -566,3 +566,348 @@ class TestFlowMatching:
         for p in self.model.nn.parameters():
             assert p.requires_grad, "VAE params should be unfrozen after FM training"
 
+
+# ══════════════════════════════════════════════════════════════════════════════
+# 7. DOWNSTREAM ANALYSIS TESTS
+# ══════════════════════════════════════════════════════════════════════════════
+
+class TestGeneJacobian:
+    """A1: Decoder Jacobian dmu/dz."""
+
+    @pytest.fixture(autouse=True)
+    def setup(self, sim_adata):
+        self.adata = sim_adata
+        self.model = _build_model(sim_adata, use_ode=False, use_moco=False,
+                                  loss_mode='nb')
+        self.model.fit(epochs=3, patience=100, val_every=3, track_metrics=False)
+
+    def test_jacobian_shape(self):
+        jac = self.model.get_gene_jacobian()
+        assert jac.shape == (self.adata.n_obs, self.adata.n_vars,
+                             COMMON_KWARGS['latent_dim'])
+
+    def test_jacobian_finite(self):
+        jac = self.model.get_gene_jacobian()
+        assert np.all(np.isfinite(jac))
+
+    def test_jacobian_nonzero(self):
+        jac = self.model.get_gene_jacobian()
+        assert np.abs(jac).sum() > 0, "Jacobian should be non-trivial"
+
+    def test_jacobian_with_ode(self, sim_adata):
+        model = _build_model(sim_adata, use_ode=True, use_moco=False,
+                             loss_mode='mse')
+        model.fit(epochs=3, patience=100, val_every=3, track_metrics=False)
+        jac = model.get_gene_jacobian()
+        assert jac.shape == (sim_adata.n_obs, sim_adata.n_vars,
+                             COMMON_KWARGS['latent_dim'])
+
+    def test_gene_importance_ranking(self):
+        from mocoo.evaluation.gene_importance import rank_genes_by_jacobian
+        jac = self.model.get_gene_jacobian()
+        result = rank_genes_by_jacobian(jac)
+        assert result['importance'].shape == (self.adata.n_vars,)
+        assert result['per_dim'].shape == (self.adata.n_vars,
+                                           COMMON_KWARGS['latent_dim'])
+        assert len(result['ranked_genes']) == self.adata.n_vars
+
+
+class TestGeneVelocity:
+    """B1: Gene-space RNA velocity via chain rule."""
+
+    @pytest.fixture(autouse=True)
+    def setup(self, sim_adata):
+        self.adata = sim_adata
+        self.model = _build_model(sim_adata, use_ode=True, use_moco=False,
+                                  loss_mode='mse')
+        self.model.fit(epochs=3, patience=100, val_every=3, track_metrics=False)
+
+    def test_gene_velocity_shape(self):
+        gv = self.model.get_gene_velocity()
+        assert gv.shape == (self.adata.n_obs, self.adata.n_vars)
+
+    def test_gene_velocity_finite(self):
+        gv = self.model.get_gene_velocity()
+        assert np.all(np.isfinite(gv))
+
+    def test_gene_velocity_requires_ode(self, sim_adata):
+        model = _build_model(sim_adata, use_ode=False, use_moco=False,
+                             loss_mode='mse')
+        model.fit(epochs=2, patience=100, val_every=2, track_metrics=False)
+        with pytest.raises(RuntimeError):
+            model.get_gene_velocity()
+
+
+class TestDecoded:
+    """Decoder gene-space output."""
+
+    @pytest.fixture(autouse=True)
+    def setup(self, sim_adata):
+        self.adata = sim_adata
+        self.model = _build_model(sim_adata, use_ode=False, use_moco=False,
+                                  loss_mode='nb')
+        self.model.fit(epochs=3, patience=100, val_every=3, track_metrics=False)
+
+    def test_decoded_shape(self):
+        dec = self.model.get_decoded()
+        assert dec.shape == (self.adata.n_obs, self.adata.n_vars)
+
+    def test_decoded_nonneg(self):
+        """NB decoder uses softmax → output should be non-negative."""
+        dec = self.model.get_decoded()
+        assert (dec >= 0).all()
+
+    def test_decoded_from_custom_z(self):
+        z = np.random.randn(10, COMMON_KWARGS['latent_dim']).astype(np.float32)
+        dec = self.model.get_decoded(z)
+        assert dec.shape == (10, self.adata.n_vars)
+
+
+class TestDivergence:
+    """B2: Velocity divergence for branching detection."""
+
+    @pytest.fixture(autouse=True)
+    def setup(self, sim_adata):
+        self.adata = sim_adata
+        self.model = _build_model(sim_adata, use_ode=True, use_moco=False,
+                                  loss_mode='mse')
+        self.model.fit(epochs=3, patience=100, val_every=3, track_metrics=False)
+
+    def test_divergence_shape(self):
+        div = self.model.get_divergence()
+        assert div.shape == (self.adata.n_obs,)
+
+    def test_divergence_finite(self):
+        div = self.model.get_divergence()
+        assert np.all(np.isfinite(div))
+
+    def test_divergence_requires_ode(self, sim_adata):
+        model = _build_model(sim_adata, use_ode=False, use_moco=False,
+                             loss_mode='mse')
+        model.fit(epochs=2, patience=100, val_every=2, track_metrics=False)
+        with pytest.raises(RuntimeError):
+            model.get_divergence()
+
+    def test_branching_detection(self):
+        from mocoo.evaluation.branching import detect_branch_points
+        div = self.model.get_divergence()
+        latent = self.model.get_latent()
+        result = detect_branch_points(div, latent)
+        assert result['divergence'].shape == (self.adata.n_obs,)
+        assert result['is_branch_point'].shape == (self.adata.n_obs,)
+        assert result['branch_clusters'].shape == (self.adata.n_obs,)
+        assert isinstance(result['n_branches'], int)
+
+
+class TestGenerateCells:
+    """C1: In-silico cell generation via FM."""
+
+    @pytest.fixture(autouse=True)
+    def setup(self, sim_adata):
+        self.adata = sim_adata
+        self.model = _build_model(sim_adata, use_ode=False, use_moco=False,
+                                  loss_mode='nb')
+        self.model.fit(epochs=3, patience=100, val_every=3, track_metrics=False)
+        self.model.train_fm(epochs=5, hidden_dim=32)
+
+    def test_generate_latent_only(self):
+        z = self.model.generate_cells(n=20, steps=10, decode=False)
+        assert z.shape == (20, COMMON_KWARGS['latent_dim'])
+
+    def test_generate_decoded(self):
+        x = self.model.generate_cells(n=20, steps=10, decode=True)
+        assert x.shape == (20, self.adata.n_vars)
+        assert np.all(np.isfinite(x))
+
+    def test_generate_requires_fm(self, sim_adata):
+        model = _build_model(sim_adata, use_ode=False, use_moco=False,
+                             loss_mode='mse')
+        model.fit(epochs=2, patience=100, val_every=2, track_metrics=False)
+        with pytest.raises(RuntimeError):
+            model.generate_cells(n=5)
+
+    def test_generation_quality(self):
+        from mocoo.evaluation.generation_quality import generation_quality_metrics
+        real = self.model.get_latent()
+        gen = self.model.generate_cells(n=50, steps=10, decode=False)
+        metrics = generation_quality_metrics(real, gen, k=5)
+        assert 'nnd_mean' in metrics
+        assert 'coverage' in metrics
+        assert 0.0 <= metrics['coverage'] <= 1.0
+        assert 0.0 <= metrics['authenticity'] <= 1.0
+
+
+class TestDifferentialExpression:
+    """A2: Decoder-based DE."""
+
+    @pytest.fixture(autouse=True)
+    def setup(self, sim_adata):
+        self.adata = sim_adata
+        self.model = _build_model(sim_adata, use_ode=False, use_moco=False,
+                                  loss_mode='nb')
+        self.model.fit(epochs=3, patience=100, val_every=3, track_metrics=False)
+
+    def test_decoder_de(self):
+        from mocoo.evaluation.differential_expression import decoder_de
+        latent = self.model.get_latent()
+        labels = KMeans(n_clusters=3, n_init=5, random_state=42).fit_predict(latent)
+        decoded = self.model.get_decoded()
+
+        centroids = {}
+        for lab in np.unique(labels):
+            z_mean = latent[labels == lab].mean(axis=0)
+            centroids[lab] = self.model.get_decoded(z_mean[None])[0]
+
+        results = decoder_de(centroids, decoded_all=decoded, labels=labels,
+                             top_n=5)
+        for lab in np.unique(labels):
+            assert lab in results
+            assert len(results[lab]['top_genes']) == 5
+            assert results[lab]['log2fc'].shape == (self.adata.n_vars,)
+
+
+class TestAnnotation:
+    """D1: Annotation transfer."""
+
+    @pytest.fixture(autouse=True)
+    def setup(self, sim_adata):
+        self.adata = sim_adata
+        self.model_knn = _build_model(sim_adata, use_ode=False, use_moco=False,
+                                      loss_mode='mse')
+        self.model_knn.fit(epochs=3, patience=100, val_every=3,
+                           track_metrics=False)
+
+    def test_knn_annotation(self):
+        from sklearn.preprocessing import LabelEncoder
+        le = LabelEncoder()
+        labels = le.fit_transform(self.adata.obs['cell_type'])
+        result = self.model_knn.annotate_cells(reference_labels=labels,
+                                               method='knn', k=5)
+        assert result['labels'].shape == (self.adata.n_obs,)
+        assert result['confidence'].shape == (self.adata.n_obs,)
+        assert (result['confidence'] >= 0).all()
+        assert (result['confidence'] <= 1).all()
+
+    def test_prototype_annotation(self, sim_adata):
+        model = _build_model(sim_adata, use_ode=False, use_moco=True,
+                             loss_mode='mse', use_prototype=True,
+                             n_prototypes=3)
+        model.fit(epochs=3, patience=100, val_every=3, track_metrics=False)
+        result = model.annotate_cells(method='prototype')
+        assert result['labels'].shape == (sim_adata.n_obs,)
+        assert result['confidence'].shape == (sim_adata.n_obs,)
+
+    def test_annotation_eval(self):
+        from mocoo.evaluation.annotation_transfer import evaluate_annotation
+        from sklearn.preprocessing import LabelEncoder
+        le = LabelEncoder()
+        true_labels = le.fit_transform(self.adata.obs['cell_type'])
+        result = self.model_knn.annotate_cells(reference_labels=true_labels,
+                                               method='knn', k=5)
+        scores = evaluate_annotation(result['labels'], true_labels)
+        assert 0.0 <= scores['accuracy'] <= 1.0
+        assert 0.0 <= scores['f1_macro'] <= 1.0
+
+
+class TestUncertainty:
+    """F1: Posterior sampling uncertainty."""
+
+    @pytest.fixture(autouse=True)
+    def setup(self, sim_adata):
+        self.adata = sim_adata
+        self.model = _build_model(sim_adata, use_ode=False, use_moco=False,
+                                  loss_mode='nb')
+        self.model.fit(epochs=3, patience=100, val_every=3, track_metrics=False)
+
+    def test_uncertainty_shape(self):
+        result = self.model.get_uncertainty(n_samples=10)
+        assert result['uncertainty'].shape == (self.adata.n_obs,)
+        assert result['latent_std'].shape == (self.adata.n_obs,
+                                              COMMON_KWARGS['latent_dim'])
+
+    def test_uncertainty_nonneg(self):
+        result = self.model.get_uncertainty(n_samples=10)
+        assert (result['uncertainty'] >= 0).all()
+        assert (result['latent_std'] >= 0).all()
+
+    def test_uncertainty_finite(self):
+        result = self.model.get_uncertainty(n_samples=10)
+        assert np.all(np.isfinite(result['uncertainty']))
+
+    def test_uncertainty_positive(self):
+        """Posterior should have some spread (not collapsed)."""
+        result = self.model.get_uncertainty(n_samples=20)
+        assert result['uncertainty'].mean() > 0, \
+            "Mean uncertainty should be positive (non-collapsed posterior)"
+
+
+class TestModelPersistence:
+    """Save/load model checkpoint round-trip."""
+
+    @pytest.fixture(autouse=True)
+    def setup(self, sim_adata, tmp_path):
+        self.adata = sim_adata
+        self.tmp_path = tmp_path
+        self.model = _build_model(sim_adata, use_ode=True, use_moco=True,
+                                  loss_mode='nb', use_prototype=True,
+                                  n_prototypes=3)
+        self.model.fit(epochs=3, patience=100, val_every=3, track_metrics=False)
+
+    def test_save_load_roundtrip(self):
+        path = str(self.tmp_path / "model.pt")
+        latent_before = self.model.get_latent_qm()
+        self.model.save_model(path)
+
+        # Build fresh model with same config, minimal train, then load weights
+        model2 = _build_model(self.adata, use_ode=True, use_moco=True,
+                              loss_mode='nb', use_prototype=True,
+                              n_prototypes=3)
+        model2.fit(epochs=1, patience=100, val_every=1, track_metrics=False)
+        model2.load_model(path)
+        latent_after = model2.get_latent_qm()
+        np.testing.assert_allclose(latent_before, latent_after, atol=1e-5)
+
+    def test_save_creates_file(self):
+        path = str(self.tmp_path / "model.pt")
+        self.model.save_model(path)
+        assert os.path.exists(path)
+
+    def test_checkpoint_contains_state_dict(self):
+        path = str(self.tmp_path / "model.pt")
+        self.model.save_model(path)
+        ckpt = torch.load(path, weights_only=False)
+        assert 'state_dict' in ckpt
+        assert 'config' in ckpt
+
+    def test_save_with_fm(self):
+        self.model.train_fm(epochs=3, hidden_dim=16)
+        path = str(self.tmp_path / "model_fm.pt")
+        self.model.save_model(path)
+        ckpt = torch.load(path, weights_only=False)
+        assert 'fm_state_dict' in ckpt
+
+
+class TestDecodedUsesQm:
+    """Verify get_decoded() uses encoder posterior mean, not ODE-blended latent."""
+
+    @pytest.fixture(autouse=True)
+    def setup(self, sim_adata):
+        self.adata = sim_adata
+        self.model = _build_model(sim_adata, use_ode=True, use_moco=False,
+                                  loss_mode='nb')
+        self.model.fit(epochs=3, patience=100, val_every=3, track_metrics=False)
+
+    def test_default_decoded_matches_qm(self):
+        """get_decoded() should decode from q_m, not from ODE-blended latent."""
+        dec_default = self.model.get_decoded()
+        dec_from_qm = self.model.get_decoded(self.model.get_latent_qm())
+        np.testing.assert_array_equal(dec_default, dec_from_qm)
+
+    def test_default_decoded_differs_from_blended(self):
+        """get_decoded() should NOT match decoding the ODE-blended latent."""
+        dec_default = self.model.get_decoded()
+        dec_from_blended = self.model.get_decoded(self.model.get_latent())
+        # They should differ because q_m != blended for ODE models
+        assert not np.allclose(dec_default, dec_from_blended, atol=1e-6), \
+            "Decoded from q_m should differ from decoded ODE-blended latent"
+

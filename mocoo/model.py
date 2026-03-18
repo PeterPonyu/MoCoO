@@ -345,3 +345,122 @@ class MoCoOModel(scviMixin, dipMixin, betatcMixin, infoMixin):
             t_val = torch.full((N,), t_start + i * dt, device=self.device)
             z = z + self.fm_net(z, t_val) * dt
         return z.cpu().numpy()
+
+    # ------------------------------------------------------------------ #
+    #  Downstream analysis primitives                                     #
+    # ------------------------------------------------------------------ #
+
+    def take_gene_jacobian(self, state, batch_size=128):
+        """Decoder Jacobian dmu/dz per cell.
+
+        Returns
+        -------
+        np.ndarray, shape (N, G, D)
+            J[i, g, d] = partial mu_g / partial z_d evaluated at cell i.
+        """
+        was_training = self.nn.training
+        self.nn.eval()
+        try:
+            state_t = torch.tensor(state, dtype=torch.float).to(self.device)
+
+            with torch.no_grad():
+                if self.use_ode:
+                    _, q_m, _, _ = self.nn.encoder(state_t)
+                else:
+                    _, q_m, _ = self.nn.encoder(state_t)
+                z_all = q_m.detach()
+
+            N, D = z_all.shape
+            jacobians = []
+            for start in range(0, N, batch_size):
+                end = min(start + batch_size, N)
+                z_b = z_all[start:end].clone().requires_grad_(True)
+
+                out = self.nn.decoder(z_b)
+                mu = out[0] if isinstance(out, tuple) else out  # (B, G)
+                B, G = mu.shape
+                jac = torch.zeros(B, G, D, device=self.device)
+
+                for g in range(G):
+                    grads = torch.autograd.grad(
+                        mu[:, g].sum(), z_b,
+                        retain_graph=(g < G - 1),
+                    )[0]  # (B, D)
+                    jac[:, g, :] = grads
+
+                jacobians.append(jac.cpu().numpy())
+
+            return np.concatenate(jacobians, axis=0)
+        finally:
+            if was_training:
+                self.nn.train()
+
+    def take_gene_velocity(self, state, batch_size=128):
+        """Gene-space velocity via chain rule: v_gene = J · dz/dt.
+
+        Returns
+        -------
+        np.ndarray, shape (N, G)
+        """
+        if not self.use_ode:
+            raise RuntimeError("Gene velocity requires use_ode=True")
+        jac = self.take_gene_jacobian(state, batch_size)  # (N, G, D)
+        vel = self.take_grad(state)                        # (N, D)
+        return np.einsum('igd,id->ig', jac, vel)
+
+    @torch.no_grad()
+    def take_decoded(self, z):
+        """Decode latent z to gene-space proportions mu.
+
+        Parameters
+        ----------
+        z : np.ndarray, shape (N, D)
+
+        Returns
+        -------
+        np.ndarray, shape (N, G)
+        """
+        self.nn.eval()
+        z_t = torch.tensor(z, dtype=torch.float).to(self.device)
+        out = self.nn.decoder(z_t)
+        mu = out[0] if isinstance(out, tuple) else out
+        return mu.cpu().numpy()
+
+    def take_divergence(self, state, batch_size=128):
+        """Velocity divergence div v(z) = trace(df/dz) per cell.
+
+        Returns
+        -------
+        np.ndarray, shape (N,)
+        """
+        if not self.use_ode:
+            raise RuntimeError("Divergence requires use_ode=True")
+
+        self.nn.eval()
+        state_t = torch.tensor(state, dtype=torch.float).to(self.device)
+
+        with torch.no_grad():
+            _, q_m, _, t = self.nn.encoder(state_t)
+        z_all = q_m.detach()
+
+        ode_device = next(self.nn.ode_solver.parameters()).device
+        N, D = z_all.shape
+        divergences = []
+
+        for start in range(0, N, batch_size):
+            end = min(start + batch_size, N)
+            z_b = z_all[start:end].clone().to(ode_device).requires_grad_(True)
+            t_b = t[start:end].detach().to(ode_device)
+
+            f = self.nn.ode_solver(t_b, z_b)  # (B, D)
+
+            div = torch.zeros(z_b.shape[0], device=ode_device)
+            for d in range(D):
+                grads = torch.autograd.grad(
+                    f[:, d].sum(), z_b, retain_graph=(d < D - 1),
+                )[0]  # (B, D)
+                div += grads[:, d]
+
+            divergences.append(div.cpu().numpy())
+
+        return np.concatenate(divergences)

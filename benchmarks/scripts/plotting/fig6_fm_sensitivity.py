@@ -79,9 +79,10 @@ _LINE_ALPHA = 0.18
 _SHADE_ALPHA = 0.18
 
 _FIGURE_SIZE = (18.0, 16.0)
-_FS_TITLE = FS_TITLE + 2
-_FS_AXIS = FS_AXIS + 1
-_FS_TICK = FS_TICK + 1
+_FS_TITLE = FS_TITLE + 3
+_FS_AXIS = FS_AXIS + 2
+_FS_TICK = FS_TICK + 2
+_FS_LEGEND = FS_LEGEND + 2
 
 
 def _load_sensitivity(csv_path: Path) -> dict:
@@ -111,7 +112,7 @@ def _load_sensitivity(csv_path: Path) -> dict:
 
 
 def _load_baselines(results_dir: Path) -> dict:
-    """Load Full (no FM) 'whole'-split metrics as baselines.
+    """Load VAE+ODE (no FM) 'whole'-split metrics as baselines.
 
     Returns
     -------
@@ -124,7 +125,7 @@ def _load_baselines(results_dir: Path) -> dict:
             continue
         with open(csv_path) as f:
             for row in csv.DictReader(f):
-                if row["config"] == "Full" and row["split"] == "whole":
+                if row["config"] == "VAE+ODE" and row["split"] == "whole":
                     per_ds[ds_dir.name] = {
                         m: float(row.get(m, "nan")) for m in _METRICS
                     }
@@ -150,8 +151,8 @@ def main(csv_path: Path, outdir: Path, results_dir: Path | None = None):
     fig = plt.figure(figsize=_FIGURE_SIZE)
 
     nrows, ncols = len(_METRICS), len(_PARAM_ORDER)
-    rect = (0.07, 0.06, 0.88, 0.86)
-    axes = grid_of_axes(fig, nrows, ncols, rect, hgap=0.035, wgap=0.05)
+    rect = (0.08, 0.07, 0.87, 0.84)
+    axes = grid_of_axes(fig, nrows, ncols, rect, hgap=0.04, wgap=0.055)
 
     for ri, metric in enumerate(_METRICS):
         for ci, param in enumerate(_PARAM_ORDER):
@@ -168,8 +169,15 @@ def main(csv_path: Path, outdir: Path, results_dir: Path | None = None):
                 order = np.argsort(xvals)
                 xvals = xvals[order]
                 yvals = yvals[order]
+                if param == "fm_t_start":
+                    baseline_val = baselines[metric]["per_ds"].get(ds, np.nan)
+                    if np.isfinite(baseline_val):
+                        xvals = np.append(xvals, 1.0)
+                        yvals = np.append(yvals, baseline_val)
                 all_curves.append(yvals)
                 if all_values is None:
+                    all_values = xvals
+                elif param == "fm_t_start" and len(xvals) > len(all_values):
                     all_values = xvals
                 # Plot individual dataset line
                 if param in _LOG_PARAMS:
@@ -229,12 +237,27 @@ def main(csv_path: Path, outdir: Path, results_dir: Path | None = None):
                     ax.xaxis.set_major_formatter(NullFormatter())
                 ax.xaxis.set_minor_locator(LogLocator(subs=[], numticks=1))
                 ax.xaxis.set_minor_formatter(NullFormatter())
-
-            # Clip x-limits for adjacent columns to prevent tick bleed
-            if param == "fm_hidden_dim":
-                ax.set_xlim(0, 560)
+            elif param == "fm_t_start":
+                ticks = [0.1, 0.3, 0.5, 0.7, 0.9, 0.99, 1.0]
+                ax.set_xlim(0.08, 1.01)
+                ax.set_xticks(ticks)
+                if ri == nrows - 1:
+                    ax.set_xticklabels(["0.1", "0.3", "0.5", "0.7", "0.9", "0.99", "1.0"])
+            elif param == "fm_epochs":
+                ticks = [25, 50, 100, 200, 400]
+                ax.set_xlim(15, 410)
+                ax.set_xticks(ticks)
+            elif param == "fm_hidden_dim":
+                ticks = [32, 64, 128, 256, 512]
+                ax.set_xlim(20, 530)
+                ax.set_xticks(ticks)
             elif param == "fm_steps":
-                ax.set_xlim(0, 540)
+                ticks = [5, 10, 25, 50, 100, 200]
+                ax.set_xlim(0, 220)
+                ax.set_xticks(ticks)
+
+            if ri != nrows - 1 and param != "fm_lr":
+                ax.tick_params(axis="x", labelbottom=False)
 
     # Panel letters — placed as figure-level text to avoid tick overlap
     for ri, metric in enumerate(_METRICS):
@@ -249,12 +272,12 @@ def main(csv_path: Path, outdir: Path, results_dir: Path | None = None):
     legend_handles = [
         Line2D([0], [0], color=_MEAN_COLOR, linewidth=2.2, label="FM mean ± s.d."),
         Line2D([0], [0], color=_BASELINE_COLOR, linewidth=1.4,
-               linestyle=":", label="Full baseline (no FM)"),
+             linestyle=":", label="VAE+ODE baseline (= $t_{start}=1.0$)"),
         Line2D([0], [0], color="0.3", linewidth=0.8,
                linestyle="--", label="Default value"),
     ]
     fig.legend(handles=legend_handles, loc="upper center",
-               ncol=3, fontsize=FS_LEGEND, frameon=False,
+             ncol=3, fontsize=_FS_LEGEND, frameon=False,
                bbox_to_anchor=(0.5, 0.98))
 
     outpath = outdir / "fig6_fm_sensitivity.png"

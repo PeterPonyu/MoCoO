@@ -58,6 +58,14 @@ from .metadata import (
     EXT_METRICS_LSEX,
 )
 
+# ── Downstream analysis modules ────────────────────────────────────────────
+from .gene_importance import rank_genes_by_jacobian
+from .branching import detect_branch_points
+from .generation_quality import generation_quality_metrics
+from .differential_expression import decoder_de
+from .annotation_transfer import annotate_by_prototype, annotate_by_knn, evaluate_annotation
+from .uncertainty import posterior_uncertainty
+
 # ── Internal helpers ────────────────────────────────────────────────────────
 from . import _projections
 
