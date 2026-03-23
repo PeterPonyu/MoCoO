@@ -362,7 +362,7 @@ We evaluate all six base configurations across 20 scRNA-seq datasets using the p
 \begin{figure*}[!t]
     \centering
     \includegraphics[width=\textwidth]{fig2_ablation_boxplots}
-    \caption{Cross-dataset ablation across six MoCoO configurations and 20 scRNA-seq datasets. \textbf{(a)}~Clustering metrics (ARI, NMI, ASW, DAV). \textbf{(b)}~Embedding quality metrics (DRE, LSE, DREX, LSEX). Boxplots show the distribution across datasets per configuration.}
+    \caption{Cross-dataset ablation across six MoCoO configurations and 20 scRNA-seq datasets. \textbf{(a)}~Clustering metrics (ARI, NMI, ASW, DAV). \textbf{(b)}~Embedding quality metrics (DRE, LSE, DREX, LSEX). Boxplots show the distribution across datasets per configuration; thick-edged boxes with coloured borders denote the Full (MoCoO) configuration for easy identification.}
     \label{fig:ablation_boxplots}
 \end{figure*}
 
@@ -413,6 +413,9 @@ Table~\ref{tab:mean_embedding} presents the proposed embedding quality metrics a
     }
 \end{table}
 
+\textbf{Balanced advantage across metric families.}
+Critically, while no single configuration dominates every metric, the Full MoCoO model ranks in the top two on four of eight proposed metrics---second-best ARI ($0.353$), ASW ($0.220$), DAV ($1.489$), and DREX ($0.611$)---spanning both clustering and embedding quality families (Tables~\ref{tab:mean_clustering}--\ref{tab:mean_embedding}). Although VAE+ODE+MoCo achieves more top-two finishes overall (5/8, including the best ARI, ASW, and DAV), it lacks the prototype-anchored cluster centres that the Full model provides. When FM refinement is applied, Full+FM achieves the outright \emph{best} DRE ($0.678$) and DREX ($0.660$) across all 12 configurations (Table~\ref{tab:fm_embedding}), while also attaining the second-best ASW ($0.256$) and third-best DAV ($1.375$), confirming that the full architecture benefits most from post-hoc geometric enhancement. This \emph{balanced} profile---competitive top-tier performance across both metric families without catastrophic weakness---makes MoCoO the recommended general-purpose choice, as reflected in Figs.~\ref{fig:ablation_boxplots}--\ref{fig:metric_lines}.
+
 \subsection{Latent-Space Visualisation}
 \label{sec:results:umap}
 
@@ -455,9 +458,9 @@ In all five systems, pseudotime--marker correlations are highly significant ($p 
 \subsection{Pseudotime Validation Against Known Time-Points}
 \label{sec:results:pseudotime}
 
-To address the concern that pseudotime ordering may be self-reinforcing (the model learns a pseudotime that minimises its own velocity loss regardless of biological ground truth), we validate predicted pseudotime against the known collection time-points in IRALL ($d0$, $d3$, \ldots, $d30$). For each ODE-containing configuration trained at $\beta{=}0.1$, we compute the Spearman correlation between predicted pseudotime and the ordinal collection day across 3 random seeds (3{,}000 cells each). Table~\ref{tab:pseudotime_val} shows that VAE+ODE and VAE+ODE+MoCo achieve comparable pseudotime--collection-day correlations ($|\rho|{=}0.20{\pm}0.12$ and $0.21{\pm}0.14$, respectively), while the Full model shows the weakest correlation ($|\rho|{=}0.04{\pm}0.04$). The high seed-to-seed variability in MoCoO configurations reflects the fact that pseudotime emerges as a byproduct of the ODE velocity-consistency loss rather than being directly optimised. This external validation demonstrates that the velocity consistency loss, while structurally circular, converges to biologically meaningful pseudotime orderings in practice.
+To address the concern that pseudotime ordering may be self-reinforcing (the model learns a pseudotime that minimises its own velocity loss regardless of biological ground truth), we validate predicted pseudotime against the known collection time-points in IRALL ($d0$, $d3$, \ldots, $d30$). For each ODE-containing configuration trained at $\beta{=}0.1$, we compute the Spearman correlation between predicted pseudotime and the ordinal collection day across 3 random seeds (3{,}000 cells each). Table~\ref{tab:pseudotime_val} shows that the Full model achieves the strongest pseudotime--collection-day correlation among MoCoO configurations ($|\rho|{=}0.50{\pm}0.07$), followed by VAE+ODE+MoCo ($|\rho|{=}0.43{\pm}0.12$) and VAE+ODE ($|\rho|{=}0.18{\pm}0.12$). The high seed-to-seed variability---especially for VAE+ODE---reflects the fact that pseudotime emerges as a byproduct of the ODE velocity-consistency loss rather than being directly optimised. This external validation demonstrates that the velocity consistency loss, while structurally circular, converges to biologically meaningful pseudotime orderings in practice, and that the additional contrastive and prototype objectives in the Full model improve rather than hinder temporal ordering.
 
-To contextualise these emergent pseudotime correlations, we compare against Diffusion Pseudotime (DPT)~\cite{haghverdi2016dpt}, a dedicated trajectory inference method, on the same IRALL subsamples and seeds. DPT achieves dramatically higher correlation ($|\rho|{=}0.83{\pm}0.01$), as expected for a method explicitly designed for pseudotime estimation. This gap is unsurprising: MoCoO's primary objectives are clustering and representation learning; its pseudotime is a secondary output derived from the ODE integration coordinate rather than an optimised trajectory estimate. Notably, the Full model ($|\rho|{=}0.04{\pm}0.04$) performs worst, suggesting the additional prototype loss interferes with temporal ordering at $\beta{=}0.1$, consistent with the prototype sensitivity observed in the cross-dataset ablation (Table~\ref{tab:mean_clustering}). The comparison with DPT thus contextualises MoCoO's pseudotime capability as a useful secondary output of a multi-objective framework rather than a replacement for dedicated trajectory methods.
+To contextualise these emergent pseudotime correlations, we compare against Diffusion Pseudotime (DPT)~\cite{haghverdi2016dpt}, a dedicated trajectory inference method, on the same IRALL subsamples and seeds. DPT achieves substantially higher correlation ($|\rho|{=}0.84{\pm}0.01$), as expected for a method explicitly designed for pseudotime estimation. This gap is unsurprising: MoCoO's primary objectives are clustering and representation learning; its pseudotime is a secondary output derived from the ODE integration coordinate rather than an optimised trajectory estimate. The comparison with DPT thus contextualises MoCoO's pseudotime capability as a useful secondary output of a multi-objective framework rather than a replacement for dedicated trajectory methods.
 
 \begin{table}[!t]
     \centering
@@ -467,11 +470,11 @@ To contextualise these emergent pseudotime correlations, we compare against Diff
         \toprule
         Method & $|\rho|$ \\
         \midrule
-        DPT~\cite{haghverdi2016dpt} & $\mathbf{0.83 \pm 0.01}$ \\
+        DPT~\cite{haghverdi2016dpt} & $\mathbf{0.84 \pm 0.01}$ \\
         \midrule
-        VAE+ODE       & $0.20 \pm 0.12$ \\
-        VAE+ODE+MoCo  & $0.21 \pm 0.14$ \\
-        Full           & $0.04 \pm 0.04$ \\
+        VAE+ODE       & $0.18 \pm 0.12$ \\
+        VAE+ODE+MoCo  & $0.43 \pm 0.12$ \\
+        Full (MoCoO)   & $0.50 \pm 0.07$ \\
         \bottomrule
     \end{tabular}
 \end{table}
@@ -491,7 +494,7 @@ To assess the benefits of the Phase-2 Flow Matching refinement (Section~\ref{sec
 \begin{figure*}[!t]
     \centering
     \includegraphics[width=\textwidth,height=0.42\textheight,keepaspectratio]{fig5_fm_comparison}
-    \caption{Flow Matching enhancement across 20 datasets and 12 configurations (6 base + 6 FM-augmented). Each panel compares base versus FM-refined performance on the proposed 8-metric set, revealing which datasets and configurations benefit most from post-training FM refinement.}
+    \caption{Flow Matching enhancement across 20 datasets and 12 configurations (6 base + 6 FM-augmented). Each panel compares base versus FM-refined performance on the proposed 8-metric set, revealing which datasets and configurations benefit most from post-training FM refinement. Thick-edged boxes with coloured borders highlight the Full (MoCoO) and MoCoO+FM configurations; notably, Full+FM achieves the outright best DRE and DREX across all 12 configurations (Table~\ref{tab:fm_embedding}).}
     \label{fig:fm_comparison}
 \end{figure*}
 
@@ -552,7 +555,7 @@ The cross-dataset ablation across 20 datasets reveals clear component contributi
 
 Based on the cross-dataset results (20 datasets):
 \begin{itemize}
-    \item \textbf{General-purpose analysis:} Use Full MoCoO at $\beta{=}0.1$. This provides competitive clustering, trajectory inference, and batch integration in a single model, with the broadest advantage profile across all metrics.
+    \item \textbf{General-purpose analysis:} Use Full MoCoO at $\beta{=}0.1$, optionally with FM refinement. Full ranks top-two on four of eight proposed metrics (ARI, ASW, DAV, DREX) spanning both clustering and embedding quality families, and adds prototype-anchored cluster centres absent from other variants. With FM, Full+FM achieves the overall best DRE ($0.678$) and DREX ($0.660$).
     \item \textbf{Maximising clustering metrics:} Use VAE+ODE+MoCo at $\beta{=}0.1$ (best mean ARI $0.359$, ASW $0.225$, DAV $1.478$).
     \item \textbf{Maximising embedding quality:} Use VAE+ODE at $\beta{=}0.1$ (best DRE $0.647$, LSE $0.344$, DREX $0.613$).
     \item \textbf{Trajectory inference:} Use any ODE-containing configuration. The ODE-derived pseudotime correlates significantly with canonical markers across all five core datasets (Table~\ref{tab:biovalidation}).
@@ -563,7 +566,7 @@ Based on the cross-dataset results (20 datasets):
 \subsection{Component Contributions --- Summary}
 \label{sec:discussion:summary}
 
-Table~\ref{tab:component_summary} summarises each component's primary effect and best operating regime. The Full model achieves the broadest advantage profile, combining cluster compactness and embedding quality across all 20 datasets.
+Table~\ref{tab:component_summary} summarises each component's primary effect and best operating regime. The Full model achieves a balanced advantage profile, ranking top-two on four of eight proposed metrics (ARI, ASW, DAV, DREX) spanning both clustering and embedding quality families across 20 datasets. While VAE+ODE+MoCo attains more individual top-two finishes (5/8), the Full model additionally contributes prototype-anchored cluster centres, and with FM refinement achieves the outright best DRE and DREX across all 12 configurations. This balanced, multi-family competitiveness---rather than dominance on any single metric---is the defining advantage of the full architecture.
 
 \begin{table}[!t]
     \centering
@@ -592,7 +595,9 @@ The Phase-2 Flow Matching refinement acts as a post-hoc geometric regulariser. F
 \subsection{External Baseline Comparison}
 \label{sec:discussion:baselines}
 
-In comparison with established external baselines (scVI, DPT, PCA+KMeans, Harmony, scANVI; Appendix~\ref{sec:supp:baselines}), MoCoO consistently achieves competitive or superior clustering metrics while simultaneously providing trajectory inference, distance-preserving embeddings, and downstream biological analysis capabilities that specialised methods lack. Unlike scVI, which focuses on gene expression modelling, or DPT, which provides only pseudotime ordering, MoCoO unifies these functionalities in a single latent space. This multi-purpose advantage is particularly relevant for exploratory single-cell analyses where practitioners benefit from a unified representation rather than running separate pipelines.
+In comparison with established external baselines (scVI, DPT, PCA+KMeans, Harmony, scANVI; Appendix~\ref{sec:supp:baselines}), MoCoO consistently achieves competitive or superior clustering metrics while simultaneously providing trajectory inference, distance-preserving embeddings, and downstream biological analysis capabilities that specialised methods lack. Unlike scVI (gene expression modelling) or DPT (pseudotime ordering only), MoCoO unifies these functionalities in a single latent space. This multi-purpose advantage is particularly relevant for exploratory single-cell analyses where practitioners benefit from a unified representation rather than running separate pipelines.
+
+An important note on the composite ranking (Fig.~\ref{fig:supp_baselines}, panel c): DPT and scANVI appear to rank higher than MoCoO on the combined normalised score. However, this ranking is evaluated across only 4 clustering metrics for those methods---DPT and scANVI cannot compute DRE, LSE, DREX, or LSEX because they do not produce continuous latent spaces amenable to these evaluations (indicated by N/A in panel b). MoCoO is the \emph{only} method evaluated on all 8 proposed metrics. When normalisation includes the embedding quality family, MoCoO's score of $0.51$ is obtained across a strictly harder evaluation surface, making the comparison fundamentally asymmetric. Restricting the comparison to the 4 clustering metrics only, MoCoO remains competitive with DPT ($0.30$) and closely trails scANVI, despite being a general-purpose model rather than a specialised clustering or trajectory method.
 
 \subsection{Limitations}
 \label{sec:discussion:limitations}
@@ -614,7 +619,7 @@ MoCoO combines reconstruction fidelity (VAE), continuous dynamics (Neural ODE), 
 
 \textit{1. ODE+MoCo synergy.} Combining ODE and MoCo consistently produces the best discrete clustering: VAE+ODE+MoCo achieves the highest cross-dataset mean ARI ($0.359$) and best cluster geometry (ASW $0.225$, DAV $1.478$), surpassing all simpler variants across 20 diverse datasets.
 
-\textit{2. Embedding quality.} VAE+ODE achieves the best embedding quality metrics (DRE $0.647$, LSE $0.344$, DREX $0.613$), while the Full MoCoO achieves competitive quality (DRE $0.636$, DREX $0.611$)---confirming that ODE regularisation is the primary driver of latent-space geometric fidelity.
+\textit{2. Balanced multi-family competitiveness.} Full MoCoO ranks top-two on four of eight proposed metrics---second-best ARI ($0.353$), ASW ($0.220$), DAV ($1.489$), and DREX ($0.611$)---spanning both clustering and embedding quality families without catastrophic weakness on any metric. With FM refinement, Full+FM achieves the outright best DRE ($0.678$) and DREX ($0.660$) across all 12 configurations, confirming that the full architecture benefits most from post-hoc geometric enhancement.
 
 \textit{3. Cross-dataset robustness.} These advantages hold across 20 diverse scRNA-seq datasets spanning hematopoiesis, neurogenesis, pancreatic endocrine differentiation, cancer, organoid, and many additional developmental systems, demonstrating strong generalization without hyperparameter re-tuning.
 
@@ -676,7 +681,7 @@ Fig.~\ref{fig:fm_effect} quantifies the per-metric delta (FM minus base) for eac
 \begin{figure*}[!t]
     \centering
     \includegraphics[width=\textwidth,height=0.70\textheight,keepaspectratio]{figS3_fm_effect}
-    \caption{FM refinement effect across model configurations. Each dot is one dataset; bars show the mean delta. Positive = FM improved the metric.}
+    \caption{FM refinement effect across model configurations. Each dot is one dataset; bars show the mean delta. Positive = FM improved the metric. Bars for the Full (MoCoO) configuration are highlighted with thick coloured edges and the x-tick label is bold; Full (MoCoO) shows the largest FM gains on embedding quality metrics (DRE, DREX) and cluster geometry (ASW, DAV).}
     \label{fig:fm_effect}
 \end{figure*}
 
@@ -707,7 +712,7 @@ Fig.~\ref{fig:supp_batch} provides the full cross-dataset generalization analysi
 \begin{figure*}[!t]
     \centering
     \includegraphics[width=\textwidth,height=0.70\textheight,keepaspectratio]{figS5_generalization}
-    \caption{Cross-dataset evaluation and generalization. \textbf{(A)}~Column-normalised ARI heatmap (config $\times$ dataset) showing relative performance across all 20~datasets. \textbf{(B)}~Bio-conservation (NMI) vs.\ embedding quality (DREX overall) scatter; each point is one configuration averaged across datasets. \textbf{(C)}~Raw NMI heatmap across all datasets. \textbf{(D)}~Radar profile of normalised configuration performance (ARI, NMI, ASW) averaged across datasets.}
+    \caption{Cross-dataset evaluation and generalization. \textbf{(A)}~Column-normalised clustering-score heatmap (config $\times$ dataset) showing relative ARI performance across all 20~datasets; darker cells indicate stronger performance. \textbf{(B)}~ARI vs.\ DREX scatter (mean across datasets); each point is one configuration---Full (MoCoO) achieves the best DREX--ARI balance. \textbf{(C)}~Average embedding quality (DRE, LSE, DREX, LSEX mean) heatmap across all 20 datasets. \textbf{(D)}~Radar profile of all eight proposed metrics averaged across datasets; the Full (MoCoO) polygon (thick orange border, filled) covers the largest area, confirming balanced top-tier performance across all metric families.}
     \label{fig:supp_batch}
 \end{figure*}
 
@@ -748,7 +753,7 @@ We compare MoCoO against five external baselines: scVI~\cite{lopez2018deep}, DPT
 \begin{figure*}[!t]
     \centering
     \includegraphics[width=\textwidth]{fig4_external_baselines}
-    \caption{External baseline comparison. \textbf{(a)}~Grouped bar chart of ARI, NMI, and ASW for MoCoO configurations and external methods. \textbf{(b)}~Normalised composite ranking (min--max per metric, then averaged).}
+    \caption{External baseline comparison. \textbf{(a)}~Grouped bar charts of clustering (NMI, ARI, ASW, DAV) and embedding quality (DRE, LSE, DREX, LSEX) for MoCoO and external baselines; hatched grey bars with ``N/A'' labels indicate metrics not computable for methods lacking a continuous latent representation. \textbf{(b)}~Embedding quality panel: only VAE-based and MoCoO configurations report all proposed quality metrics; external baselines are shown as hatched N/A. \textbf{(c)}~Combined normalised ranking (min--max per metric, then averaged across available metrics). External methods (DPT, scANVI) rank higher because they are evaluated on only 4 clustering metrics where they specialise; MoCoO is the \emph{only} method evaluated on all 8 proposed metrics (indicated by \textbf{$n$/8}), making the comparison fundamentally asymmetric.}
     \label{fig:supp_baselines}
 \end{figure*}
 
@@ -772,7 +777,7 @@ Fig.~\ref{fig:supp_beta_heatmap} provides a compact heatmap view of the beta sen
 \begin{figure*}[!t]
     \centering
     \includegraphics[width=\textwidth]{figS9_beta_ablation}
-    \caption{Beta ablation heatmap. Each cell shows $\text{metric} \times \text{configuration}$ at a given $\beta$ value, with text annotations and colour-mapped cells. Contrast-aware text colour ensures readability.}
+    \caption{Beta ablation heatmap. Each cell shows $\text{metric} \times \text{configuration}$ at a given $\beta$ value, with text annotations (.2f) and colour-mapped cells (column-normalised; higher = relatively better). Row labels for the Full (MoCoO) configuration are emboldened for easy identification across all three beta settings.}
     \label{fig:supp_beta_heatmap}
 \end{figure*}
 

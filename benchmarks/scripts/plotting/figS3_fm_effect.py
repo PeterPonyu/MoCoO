@@ -32,6 +32,8 @@ from benchmarks.scripts.plotting.shared import setup_fonts
 from mocoo.visualization.style import (
     ACCENT_POSITIVE,
     ACCENT_NEGATIVE,
+    HIGHLIGHT_CONFIGS,
+    HIGHLIGHT_EDGE_WIDTH,
     FS_AXIS,
     FS_LEGEND,
     FS_TITLE,
@@ -154,9 +156,17 @@ def main(results_dir: Path, outdir: Path) -> int:
 
         means = np.array(means)
         colors = [ACCENT_POSITIVE if m >= 0 else ACCENT_NEGATIVE for m in means]
+        edge_colors = [
+            _CONFIG_COLORS.get(cfg, "0.4") if cfg in HIGHLIGHT_CONFIGS else "white"
+            for cfg in _BASE_CONFIGS
+        ]
+        edge_widths = [
+            HIGHLIGHT_EDGE_WIDTH if cfg in HIGHLIGHT_CONFIGS else 0.5
+            for cfg in _BASE_CONFIGS
+        ]
 
-        ax.bar(xs, means, width=bar_width, color=colors, alpha=0.75,
-               edgecolor="white", linewidth=0.5, zorder=3)
+        bars = ax.bar(xs, means, width=bar_width, color=colors, alpha=0.75,
+               edgecolor=edge_colors, linewidth=edge_widths, zorder=3)
 
         # Scatter individual dataset points
         for cfg_i, pts in enumerate(all_pts):
@@ -180,10 +190,13 @@ def main(results_dir: Path, outdir: Path) -> int:
 
         # x-tick labels on every subplot
         ax.set_xticks(xs)
-        ax.set_xticklabels(
+        tick_labels = ax.set_xticklabels(
             [get_tick_name(c) for c in _BASE_CONFIGS],
             fontsize=_FS_TICK_L, rotation=35, ha="right",
         )
+        for tl, cfg in zip(tick_labels, _BASE_CONFIGS):
+            if cfg in HIGHLIGHT_CONFIGS:
+                tl.set_fontweight("bold")
 
         # Panel letter
         letter = chr(ord("a") + idx)

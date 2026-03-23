@@ -30,6 +30,7 @@ from mocoo.visualization.style import (
     FIG_WIDTH_IN, DPI,
     PROPOSED_METRICS, PROPOSED_CLUSTERING, PROPOSED_QUALITY,
     PROPOSED_SHORT_LABELS, PROPOSED_DIRECTION,
+    HIGHLIGHT_CONFIGS,
     apply_style, save_figure, add_panel_label,
     get_config_colors, get_display_name, get_short_name,
     get_base_config_order,
@@ -185,9 +186,12 @@ def make_figure(results_dir: Path, out_path: Path):
                 vals.append(0)
         vals.append(vals[0])
         color = config_colors.get(cfg, "#888888")
-        ax_d.plot(angles, vals, linewidth=1.2, color=color,
+        is_highlight = cfg in HIGHLIGHT_CONFIGS
+        lw = 2.2 if is_highlight else 1.2
+        fill_alpha = 0.15 if is_highlight else 0.04
+        ax_d.plot(angles, vals, linewidth=lw, color=color,
                   label=get_short_name(cfg))
-        ax_d.fill(angles, vals, alpha=0.06, color=color)
+        ax_d.fill(angles, vals, alpha=fill_alpha, color=color)
 
     labels = [PROPOSED_SHORT_LABELS[m] for m in PROPOSED_METRICS]
     ax_d.set_xticks(angles[:-1])

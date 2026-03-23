@@ -27,6 +27,7 @@ from mocoo.visualization.style import (
     FIG_WIDTH_IN, DPI,
     apply_style, save_figure, add_panel_label,
     get_config_colors, get_base_config_order, get_tick_name, get_legend_name,
+    style_boxplot,
 )
 from mocoo.visualization.direct_layout import bind_figure_region
 
@@ -100,9 +101,16 @@ def make_figure(results_dir: Path, out_path: Path):
                         capprops=dict(linewidth=0),
                         whiskerprops=dict(linewidth=0),
                         flierprops=dict(markersize=0))
-        for patch, color in zip(bp["boxes"], colors):
+        for i, (patch, color) in enumerate(zip(bp["boxes"], colors)):
             patch.set_facecolor(color)
             patch.set_alpha(0.8)
+            bp_single = {
+                "boxes": [bp["boxes"][i]],
+                "whiskers": bp["whiskers"][2 * i: 2 * i + 2],
+                "caps": bp["caps"][2 * i: 2 * i + 2],
+                "medians": [bp["medians"][i]],
+            }
+            style_boxplot(bp_single, configs[i], color)
 
         # Overlay individual seeds
         for j, vals in enumerate(box_data):

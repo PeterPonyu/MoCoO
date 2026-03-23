@@ -25,6 +25,7 @@ from mocoo.visualization.style import (
     FS_AXIS, FS_SMALL, FS_TICK, FS_TITLE,
     HEATMAP_CMAP, HEATMAP_DARK_THRESHOLD,
     FIG_WIDTH_IN, DPI,
+    HIGHLIGHT_CONFIGS,
     PROPOSED_METRICS, PROPOSED_SHORT_LABELS, PROPOSED_DIRECTION,
     apply_style, save_figure, add_panel_label,
     get_base_config_order, get_tick_name,
@@ -42,6 +43,7 @@ def _load_beta_ablation(results_dir: Path):
 
     labels_y = []
     matrix = []
+    row_configs = []
 
     for beta in betas:
         beta_dir = results_dir / f"beta_{beta}"
@@ -72,13 +74,14 @@ def _load_beta_ablation(results_dir: Path):
                     vals.append(0.0)
             matrix.append(vals)
             labels_y.append(f"{get_tick_name(cfg)} (\u03b2={beta})")
+            row_configs.append(cfg)
 
     x_labels = [PROPOSED_SHORT_LABELS[m] for m in PROPOSED_METRICS]
-    return np.array(matrix) if matrix else None, labels_y, x_labels
+    return np.array(matrix) if matrix else None, labels_y, x_labels, row_configs
 
 
 def make_figure(results_dir: Path, out_path: Path):
-    matrix, y_labels, x_labels = _load_beta_ablation(results_dir)
+    matrix, y_labels, x_labels, row_configs = _load_beta_ablation(results_dir)
     if matrix is None or matrix.size == 0:
         print("No beta ablation data found.")
         return
@@ -117,6 +120,11 @@ def make_figure(results_dir: Path, out_path: Path):
                     fontsize=FS_SMALL - 1, color=color)
 
     add_panel_label(ax, "a", x=-0.22)
+
+    # Bold y-tick labels for MoCoO (Full) rows
+    for tl, cfg in zip(ax.get_yticklabels(), row_configs):
+        if cfg in HIGHLIGHT_CONFIGS:
+            tl.set_fontweight("bold")
 
     save_figure(fig, str(out_path), vcd_label="figS9_beta_ablation", vcd_verbose=True)
     plt.close(fig)

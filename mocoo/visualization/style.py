@@ -219,6 +219,34 @@ _LINE_WIDTHS: Dict[str, float] = {
     c: (2.2 if c in ("Full", "Full+FM") else 1.4) for c in _CONFIG_ORDER
 }
 
+# ---------------------------------------------------------------------------
+# Visual emphasis for MoCoO (Full / Full+FM) in boxplot & bar figures
+# ---------------------------------------------------------------------------
+HIGHLIGHT_CONFIGS = {"Full", "Full+FM"}
+HIGHLIGHT_EDGE_WIDTH = 2.0   # boxplot edge width for highlighted configs
+DEFAULT_EDGE_WIDTH = 0.8     # all other configs
+
+
+def style_boxplot(bp, config: str, color: str) -> None:
+    """Apply visual emphasis to a boxplot dict *bp* based on *config*.
+
+    For configs in HIGHLIGHT_CONFIGS, the box edge becomes thicker and uses
+    the config's own colour at full opacity.  Other configs get a thin edge.
+    """
+    is_highlight = config in HIGHLIGHT_CONFIGS
+    ew = HIGHLIGHT_EDGE_WIDTH if is_highlight else DEFAULT_EDGE_WIDTH
+    edge_color = color if is_highlight else "#444444"
+    for element in ("boxes", "whiskers", "caps"):
+        for line in bp.get(element, []):
+            line.set_linewidth(ew)
+            if is_highlight:
+                line.set_color(edge_color)
+    for line in bp.get("medians", []):
+        line.set_linewidth(ew + 0.4 if is_highlight else 1.0)
+        if is_highlight:
+            line.set_color("white")
+            line.set_zorder(4)
+
 
 # ---------------------------------------------------------------------------
 # Absolute-geometry layout helpers

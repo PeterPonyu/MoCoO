@@ -44,6 +44,7 @@ from mocoo.visualization.style import (
     get_legend_name,
     get_line_style,
     get_line_width,
+    grid_of_axes,
     save_figure,
 )
 
@@ -222,7 +223,6 @@ def build_figure(results_dir: Path, outdir: Path):
     ncols = max(len(metrics) for _, metrics in _ROWS)
 
     fig = plt.figure(figsize=_FIGURE_SIZE)
-    from mocoo.visualization.style import grid_of_axes
     rect = (0.065, 0.10, 0.82, 0.82)
     axes = grid_of_axes(fig, nrows, ncols, rect, hgap=0.06, wgap=0.035)
 

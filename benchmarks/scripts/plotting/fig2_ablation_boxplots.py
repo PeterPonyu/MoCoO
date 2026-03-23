@@ -37,12 +37,15 @@ from mocoo.visualization.style import (
     PROPOSED_QUALITY,
     PROPOSED_DIRECTION,
     PROPOSED_SHORT_LABELS,
+    HIGHLIGHT_CONFIGS,
+    HIGHLIGHT_EDGE_WIDTH,
     apply_style,
     get_config_colors,
     get_base_config_order,
     get_legend_name,
     get_tick_name,
     save_figure,
+    style_boxplot,
 )
 
 setup_fonts()
@@ -174,9 +177,17 @@ def _plot_boxplot(ax, datasets, data, split_name, metric_key,
         capprops=dict(linewidth=0.7),
         boxprops=dict(linewidth=0.5),
     )
-    for patch, color in zip(bplot["boxes"], colors):
+    for i, (patch, color) in enumerate(zip(bplot["boxes"], colors)):
         patch.set_facecolor(color)
         patch.set_alpha(0.82)
+        # Build a per-config boxplot dict for style_boxplot
+        bp_single = {
+            "boxes": [bplot["boxes"][i]],
+            "whiskers": bplot["whiskers"][2 * i: 2 * i + 2],
+            "caps": bplot["caps"][2 * i: 2 * i + 2],
+            "medians": [bplot["medians"][i]],
+        }
+        style_boxplot(bp_single, _CONFIGS[i], color)
 
     rng = np.random.default_rng(42)
     for i, vals in enumerate(bp_data):
@@ -337,7 +348,9 @@ def build_figure(results_dir: Path, outdir: Path):
     # Shared colour-patch legend — centered at top
     legend_patches = [
         Patch(
-            facecolor=_CONFIG_COLORS[c], edgecolor="white",
+            facecolor=_CONFIG_COLORS[c],
+            edgecolor=_CONFIG_COLORS[c] if c in HIGHLIGHT_CONFIGS else "white",
+            linewidth=HIGHLIGHT_EDGE_WIDTH if c in HIGHLIGHT_CONFIGS else 0.5,
             alpha=0.82, label=get_legend_name(c),
         )
         for c in _CONFIGS
