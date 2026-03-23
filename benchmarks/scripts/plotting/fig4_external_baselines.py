@@ -251,21 +251,33 @@ def make_figure(results_dir: Path, out_path: Path):
                     n_val = 1.0 - n_val
                 normed[metric][method] = n_val
 
-    # Average normalised score per method (ignoring NaN)
-    avg_normed = []
+    # ── Compute TWO composites per method: clustering-only and all-available ──
+    clust_normed = []
+    all_normed = []
     for method in all_methods:
-        vals = [normed[m].get(method, np.nan) for m in PROPOSED_METRICS]
-        valid = [v for v in vals if not np.isnan(v)]
-        avg = np.mean(valid) if valid else 0
-        n_avail = len(valid)
-        avg_normed.append((method, avg, n_avail))
+        # Clustering-only (4 metrics — available for all methods)
+        c_vals = [normed[m].get(method, np.nan) for m in PROPOSED_CLUSTERING]
+        c_valid = [v for v in c_vals if not np.isnan(v)]
+        c_avg = np.mean(c_valid) if c_valid else 0
 
-    avg_normed.sort(key=lambda t: t[1], reverse=True)
+        # All available metrics
+        a_vals = [normed[m].get(method, np.nan) for m in PROPOSED_METRICS]
+        a_valid = [v for v in a_vals if not np.isnan(v)]
+        a_avg = np.mean(a_valid) if a_valid else 0
+        n_avail = len(a_valid)
 
-    y_pos = np.arange(len(avg_normed))
-    labels = [t[0] for t in avg_normed]
-    vals = [t[1] for t in avg_normed]
-    n_avail = [t[2] for t in avg_normed]
+        clust_normed.append(c_avg)
+        all_normed.append((method, a_avg, n_avail, c_avg))
+
+    # Sort by clustering-only score (fair comparison across all methods)
+    all_normed.sort(key=lambda t: t[3], reverse=True)
+
+    y_pos = np.arange(len(all_normed))
+    labels = [t[0] for t in all_normed]
+    vals_all = [t[1] for t in all_normed]
+    n_avail = [t[2] for t in all_normed]
+    vals_clust = [t[3] for t in all_normed]
+
     colors = []
     for l in labels:
         if l in config_colors:
@@ -275,20 +287,30 @@ def make_figure(results_dir: Path, out_path: Path):
         else:
             colors.append("#888888")
 
-    bars_c = ax_c.barh(y_pos, vals, color=colors, height=0.55, zorder=3,
-                       edgecolor="white", linewidth=0.3)
+    bar_h = 0.35
+    # Clustering-only bars (top of each row)
+    bars_clust = ax_c.barh(y_pos - bar_h / 2, vals_clust, color=colors,
+                           height=bar_h, zorder=3,
+                           edgecolor="white", linewidth=0.3, label="Clustering (4 metrics)")
+    # All-available bars (bottom of each row) — hatched to distinguish
+    bars_all = ax_c.barh(y_pos + bar_h / 2, vals_all, color=colors,
+                         height=bar_h, zorder=3, alpha=0.5,
+                         edgecolor="white", linewidth=0.3, hatch="///",
+                         label="All available")
     ax_c.set_yticks(y_pos)
     display_labels = [get_legend_name(l) if l in internal else l for l in labels]
     ax_c.set_yticklabels(display_labels, fontsize=FS_TICK)
-    ax_c.set_xlabel("Mean Normalised Score (across proposed metrics)", fontsize=FS_AXIS)
+    ax_c.set_xlabel("Mean Normalised Score", fontsize=FS_AXIS)
     ax_c.set_title("Combined Ranking", fontsize=FS_TITLE)
     ax_c.invert_yaxis()
+    ax_c.legend(fontsize=FS_SMALL, loc="lower right", framealpha=0.85)
 
-    # Annotate with metric count
-    for yi, (v, n) in enumerate(zip(vals, n_avail)):
-        suffix = f" ({n}/{len(PROPOSED_METRICS)} metrics)"
-        ax_c.text(v + 0.01, yi, f"{v:.2f}{suffix}",
+    # Annotate with scores and metric counts
+    for yi, (vc, va, n) in enumerate(zip(vals_clust, vals_all, n_avail)):
+        ax_c.text(vc + 0.01, yi - bar_h / 2, f"{vc:.2f}",
                   va="center", fontsize=FS_SMALL, color="#333333")
+        ax_c.text(va + 0.01, yi + bar_h / 2, f"{va:.2f} ({n}/8)",
+                  va="center", fontsize=FS_SMALL, color="#666666")
 
     add_panel_label(ax_c, "c")
 
