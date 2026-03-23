@@ -220,9 +220,9 @@ _LINE_WIDTHS: Dict[str, float] = {
 }
 
 # ---------------------------------------------------------------------------
-# Visual emphasis for MoCoO (Full / Full+FM) in boxplot & bar figures
+# Visual emphasis for recommended configs in boxplot & bar figures
 # ---------------------------------------------------------------------------
-HIGHLIGHT_CONFIGS = {"Full", "Full+FM"}
+HIGHLIGHT_CONFIGS = {"VAE+ODE+MoCo", "VAE+ODE+MoCo+FM"}
 HIGHLIGHT_EDGE_WIDTH = 2.0   # boxplot edge width for highlighted configs
 DEFAULT_EDGE_WIDTH = 0.8     # all other configs
 

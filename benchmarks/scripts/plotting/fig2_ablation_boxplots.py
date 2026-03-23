@@ -66,12 +66,12 @@ _DATASET_ORDER = [
 # Layout: 2 panels (a, b), each with 4 metrics × 4 splits.
 # fmt: off
 _PANEL_A = (
-    "Clustering",
-    [(m, PROPOSED_SHORT_LABELS[m]) for m in PROPOSED_CLUSTERING],
-)
-_PANEL_B = (
     "Embedding Quality",
     [(m, PROPOSED_SHORT_LABELS[m]) for m in PROPOSED_QUALITY],
+)
+_PANEL_B = (
+    "Clustering",
+    [(m, PROPOSED_SHORT_LABELS[m]) for m in PROPOSED_CLUSTERING],
 )
 # fmt: on
 
