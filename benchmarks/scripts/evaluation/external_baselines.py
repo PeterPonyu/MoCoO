@@ -59,6 +59,24 @@ DATASETS = {
         "batch_col": None,
         "max_cells": 3000,
     },
+    "hemato": {
+        "path": str(BASE_DIR / "Downloads" / "DevelopmentDatasets" / "hemato.h5ad"),
+        "cell_type_col": "Cell type",
+        "batch_col": "batch",
+        "max_cells": 3000,
+    },
+    "lung": {
+        "path": str(BASE_DIR / "Downloads" / "DevelopmentDatasets" / "lung.h5ad"),
+        "cell_type_col": "clusters",
+        "batch_col": "batch",
+        "max_cells": 3000,
+    },
+    "spinoids": {
+        "path": str(BASE_DIR / "LAB" / "data" / "spinoids.h5ad"),
+        "cell_type_col": "seurat_clusters",
+        "batch_col": None,
+        "max_cells": 3000,
+    },
 }
 
 

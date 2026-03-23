@@ -1,13 +1,18 @@
 #!/usr/bin/env python
-"""Generate LaTeX tables for the MoCoO paper from Figure 1 ablation CSV data.
+"""Generate LaTeX tables for the MoCoO paper from ablation CSV data.
 
-Reads summary_expanded.csv from all 5 datasets (split=whole), computes
+Reads summary_expanded.csv from all 20 datasets (split=whole), computes
 cross-dataset means, and emits LaTeX table environments to stdout.
 
 Tables produced:
-  1. Cross-dataset mean — Clustering (6 metrics)
-  2. Cross-dataset mean — Embedding quality (DRE UMAP + DRE tSNE + DREX = 11)
-  3–7. Per-dataset tables (appendix) — all 17 metrics per dataset
+  1. Cross-dataset mean — Clustering (4 proposed metrics: ARI, NMI, ASW, DAV)
+     — 6 base configs, 20-dataset average
+  2. Cross-dataset mean — Embedding quality (4 proposed: DRE, LSE, DREX, LSEX)
+     — 6 base configs, 20-dataset average
+  3. FM Enhancement — Clustering (12 configs, 20-dataset average)
+  4. FM Enhancement — Quality   (12 configs, 20-dataset average)
+  5. FM delta summary (mean improvement per metric across 20 datasets)
+  6-25. Per-dataset appendix tables — proposed 8 metrics per dataset
 """
 from __future__ import annotations
 
@@ -15,49 +20,57 @@ import csv
 import sys
 from pathlib import Path
 
-_DATASETS = ["IRALL", "dentate", "endo", "paul", "spinoids"]
-_CONFIGS = ["VAE", "VAE+ODE", "VAE+MoCo", "VAE+MoCo+Proto", "VAE+ODE+MoCo", "Full"]
+# All 20 datasets with results
+_DATASETS = [
+    "IRALL", "astrocyte", "brainmet", "breast", "dentate",
+    "endo", "gastric", "hemato", "hepatoblastoma", "hESCtime",
+    "livercancer", "lung", "melanoma", "paul", "pituitary",
+    "retina", "setty", "spine", "spinoids", "teeth",
+]
 
-_CLUSTER_METRICS = ["ARI", "NMI", "ASW", "DAV", "CAL", "COR"]
-_DRE_UMAP = [
-    "DRE_umap_distance_correlation",
-    "DRE_umap_Q_local",
-    "DRE_umap_Q_global",
+_BASE_CONFIGS = [
+    "VAE", "VAE+ODE", "VAE+MoCo", "VAE+MoCo+Proto", "VAE+ODE+MoCo", "Full",
+]
+_FM_CONFIGS = [
+    "VAE+FM", "VAE+ODE+FM", "VAE+MoCo+FM", "VAE+MoCo+Proto+FM",
+    "VAE+ODE+MoCo+FM", "Full+FM",
+]
+_ALL_CONFIGS = _BASE_CONFIGS + _FM_CONFIGS
+
+# FM pairing: base -> FM variant
+_FM_PAIRS = {
+    "VAE": "VAE+FM",
+    "VAE+ODE": "VAE+ODE+FM",
+    "VAE+MoCo": "VAE+MoCo+FM",
+    "VAE+MoCo+Proto": "VAE+MoCo+Proto+FM",
+    "VAE+ODE+MoCo": "VAE+ODE+MoCo+FM",
+    "Full": "Full+FM",
+}
+
+# Proposed 8-metric set
+_CLUSTER_METRICS = ["ARI", "NMI", "ASW", "DAV"]
+_QUALITY_METRICS = [
     "DRE_umap_overall_quality",
-]
-_DRE_TSNE = [
-    "DRE_tsne_distance_correlation",
-    "DRE_tsne_Q_local",
-    "DRE_tsne_Q_global",
-    "DRE_tsne_overall_quality",
-]
-_DREX = [
-    "DREX_distance_spearman",
-    "DREX_local_scale_quality",
+    "LSE_overall_quality",
     "DREX_overall_quality",
+    "LSEX_overall_quality",
 ]
-_EMBED_METRICS = _DRE_UMAP + _DRE_TSNE + _DREX
+_ALL_PROPOSED = _CLUSTER_METRICS + _QUALITY_METRICS
 
 # Lower-is-better metrics
 _LOWER_BETTER = {"DAV"}
 
 _CLUSTER_HEADERS = {
     "ARI": "ARI", "NMI": "NMI", "ASW": "ASW",
-    "DAV": r"DAV$\downarrow$", "CAL": "CAL", "COR": "COR",
+    "DAV": r"DAV$\downarrow$",
 }
-_EMBED_HEADERS = {
-    "DRE_umap_distance_correlation": r"\makecell{UMAP\\dist.c.}",
-    "DRE_umap_Q_local": r"\makecell{UMAP\\$Q_l$}",
-    "DRE_umap_Q_global": r"\makecell{UMAP\\$Q_g$}",
-    "DRE_umap_overall_quality": r"\makecell{UMAP\\ovr.}",
-    "DRE_tsne_distance_correlation": r"\makecell{tSNE\\dist.c.}",
-    "DRE_tsne_Q_local": r"\makecell{tSNE\\$Q_l$}",
-    "DRE_tsne_Q_global": r"\makecell{tSNE\\$Q_g$}",
-    "DRE_tsne_overall_quality": r"\makecell{tSNE\\ovr.}",
-    "DREX_distance_spearman": r"\makecell{DREX\\Spear.}",
-    "DREX_local_scale_quality": r"\makecell{DREX\\local}",
-    "DREX_overall_quality": r"\makecell{DREX\\ovr.}",
+_QUALITY_HEADERS = {
+    "DRE_umap_overall_quality": r"\makecell{DRE\\overall}",
+    "LSE_overall_quality": r"\makecell{LSE\\overall}",
+    "DREX_overall_quality": r"\makecell{DREX\\overall}",
+    "LSEX_overall_quality": r"\makecell{LSEX\\overall}",
 }
+_ALL_HEADERS = {**_CLUSTER_HEADERS, **_QUALITY_HEADERS}
 
 _CONFIG_DISPLAY = {
     "VAE": "VAE",
@@ -66,14 +79,22 @@ _CONFIG_DISPLAY = {
     "VAE+MoCo+Proto": "VAE+MoCo+Proto",
     "VAE+ODE+MoCo": "VAE+ODE+MoCo",
     "Full": "Full (MoCoO)",
+    "VAE+FM": "VAE+FM",
+    "VAE+ODE+FM": "VAE+ODE+FM",
+    "VAE+MoCo+FM": "VAE+MoCo+FM",
+    "VAE+MoCo+Proto+FM": "VAE+MoCo+Proto+FM",
+    "VAE+ODE+MoCo+FM": "VAE+ODE+MoCo+FM",
+    "Full+FM": "Full+FM (MoCoO+FM)",
 }
 
 _DATASET_DISPLAY = {
-    "IRALL": "IRALL",
-    "dentate": "Dentate",
-    "endo": "Endo",
-    "paul": "Paul",
-    "spinoids": "Spinoids",
+    "IRALL": "IRALL", "astrocyte": "Astrocyte", "brainmet": "Brain Met.",
+    "breast": "Breast", "dentate": "Dentate", "endo": "Endo",
+    "gastric": "Gastric", "hemato": "Hemato", "hepatoblastoma": "Hepatoblastoma",
+    "hESCtime": "hESC-time", "livercancer": "Liver Cancer",
+    "lung": "Lung", "melanoma": "Melanoma", "paul": "Paul",
+    "pituitary": "Pituitary", "retina": "Retina", "setty": "Setty",
+    "spine": "Spine", "spinoids": "Spinoids", "teeth": "Teeth",
 }
 
 
@@ -95,10 +116,10 @@ def _load_whole_rows(results_dir: Path) -> dict[str, dict[str, dict[str, float]]
     return data
 
 
-def _cross_dataset_mean(data: dict) -> dict[str, dict[str, float]]:
+def _cross_dataset_mean(data: dict, configs: list[str]) -> dict[str, dict[str, float]]:
     """Compute mean metric values across datasets per config."""
     means = {}
-    for cfg in _CONFIGS:
+    for cfg in configs:
         vals: dict[str, list[float]] = {}
         for ds in _DATASETS:
             if ds not in data or cfg not in data[ds]:
@@ -111,20 +132,16 @@ def _cross_dataset_mean(data: dict) -> dict[str, dict[str, float]]:
 
 def _format_val(val: float, metric: str, is_best: bool) -> str:
     """Format a numeric value; bold if best."""
-    if metric == "CAL":
-        s = f"{val:.0f}"
-    elif metric == "COR":
-        s = f"{val:.3f}"
-    else:
-        s = f"{val:.3f}"
+    s = f"{val:.3f}"
     return rf"\textbf{{{s}}}" if is_best else s
 
 
-def _find_best(rows: dict[str, dict[str, float]], metrics: list[str]) -> dict[str, str]:
+def _find_best(rows: dict[str, dict[str, float]], metrics: list[str],
+               configs: list[str]) -> dict[str, str]:
     """Return {metric: config_name} of the best config per metric."""
     best = {}
     for m in metrics:
-        vals = {cfg: rows[cfg][m] for cfg in _CONFIGS if cfg in rows and m in rows[cfg]}
+        vals = {cfg: rows[cfg][m] for cfg in configs if cfg in rows and m in rows[cfg]}
         if not vals:
             continue
         if m in _LOWER_BETTER:
@@ -136,12 +153,13 @@ def _find_best(rows: dict[str, dict[str, float]], metrics: list[str]) -> dict[st
 
 def _emit_table(rows: dict[str, dict[str, float]], metrics: list[str],
                 headers: dict[str, str], caption: str, label: str,
-                star: bool = False):
+                configs: list[str] | None = None, star: bool = False):
     """Print a LaTeX table to stdout."""
+    if configs is None:
+        configs = _BASE_CONFIGS
     env = "table*" if star else "table"
-    ncols = len(metrics) + 1
     col_spec = "l" + "c" * len(metrics)
-    best = _find_best(rows, metrics)
+    best = _find_best(rows, metrics, configs)
 
     print(f"\\begin{{{env}}}[!t]")
     print("    \\centering")
@@ -163,10 +181,10 @@ def _emit_table(rows: dict[str, dict[str, float]], metrics: list[str],
     print("        \\midrule")
 
     # Data rows
-    for cfg in _CONFIGS:
+    for cfg in configs:
         if cfg not in rows:
             continue
-        row_str = f"        {_CONFIG_DISPLAY[cfg]}"
+        row_str = f"        {_CONFIG_DISPLAY.get(cfg, cfg)}"
         for m in metrics:
             val = rows[cfg].get(m, float("nan"))
             is_best = best.get(m) == cfg
@@ -176,63 +194,226 @@ def _emit_table(rows: dict[str, dict[str, float]], metrics: list[str],
 
     print("        \\bottomrule")
     print("    \\end{tabular}%")
-    if star or len(metrics) > 6:
-        print("    }")
-    else:
-        print("    }")
+    print("    }")
     print(f"\\end{{{env}}}")
     print()
 
 
 def _emit_per_dataset(data: dict, ds: str, label_prefix: str):
-    """Emit a combined 17-metric table for one dataset (appendix)."""
+    """Emit a proposed 8-metric table for one dataset (appendix)."""
     if ds not in data:
         return
     rows = data[ds]
-    metrics = _CLUSTER_METRICS + _EMBED_METRICS
-    headers = {**_CLUSTER_HEADERS, **_EMBED_HEADERS}
-    disp = _DATASET_DISPLAY[ds]
+    disp = _DATASET_DISPLAY.get(ds, ds)
     _emit_table(
-        rows, metrics, headers,
-        caption=f"{disp} --- all 17 evaluation metrics (split=whole). Best per column in \\textbf{{bold}}. DAV$\\downarrow$ indicates lower is better.",
+        rows, _ALL_PROPOSED, _ALL_HEADERS,
+        caption=(
+            f"{disp} --- proposed eight-metric evaluation suite (split=whole, "
+            f"all 12 configurations). Best per column in \\textbf{{bold}}. "
+            f"DAV$\\downarrow$ indicates lower is better."
+        ),
         label=f"tab:{label_prefix}_{ds.lower()}",
+        configs=_ALL_CONFIGS,
         star=True,
     )
 
 
-def main():
-    results_dir = Path(__file__).resolve().parent.parent.parent / "results"
-    data = _load_whole_rows(results_dir)
-    means = _cross_dataset_mean(data)
-
+def _emit_fm_delta_table(data: dict):
+    """Print a table showing mean FM improvement (delta) per metric across datasets."""
     print("%" * 72)
-    print("% AUTO-GENERATED TABLES — do not edit by hand")
+    print("% FM improvement summary (delta = FM - base, averaged over datasets)")
     print("%" * 72)
     print()
 
-    # 1. Cross-dataset mean clustering
-    _emit_table(
-        means, _CLUSTER_METRICS, _CLUSTER_HEADERS,
-        caption="Cross-dataset mean clustering metrics (5 datasets, split=whole). Best per column in \\textbf{bold}. DAV$\\downarrow$ indicates lower is better.",
-        label="tab:mean_clustering",
-        star=False,
-    )
+    col_spec = "l" + "c" * len(_ALL_PROPOSED)
 
-    # 2. Cross-dataset mean embedding
+    print("\\begin{table*}[!t]")
+    print("    \\centering")
+    print(
+        f"    \\caption{{Mean Flow Matching improvement ($\\Delta$ = FM $-$ base) "
+        f"across {len([d for d in _DATASETS if d in data])} datasets "
+        f"(split=whole). Positive values indicate FM enhancement. "
+        f"For DAV$\\downarrow$, negative $\\Delta$ is better.}}"
+    )
+    print("    \\label{tab:fm_delta}")
+    print("    \\resizebox{\\textwidth}{!}{%")
+    print(f"    \\begin{{tabular}}{{{col_spec}}}")
+    print("        \\toprule")
+
+    # Header
+    hdr = "        Base Config"
+    for m in _ALL_PROPOSED:
+        hdr += f" & {_ALL_HEADERS.get(m, m)}"
+    hdr += " \\\\"
+    print(hdr)
+    print("        \\midrule")
+
+    # Compute deltas per base config
+    for base_cfg, fm_cfg in _FM_PAIRS.items():
+        deltas: dict[str, list[float]] = {m: [] for m in _ALL_PROPOSED}
+        for ds in _DATASETS:
+            if ds not in data:
+                continue
+            if base_cfg not in data[ds] or fm_cfg not in data[ds]:
+                continue
+            for m in _ALL_PROPOSED:
+                base_val = data[ds][base_cfg].get(m)
+                fm_val = data[ds][fm_cfg].get(m)
+                if base_val is not None and fm_val is not None:
+                    deltas[m].append(fm_val - base_val)
+
+        row_str = f"        {_CONFIG_DISPLAY.get(base_cfg, base_cfg)}"
+        for m in _ALL_PROPOSED:
+            if deltas[m]:
+                mean_d = sum(deltas[m]) / len(deltas[m])
+                sign = "+" if mean_d >= 0 else ""
+                s = f"{sign}{mean_d:.3f}"
+                # Bold if improvement direction is correct
+                improved = (mean_d < 0) if m in _LOWER_BETTER else (mean_d > 0)
+                if improved:
+                    row_str += rf" & \textbf{{{s}}}"
+                else:
+                    row_str += f" & {s}"
+            else:
+                row_str += " & ---"
+        row_str += " \\\\"
+        print(row_str)
+
+    print("        \\bottomrule")
+    print("    \\end{tabular}%")
+    print("    }")
+    print("\\end{table*}")
+    print()
+
+
+def _compute_fm_stats(data: dict) -> dict[str, dict[str, float]]:
+    """Compute overall FM delta statistics for inline use in the paper."""
+    stats = {}
+    for m in _ALL_PROPOSED:
+        all_deltas = []
+        for base_cfg, fm_cfg in _FM_PAIRS.items():
+            for ds in _DATASETS:
+                if ds not in data:
+                    continue
+                if base_cfg not in data[ds] or fm_cfg not in data[ds]:
+                    continue
+                base_val = data[ds][base_cfg].get(m)
+                fm_val = data[ds][fm_cfg].get(m)
+                if base_val is not None and fm_val is not None:
+                    all_deltas.append(fm_val - base_val)
+        if all_deltas:
+            mean_d = sum(all_deltas) / len(all_deltas)
+            std_d = (sum((x - mean_d) ** 2 for x in all_deltas) / len(all_deltas)) ** 0.5
+            n_improved = sum(
+                1 for d in all_deltas
+                if (d < 0 if m in _LOWER_BETTER else d > 0)
+            )
+            stats[m] = {
+                "mean": mean_d,
+                "std": std_d,
+                "n_improved": n_improved,
+                "n_total": len(all_deltas),
+                "pct_improved": 100 * n_improved / len(all_deltas),
+            }
+    return stats
+
+
+def main():
+    import argparse
+    parser = argparse.ArgumentParser(description="Generate LaTeX tables")
+    parser.add_argument("--outdir", type=Path, default=Path(__file__).resolve().parent.parent.parent.parent / "paper")
+    args = parser.parse_args()
+
+    results_dir = Path(__file__).resolve().parent.parent.parent / "results"
+    data = _load_whole_rows(results_dir)
+    n_datasets = len(data)
+
+    base_means = _cross_dataset_mean(data, _BASE_CONFIGS)
+    all_means = _cross_dataset_mean(data, _ALL_CONFIGS)
+
+    # === File 1: FM tables (for main body) ===
+    import io
+    fm_buf = io.StringIO()
+    _old_stdout = sys.stdout
+
+    sys.stdout = fm_buf
+    print("%" * 72)
+    print(f"% AUTO-GENERATED FM TABLES --- do not edit by hand")
+    print(f"% {n_datasets} datasets, {len(_ALL_CONFIGS)} configurations")
+    print("%" * 72)
+    print()
+
+    # FM comparison — Clustering (all 12 configs)
     _emit_table(
-        means, _EMBED_METRICS, _EMBED_HEADERS,
-        caption="Cross-dataset mean embedding quality metrics (5 datasets, split=whole). Best per column in \\textbf{bold}.",
-        label="tab:mean_embedding",
+        all_means, _CLUSTER_METRICS, _CLUSTER_HEADERS,
+        caption=(
+            f"Cross-dataset mean clustering metrics with FM enhancement "
+            f"({n_datasets} datasets, split=whole, all 12 configurations). "
+            f"Best per column in \\textbf{{bold}}. "
+            f"DAV$\\downarrow$ indicates lower is better."
+        ),
+        label="tab:fm_clustering",
+        configs=_ALL_CONFIGS,
         star=True,
     )
 
-    # 3–7. Per-dataset appendix tables
+    # FM comparison — Quality (all 12 configs)
+    _emit_table(
+        all_means, _QUALITY_METRICS, _QUALITY_HEADERS,
+        caption=(
+            f"Cross-dataset mean embedding quality with FM enhancement "
+            f"({n_datasets} datasets, split=whole, all 12 configurations). "
+            f"Best per column in \\textbf{{bold}}."
+        ),
+        label="tab:fm_embedding",
+        configs=_ALL_CONFIGS,
+        star=True,
+    )
+
+    # FM delta summary table
+    _emit_fm_delta_table(data)
+
+    # FM stats for inline reporting
+    fm_stats = _compute_fm_stats(data)
     print("%" * 72)
-    print("% Per-dataset appendix tables")
+    print("% FM improvement summary statistics (for inline \\newcommand use)")
+    print("%" * 72)
+    _SHORT = {
+        "ARI": "ARI", "NMI": "NMI", "ASW": "ASW", "DAV": "DAV",
+        "DRE_umap_overall_quality": "DRE", "LSE_overall_quality": "LSE",
+        "DREX_overall_quality": "DREX", "LSEX_overall_quality": "LSEX",
+    }
+    for m, s in fm_stats.items():
+        short = _SHORT.get(m, m.split("_")[0])
+        sign = "+" if s["mean"] >= 0 else ""
+        print(
+            f"% {short}: mean delta = {sign}{s['mean']:.4f} "
+            f"(std {s['std']:.4f}), "
+            f"improved in {s['n_improved']}/{s['n_total']} "
+            f"({s['pct_improved']:.1f}%) dataset-config pairs"
+        )
+    print()
+
+    sys.stdout = _old_stdout
+    fm_path = args.outdir / "tables_fm.tex"
+    fm_path.write_text(fm_buf.getvalue())
+    print(f"Wrote {fm_path} ({fm_buf.getvalue().count(chr(10))} lines)", file=sys.stderr)
+
+    # === File 2: Per-dataset appendix tables ===
+    pd_buf = io.StringIO()
+    sys.stdout = pd_buf
+    print("%" * 72)
+    print(f"% AUTO-GENERATED PER-DATASET TABLES --- do not edit by hand")
+    print(f"% {n_datasets} datasets, {len(_ALL_CONFIGS)} configurations")
     print("%" * 72)
     print()
     for ds in _DATASETS:
         _emit_per_dataset(data, ds, "ablation")
+
+    sys.stdout = _old_stdout
+    pd_path = args.outdir / "tables_perdataset.tex"
+    pd_path.write_text(pd_buf.getvalue())
+    print(f"Wrote {pd_path} ({pd_buf.getvalue().count(chr(10))} lines)", file=sys.stderr)
 
 
 if __name__ == "__main__":

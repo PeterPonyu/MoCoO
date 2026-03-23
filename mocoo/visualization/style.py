@@ -129,6 +129,44 @@ _SHORT_NAMES: Dict[str, str] = {
 # ---------------------------------------------------------------------------
 # Metric glossary and direction indicators
 # ---------------------------------------------------------------------------
+# ---------------------------------------------------------------------------
+# Proposed metric set — canonical metrics for all comparisons
+# ---------------------------------------------------------------------------
+# Clustering core (4) + overall quality scores (4) = 8 summary metrics.
+# These are the metrics where MoCoO (Full / FM) shows clear advantages and
+# form the evaluation framework proposed in the paper.
+
+PROPOSED_CLUSTERING = ["NMI", "ARI", "ASW", "DAV"]
+PROPOSED_QUALITY = [
+    "DRE_umap_overall_quality",
+    "LSE_overall_quality",
+    "DREX_overall_quality",
+    "LSEX_overall_quality",
+]
+PROPOSED_METRICS = PROPOSED_CLUSTERING + PROPOSED_QUALITY
+
+# Direction for proposed metrics (True = higher is better)
+PROPOSED_DIRECTION: Dict[str, bool] = {
+    "NMI": True, "ARI": True, "ASW": True, "DAV": False,
+    "DRE_umap_overall_quality": True, "LSE_overall_quality": True,
+    "DREX_overall_quality": True, "LSEX_overall_quality": True,
+}
+
+# Short display labels for proposed metrics (used in bar charts / axes)
+PROPOSED_SHORT_LABELS: Dict[str, str] = {
+    "NMI": "NMI",
+    "ARI": "ARI",
+    "ASW": "ASW",
+    "DAV": "DAV",
+    "DRE_umap_overall_quality": "DRE",
+    "LSE_overall_quality": "LSE",
+    "DREX_overall_quality": "DREX",
+    "LSEX_overall_quality": "LSEX",
+}
+
+# ---------------------------------------------------------------------------
+# Metric glossary and direction indicators
+# ---------------------------------------------------------------------------
 METRIC_GLOSSARY: Dict[str, str] = {
     "ARI": "Adj. Rand Index",
     "NMI": "Norm. Mutual Info.",
@@ -453,6 +491,24 @@ def save_figure(fig, path, vcd_label: str | None = None,
     pdf_kw.pop("dpi", None)  # PDF is vector; DPI is irrelevant
     fig.savefig(str(pdf_path), **pdf_kw)
     return issues
+
+
+def add_panel_label(ax, label: str, x: float = -0.08, y: float = 1.06,
+                    fontsize: float | None = None) -> None:
+    """Place a bold panel label (a), (b), ... outside *ax*.
+
+    Uses a white stroke path effect so the letter is readable against
+    any background.
+    """
+    import matplotlib.patheffects as pe
+
+    fs = fontsize or FS_LABEL
+    ax.text(
+        x, y, f"({label})",
+        transform=ax.transAxes,
+        fontsize=fs, fontweight="bold", va="bottom", ha="left",
+        path_effects=[pe.withStroke(linewidth=2.5, foreground="white")],
+    )
 
 
 def get_config_colors() -> Dict[str, str]:

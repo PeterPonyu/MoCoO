@@ -47,7 +47,7 @@ FIGURES_DIR   ?= $(or $(MOCOO_FIGURES_DIR),benchmarks/figures)
 PAPER_DIR     ?= $(or $(MOCOO_PAPER_DIR),paper)
 
 # ── Series-specific output directories ───────────────────────────────────
-SINGLE_DIR    := $(RESULTS_DIR)/single_dataset
+SINGLE_DIR    := $(RESULTS_DIR)
 BETA_DIR      := $(RESULTS_DIR)/beta_ablation
 CROSS_DIR     := $(RESULTS_DIR)/cross_dataset
 MULTI_DIR     := $(RESULTS_DIR)/multiseed
@@ -71,10 +71,9 @@ MULTISEED_CSV   := $(MULTI_DIR)/multiseed_IRALL.csv
         benchmark cross-dataset beta-ablation beta-sweep multiseed baseline \
         series1 series2 series3 series4 \
         metrics significance \
-        figures fig-ablation fig-comparison fig-composed fig-dynamics \
-        fig-batch fig-trajectory fig-biovalidation \
-        fig-heatmap fig-sensitivity fig-generalization \
-        paper paper-clean
+        figures fig2 fig3 fig4 fig5 fig6 \
+        figS1 figS2 figS3 figS4 figS5 figS6 figS7 figS8 figS9 \
+        tables paper paper-clean paper-mdpi paper-elsevier paper-all
 
 # ═══════════════════════════════════════════════════════════════════════════
 # DEFAULT / HELP
@@ -108,19 +107,26 @@ help: ## Show all available targets
 	@echo "  make metrics          Recompute expanded metrics from saved latents"
 	@echo "  make significance     Run significance tests on multi-seed results"
 	@echo ""
-	@echo "  FIGURES"
+	@echo "  FIGURES (Main Paper)"
 	@echo "  ─────────────────────────────────────────────────────────"
-	@echo "  make figures          Generate all figures"
-	@echo "  make fig-ablation     Fig 3: ablation summary"
-	@echo "  make fig-comparison   Fig 2: quantitative comparison"
-	@echo "  make fig-composed     Fig 5b: composed multi-panel"
-	@echo "  make fig-dynamics     Fig 4: training dynamics"
-	@echo "  make fig-heatmap      Fig 5a: subcategory heatmap"
-	@echo "  make fig-sensitivity  Fig 6: beta sensitivity"
-	@echo "  make fig-generalization Fig 7: generalization val vs test"
-	@echo "  make fig-batch        Supplemental: batch integration"
-	@echo "  make fig-trajectory   Supplemental: ODE trajectory"
-	@echo "  make fig-biovalidation Supplemental: biological validation"
+	@echo "  make figures          Generate all figures (main + supp)"
+	@echo "  make fig2             Fig 2: ablation boxplots"
+	@echo "  make fig3             Fig 3: per-dataset metric profiles"
+	@echo "  make fig4             Fig 4: external baselines comparison"
+	@echo "  make fig5             Fig 5: FM pipeline comparison"
+	@echo "  make fig6             Fig 6: downstream biological validation"
+	@echo ""
+	@echo "  FIGURES (Supplementary)"
+	@echo "  ─────────────────────────────────────────────────────────"
+	@echo "  make figS1            Fig S1: FM sensitivity analysis"
+	@echo "  make figS2            Fig S2: FM-enhanced metric profiles"
+	@echo "  make figS3            Fig S3: FM refinement effect"
+	@echo "  make figS4            Fig S4: ODE pseudotime trajectory"
+	@echo "  make figS5            Fig S5: cross-dataset generalization"
+	@echo "  make figS6            Fig S6: biological validation"
+	@echo "  make figS7            Fig S7: multi-seed robustness"
+	@echo "  make figS8            Fig S8: trajectory / pseudotime"
+	@echo "  make figS9            Fig S9: beta ablation heatmap"
 	@echo ""
 	@echo "  PAPER"
 	@echo "  ─────────────────────────────────────────────────────────"
@@ -315,118 +321,169 @@ beta-sweep: beta-ablation ## DEPRECATED: use beta-ablation
 # FIGURE TARGETS
 # ═══════════════════════════════════════════════════════════════════════════
 
-# All figures depend on benchmark results existing.
-figures: fig-ablation fig-comparison fig-composed fig-dynamics fig-heatmap fig-sensitivity fig-generalization fig-batch fig-trajectory fig-biovalidation ## Generate all figures
+# All figures: main paper (fig2–fig6) then supplementary (figS1–figS9).
+figures: fig2 fig3 fig4 fig5 fig6 figS1 figS2 figS3 figS4 figS5 figS6 figS7 figS8 figS9 ## Generate all figures
 	@echo ""
 	@echo "══════════════════════════════════════════════════════════════"
 	@echo "  All figures generated in $(FIGURES_DIR)/"
 	@echo "══════════════════════════════════════════════════════════════"
 
-fig-ablation: ## Fig 3: ablation summary (synergy, waterfall, heatmap)
+# ── Main Paper Figures ──────────────────────────────────────────────────
+
+fig2: ## Fig 2: ablation boxplots (cross-dataset)
 	@echo ""
 	@echo "══════════════════════════════════════════════════════════════"
-	@echo "  Figure: Ablation summary"
+	@echo "  Fig 2: Ablation boxplots"
 	@echo "══════════════════════════════════════════════════════════════"
 	@mkdir -p $(FIGURES_DIR)
-	$(PYTHON) $(PLOTTING)/plot_ablation_summary.py \
+	$(PYTHON) $(PLOTTING)/fig2_ablation_boxplots.py \
 		--resultsdir $(SINGLE_DIR) \
 		--outdir $(FIGURES_DIR)
 
-fig-comparison: ## Fig 2: quantitative latent space comparison
+fig3: ## Fig 3: per-dataset metric profiles
 	@echo ""
 	@echo "══════════════════════════════════════════════════════════════"
-	@echo "  Figure: Quantitative comparison"
+	@echo "  Fig 3: Metric profiles"
 	@echo "══════════════════════════════════════════════════════════════"
 	@mkdir -p $(FIGURES_DIR)
-	$(PYTHON) $(PLOTTING)/plot_quant_comparison.py \
+	$(PYTHON) $(PLOTTING)/fig3_metric_profiles.py \
 		--resultsdir $(SINGLE_DIR) \
 		--outdir $(FIGURES_DIR)
 
-fig-composed: ## Fig 5: composed multi-panel benchmark figure
+fig4: ## Fig 4: external baselines comparison
 	@echo ""
 	@echo "══════════════════════════════════════════════════════════════"
-	@echo "  Figure: Composed benchmark"
+	@echo "  Fig 4: External baselines"
 	@echo "══════════════════════════════════════════════════════════════"
 	@mkdir -p $(FIGURES_DIR)
-	$(PYTHON) $(PLOTTING)/plot_composed.py \
+	$(PYTHON) $(PLOTTING)/fig4_external_baselines.py \
 		--resultsdir $(SINGLE_DIR) \
 		--outdir $(FIGURES_DIR)
 
-fig-dynamics: ## Fig 4: training dynamics and convergence
+fig5: ## Fig 5: FM pipeline comparison (base vs FM-augmented)
 	@echo ""
 	@echo "══════════════════════════════════════════════════════════════"
-	@echo "  Figure: Training dynamics"
+	@echo "  Fig 5: FM comparison"
 	@echo "══════════════════════════════════════════════════════════════"
 	@mkdir -p $(FIGURES_DIR)
-	$(PYTHON) $(PLOTTING)/plot_training_dynamics.py \
+	$(PYTHON) $(PLOTTING)/fig5_fm_comparison.py \
 		--resultsdir $(SINGLE_DIR) \
 		--outdir $(FIGURES_DIR)
 
-fig-batch: ## Supplemental: batch integration and cross-dataset generalization
+fig6: ## Fig 6: downstream biological validation
 	@echo ""
 	@echo "══════════════════════════════════════════════════════════════"
-	@echo "  Figure: Batch integration"
+	@echo "  Fig 6: Downstream validation"
 	@echo "══════════════════════════════════════════════════════════════"
 	@mkdir -p $(FIGURES_DIR)
-	$(PYTHON) $(PLOTTING)/plot_batch_integration.py \
-		--resultsdir $(RESULTS_DIR) \
+	MOCOO_DATA_DIR=$(DATA_DIR) $(PYTHON) $(PLOTTING)/fig6_downstream.py \
+		--resultsdir $(SINGLE_DIR) \
 		--outdir $(FIGURES_DIR)
 
-fig-trajectory: ## Supplemental: ODE pseudotime trajectory analysis
+# ── Supplementary Figures ───────────────────────────────────────────────
+
+figS1: ## Fig S1: FM sensitivity analysis
 	@echo ""
 	@echo "══════════════════════════════════════════════════════════════"
-	@echo "  Figure: ODE trajectory"
+	@echo "  Fig S1: FM sensitivity"
 	@echo "══════════════════════════════════════════════════════════════"
 	@mkdir -p $(FIGURES_DIR)
-	MOCOO_DATA_DIR=$(DATA_DIR) $(PYTHON) $(PLOTTING)/plot_ode_trajectory.py \
+	$(PYTHON) $(PLOTTING)/figS1_fm_sensitivity.py \
+		--resultsdir $(SINGLE_DIR) \
+		--outdir $(FIGURES_DIR)
+
+figS2: ## Fig S2: FM-enhanced metric profiles
+	@echo ""
+	@echo "══════════════════════════════════════════════════════════════"
+	@echo "  Fig S2: FM metric profiles"
+	@echo "══════════════════════════════════════════════════════════════"
+	@mkdir -p $(FIGURES_DIR)
+	$(PYTHON) $(PLOTTING)/figS2_fm_metric_profiles.py \
+		--resultsdir $(SINGLE_DIR) \
+		--outdir $(FIGURES_DIR)
+
+figS3: ## Fig S3: FM refinement effect
+	@echo ""
+	@echo "══════════════════════════════════════════════════════════════"
+	@echo "  Fig S3: FM effect"
+	@echo "══════════════════════════════════════════════════════════════"
+	@mkdir -p $(FIGURES_DIR)
+	$(PYTHON) $(PLOTTING)/figS3_fm_effect.py \
+		--resultsdir $(SINGLE_DIR) \
+		--outdir $(FIGURES_DIR)
+
+figS4: ## Fig S4: ODE pseudotime trajectory analysis
+	@echo ""
+	@echo "══════════════════════════════════════════════════════════════"
+	@echo "  Fig S4: ODE trajectory"
+	@echo "══════════════════════════════════════════════════════════════"
+	@mkdir -p $(FIGURES_DIR)
+	MOCOO_DATA_DIR=$(DATA_DIR) $(PYTHON) $(PLOTTING)/figS4_ode_trajectory.py \
 		--resultsdir $(SINGLE_DIR) \
 		--outdir $(FIGURES_DIR) \
 		--data $(DATA_DIR)/LAB/scRL/IRALL.h5ad
 
-fig-biovalidation: ## Supplemental: biological validation (perturbation, gene expression)
+figS5: ## Fig S5: cross-dataset generalization
 	@echo ""
 	@echo "══════════════════════════════════════════════════════════════"
-	@echo "  Figure: Biological validation"
+	@echo "  Fig S5: Generalization"
 	@echo "══════════════════════════════════════════════════════════════"
 	@mkdir -p $(FIGURES_DIR)
-	MOCOO_DATA_DIR=$(DATA_DIR) $(PYTHON) $(PLOTTING)/plot_biological_validation.py \
+	$(PYTHON) $(PLOTTING)/figS5_generalization.py \
+		--resultsdir $(RESULTS_DIR) \
+		--outdir $(FIGURES_DIR)
+
+figS6: ## Fig S6: biological validation
+	@echo ""
+	@echo "══════════════════════════════════════════════════════════════"
+	@echo "  Fig S6: Biological validation"
+	@echo "══════════════════════════════════════════════════════════════"
+	@mkdir -p $(FIGURES_DIR)
+	MOCOO_DATA_DIR=$(DATA_DIR) $(PYTHON) $(PLOTTING)/figS6_biological_validation.py \
 		--resultsdir $(SINGLE_DIR) \
 		--outdir $(FIGURES_DIR) \
 		--data $(DATA_DIR)/LAB/scRL/IRALL.h5ad
 
-fig-heatmap: ## Fig 5a: subcategory metric heatmap
+figS7: ## Fig S7: multi-seed robustness
 	@echo ""
 	@echo "══════════════════════════════════════════════════════════════"
-	@echo "  Figure: Subcategory heatmap"
+	@echo "  Fig S7: Multi-seed"
 	@echo "══════════════════════════════════════════════════════════════"
 	@mkdir -p $(FIGURES_DIR)
-	$(PYTHON) $(PLOTTING)/plot_subcategory_heatmap.py \
-		--resultsdir $(BETA_DIR)/beta_0.1 \
+	$(PYTHON) $(PLOTTING)/figS7_multiseed.py \
+		--resultsdir $(MULTI_DIR) \
 		--outdir $(FIGURES_DIR)
 
-fig-sensitivity: ## Fig 6: beta sensitivity analysis
+figS8: ## Fig S8: trajectory / pseudotime comparison
 	@echo ""
 	@echo "══════════════════════════════════════════════════════════════"
-	@echo "  Figure: Beta sensitivity"
+	@echo "  Fig S8: Trajectory"
 	@echo "══════════════════════════════════════════════════════════════"
 	@mkdir -p $(FIGURES_DIR)
-	$(PYTHON) $(PLOTTING)/plot_beta_sensitivity.py \
-		--resultsdir $(RESULTS_DIR) \
+	MOCOO_DATA_DIR=$(DATA_DIR) $(PYTHON) $(PLOTTING)/figS8_trajectory.py \
+		--resultsdir $(SINGLE_DIR) \
 		--outdir $(FIGURES_DIR)
 
-fig-generalization: ## Fig 7: generalization val vs test
+figS9: ## Fig S9: beta ablation heatmap
 	@echo ""
 	@echo "══════════════════════════════════════════════════════════════"
-	@echo "  Figure: Generalization"
+	@echo "  Fig S9: Beta ablation"
 	@echo "══════════════════════════════════════════════════════════════"
 	@mkdir -p $(FIGURES_DIR)
-	$(PYTHON) $(PLOTTING)/plot_generalization.py \
-		--resultsdir $(BETA_DIR)/beta_0.1 \
+	$(PYTHON) $(PLOTTING)/figS9_beta_ablation.py \
+		--resultsdir $(BETA_DIR) \
 		--outdir $(FIGURES_DIR)
 
 # ═══════════════════════════════════════════════════════════════════════════
 # PAPER TARGETS
 # ═══════════════════════════════════════════════════════════════════════════
+
+tables: ## Generate LaTeX tables (tables_fm.tex + tables_perdataset.tex)
+	@echo ""
+	@echo "══════════════════════════════════════════════════════════════"
+	@echo "  Generating LaTeX tables"
+	@echo "══════════════════════════════════════════════════════════════"
+	$(PYTHON) $(PLOTTING)/generate_latex_tables.py --outdir $(PAPER_DIR)
 
 paper: ## Build the LaTeX paper (requires paper/main.tex)
 	@echo ""
@@ -465,3 +522,19 @@ paper-clean: ## Clean paper build artifacts
 		      main.pdf 2>/dev/null; \
 		echo "  Done."; \
 	fi
+
+paper-mdpi: ## Build MDPI version
+	@echo ""
+	@echo "══════════════════════════════════════════════════════════════"
+	@echo "  Building MDPI paper"
+	@echo "══════════════════════════════════════════════════════════════"
+	cd $(PAPER_DIR)/mdpi && latexmk -pdf -interaction=nonstopmode main.tex
+
+paper-elsevier: ## Build Elsevier version
+	@echo ""
+	@echo "══════════════════════════════════════════════════════════════"
+	@echo "  Building Elsevier paper"
+	@echo "══════════════════════════════════════════════════════════════"
+	cd $(PAPER_DIR)/elsevier && latexmk -pdf -interaction=nonstopmode main.tex
+
+paper-all: paper paper-mdpi paper-elsevier ## Build all paper formats

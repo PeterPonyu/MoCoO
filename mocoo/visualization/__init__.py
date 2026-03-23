@@ -64,6 +64,18 @@ from .style import (
     FS_TICK,
     FS_LEGEND,
     FS_SMALL,
+    add_panel_label,
+    save_figure,
+)
+
+# Layout geometry engine
+from .direct_layout import LayoutRegion, bind_figure_region
+
+# Explicit positioning helpers
+from .explicit_positioning import (
+    add_axes_next_to,
+    add_shared_legend_axes,
+    union_axes_rect,
 )
 
 # Core plotting functions
@@ -104,6 +116,14 @@ __all__ = [
     "FS_TICK",
     "FS_LEGEND",
     "FS_SMALL",
+    "add_panel_label",
+    "save_figure",
+    # Layout geometry
+    "LayoutRegion",
+    "bind_figure_region",
+    "add_axes_next_to",
+    "add_shared_legend_axes",
+    "union_axes_rect",
     # Plots
     "plot_ablation_radar",
     "plot_metric_bars",
