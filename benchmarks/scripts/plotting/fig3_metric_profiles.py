@@ -1,10 +1,10 @@
 #!/usr/bin/env python
-"""MoCoO Figure 3 — Per-dataset metric profiles (proposed 8 metrics).
+"""MoCoO Figure 3 — Per-dataset metric profiles (proposed 6 metrics).
 
 Line-plot figure showing the proposed metric set across datasets
-(whole split only).  Two rows of four columns:
-  Row 1: Clustering — NMI, ARI, ASW, DAV
-  Row 2: Quality    — DRE, LSE, DREX, LSEX
+(whole split only).  Two rows of three/two columns:
+  Row 1: Clustering geometry — ASW, DAV
+  Row 2: Quality             — DRE, LSE, DREX, LSEX
 
 x-axis = datasets in biological-context order, y-axis = metric value,
 coloured lines = model configurations.

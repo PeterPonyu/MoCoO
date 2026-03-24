@@ -5,25 +5,25 @@
 
 \begin{table*}[!t]
     \centering
-    \caption{Cross-dataset mean clustering metrics with FM enhancement (20 datasets, split=whole, all 12 configurations). Best per column in \textbf{bold}. DAV$\downarrow$ indicates lower is better.}
+    \caption{Cross-dataset mean clustering geometry with FM enhancement (20 datasets, split=whole, all 12 configurations). Best per column in \textbf{bold}. DAV$\downarrow$ indicates lower is better.}
     \label{tab:fm_clustering}
-    \resizebox{\textwidth}{!}{%
-    \begin{tabular}{lcccc}
+    {\footnotesize
+    \begin{tabular}{lcc}
         \toprule
-        Config & ARI & NMI & ASW & DAV$\downarrow$ \\
+        Config & ASW & DAV$\downarrow$ \\
         \midrule
-        VAE & 0.349 & 0.538 & 0.184 & 1.718 \\
-        VAE+ODE & 0.352 & 0.539 & 0.216 & 1.504 \\
-        VAE+MoCo & 0.352 & 0.543 & 0.185 & 1.710 \\
-        VAE+MoCo+Proto & 0.345 & 0.541 & 0.182 & 1.733 \\
-        VAE+ODE+MoCo & 0.359 & 0.540 & 0.225 & 1.478 \\
-        Full (MoCoO) & 0.353 & 0.535 & 0.220 & 1.489 \\
-        VAE+FM & 0.341 & 0.533 & 0.184 & 1.709 \\
-        VAE+ODE+FM & 0.370 & \textbf{0.544} & 0.251 & 1.373 \\
-        VAE+MoCo+FM & 0.354 & 0.542 & 0.187 & 1.694 \\
-        VAE+MoCo+Proto+FM & 0.345 & 0.538 & 0.189 & 1.689 \\
-        VAE+ODE+MoCo+FM & \textbf{0.370} & 0.543 & \textbf{0.257} & \textbf{1.359} \\
-        Full+FM (MoCoO+FM) & 0.355 & 0.533 & 0.256 & 1.375 \\
+        VAE & 0.184 & 1.718 \\
+        VAE+ODE & 0.216 & 1.504 \\
+        VAE+MoCo & 0.185 & 1.710 \\
+        VAE+MoCo+Proto & 0.182 & 1.733 \\
+        VAE+ODE+MoCo & 0.225 & 1.478 \\
+        VAE+ODE+MoCo+Proto & 0.220 & 1.489 \\
+        VAE+FM & 0.184 & 1.709 \\
+        VAE+ODE+FM & 0.251 & 1.373 \\
+        VAE+MoCo+FM & 0.187 & 1.694 \\
+        VAE+MoCo+Proto+FM & 0.189 & 1.689 \\
+        VAE+ODE+MoCo+FM & \textbf{0.257} & \textbf{1.359} \\
+        VAE+ODE+MoCo+Proto+FM & 0.256 & 1.375 \\
         \bottomrule
     \end{tabular}%
     }
@@ -33,7 +33,7 @@
     \centering
     \caption{Cross-dataset mean embedding quality with FM enhancement (20 datasets, split=whole, all 12 configurations). Best per column in \textbf{bold}.}
     \label{tab:fm_embedding}
-    \resizebox{\textwidth}{!}{%
+    {\footnotesize
     \begin{tabular}{lcccc}
         \toprule
         Config & \makecell{DRE\\overall} & \makecell{LSE\\overall} & \makecell{DREX\\overall} & \makecell{LSEX\\overall} \\
@@ -43,13 +43,13 @@
         VAE+MoCo & 0.579 & 0.202 & 0.590 & 0.606 \\
         VAE+MoCo+Proto & 0.578 & 0.200 & 0.589 & 0.606 \\
         VAE+ODE+MoCo & 0.640 & 0.335 & 0.606 & 0.603 \\
-        Full (MoCoO) & 0.636 & 0.318 & 0.611 & 0.604 \\
+        VAE+ODE+MoCo+Proto & 0.636 & 0.318 & 0.611 & 0.604 \\
         VAE+FM & 0.584 & 0.193 & 0.597 & \textbf{0.606} \\
         VAE+ODE+FM & 0.672 & 0.314 & 0.656 & 0.600 \\
         VAE+MoCo+FM & 0.591 & 0.204 & 0.602 & 0.606 \\
         VAE+MoCo+Proto+FM & 0.592 & 0.205 & 0.602 & 0.606 \\
         VAE+ODE+MoCo+FM & 0.673 & 0.316 & 0.656 & 0.600 \\
-        Full+FM (MoCoO+FM) & \textbf{0.678} & 0.329 & \textbf{0.660} & 0.601 \\
+        VAE+ODE+MoCo+Proto+FM & \textbf{0.678} & 0.329 & \textbf{0.660} & 0.601 \\
         \bottomrule
     \end{tabular}%
     }
@@ -61,19 +61,19 @@
 
 \begin{table*}[!t]
     \centering
-    \caption{Mean Flow Matching improvement ($\Delta$ = FM $-$ base) across 20 datasets (split=whole). Positive values indicate FM enhancement. For DAV$\downarrow$, negative $\Delta$ is better.}
+    \caption{Mean Flow Matching improvement ($\Delta$ = FM $-$ base) across 20 datasets (split=whole). For DAV$\downarrow$, negative $\Delta$ is better. Bold indicates improvement.}
     \label{tab:fm_delta}
-    \resizebox{\textwidth}{!}{%
-    \begin{tabular}{lcccccccc}
+    {\footnotesize\setlength{\tabcolsep}{5pt}
+    \begin{tabular}{lcccccc}
         \toprule
-        Base Config & ARI & NMI & ASW & DAV$\downarrow$ & \makecell{DRE\\overall} & \makecell{LSE\\overall} & \makecell{DREX\\overall} & \makecell{LSEX\\overall} \\
+        Base Config & ASW & DAV$\downarrow$ & \makecell{DRE\\overall} & \makecell{LSE\\overall} & \makecell{DREX\\overall} & \makecell{LSEX\\overall} \\
         \midrule
-        VAE & -0.008 & -0.005 & \textbf{+0.000} & \textbf{-0.009} & \textbf{+0.011} & -0.000 & \textbf{+0.011} & \textbf{+0.000} \\
-        VAE+ODE & \textbf{+0.018} & \textbf{+0.005} & \textbf{+0.034} & \textbf{-0.132} & \textbf{+0.025} & -0.030 & \textbf{+0.042} & -0.003 \\
-        VAE+MoCo & \textbf{+0.002} & -0.001 & \textbf{+0.002} & \textbf{-0.016} & \textbf{+0.012} & \textbf{+0.002} & \textbf{+0.012} & \textbf{+0.000} \\
-        VAE+MoCo+Proto & -0.000 & -0.003 & \textbf{+0.007} & \textbf{-0.044} & \textbf{+0.014} & \textbf{+0.005} & \textbf{+0.013} & -0.000 \\
-        VAE+ODE+MoCo & \textbf{+0.011} & \textbf{+0.004} & \textbf{+0.032} & \textbf{-0.119} & \textbf{+0.033} & -0.019 & \textbf{+0.050} & -0.003 \\
-        Full (MoCoO) & \textbf{+0.002} & -0.001 & \textbf{+0.035} & \textbf{-0.115} & \textbf{+0.042} & \textbf{+0.011} & \textbf{+0.048} & -0.003 \\
+        VAE & \textbf{+0.000} & \textbf{-0.009} & \textbf{+0.011} & -0.000 & \textbf{+0.011} & \textbf{+0.000} \\
+        VAE+ODE & \textbf{+0.034} & \textbf{-0.132} & \textbf{+0.025} & -0.030 & \textbf{+0.042} & -0.003 \\
+        VAE+MoCo & \textbf{+0.002} & \textbf{-0.016} & \textbf{+0.012} & \textbf{+0.002} & \textbf{+0.012} & \textbf{+0.000} \\
+        VAE+MoCo+Proto & \textbf{+0.007} & \textbf{-0.044} & \textbf{+0.014} & \textbf{+0.005} & \textbf{+0.013} & -0.000 \\
+        VAE+ODE+MoCo & \textbf{+0.032} & \textbf{-0.119} & \textbf{+0.033} & -0.019 & \textbf{+0.050} & -0.003 \\
+        VAE+ODE+MoCo+Proto & \textbf{+0.035} & \textbf{-0.115} & \textbf{+0.042} & \textbf{+0.011} & \textbf{+0.048} & -0.003 \\
         \bottomrule
     \end{tabular}%
     }
@@ -82,8 +82,6 @@
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % FM improvement summary statistics (for inline \newcommand use)
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% ARI: mean delta = +0.0039 (std 0.0404), improved in 61/120 (50.8%) dataset-config pairs
-% NMI: mean delta = -0.0003 (std 0.0219), improved in 55/120 (45.8%) dataset-config pairs
 % ASW: mean delta = +0.0183 (std 0.0337), improved in 103/120 (85.8%) dataset-config pairs
 % DAV: mean delta = -0.0721 (std 0.1315), improved in 96/120 (80.0%) dataset-config pairs
 % DRE: mean delta = +0.0229 (std 0.0277), improved in 105/120 (87.5%) dataset-config pairs

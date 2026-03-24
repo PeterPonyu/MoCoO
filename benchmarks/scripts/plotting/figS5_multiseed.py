@@ -1,9 +1,9 @@
 #!/usr/bin/env python
-"""MoCoO Supplementary Figure S7 — Multi-seed robustness analysis.
+"""MoCoO Supplementary Figure S5 — Multi-seed robustness analysis.
 
 Two-panel figure using the direct_layout geometry engine:
-  (a)  Box/violin per config showing ARI / NMI / ASW distributions (5 seeds)
-  (b)  Mean ± 95 % CI bars with pairwise significance annotations
+  (a)  Box/violin per config showing ASW / DAV distributions (5 seeds)
+  (b)  Mean ± 95 % CI bars (ASW) with pairwise significance annotations
 """
 from __future__ import annotations
 
@@ -48,12 +48,16 @@ def _load_multiseed(results_dir: Path):
         for row in reader:
             cfg = row["config"].strip()
             if cfg not in data:
-                data[cfg] = {"ARI": [], "NMI": [], "ASW": []}
-            for m in ("ARI", "NMI", "ASW"):
-                try:
-                    data[cfg][m].append(float(row[m]))
-                except (KeyError, ValueError):
-                    pass
+                data[cfg] = {"ASW": [], "DAV": []}
+            try:
+                data[cfg]["ASW"].append(float(row["ASW"]))
+            except (KeyError, ValueError):
+                pass
+            try:
+                # DB column = Davies-Bouldin = DAV
+                data[cfg]["DAV"].append(float(row["DB"]))
+            except (KeyError, ValueError):
+                pass
     return data
 
 
@@ -89,7 +93,8 @@ def make_figure(results_dir: Path, out_path: Path):
     (r_a, r_b) = root.split_cols([3, 2], gap=0.10)
 
     # --- Panel (a): Horizontal boxplots per metric (stacked vertically) ---
-    metrics = ["ARI", "NMI", "ASW"]
+    metrics = ["ASW", "DAV"]
+    metric_labels = ["ASW \u2191", "DAV \u2193"]
     regions_a = r_a.split_rows([1] * len(metrics), gap=0.08)
 
     for mi, metric in enumerate(metrics):
@@ -121,7 +126,7 @@ def make_figure(results_dir: Path, out_path: Path):
         ax.set_yticks(range(1, len(configs) + 1))
         ax.set_yticklabels([get_tick_name(c) for c in configs],
                            fontsize=FS_SMALL)
-        ax.set_xlabel(metric, fontsize=FS_AXIS)
+        ax.set_xlabel(metric_labels[mi], fontsize=FS_AXIS)
         ax.xaxis.set_major_locator(plt.MaxNLocator(5))
         if mi == 0:
             ax.set_title("Per-seed Distributions", fontsize=FS_TITLE)
@@ -129,7 +134,7 @@ def make_figure(results_dir: Path, out_path: Path):
 
     # --- Panel (b): Mean ± CI bar chart ---
     ax_b = r_b.add_axes(fig)
-    metric_show = "ARI"
+    metric_show = "ASW"
     x = np.arange(len(configs))
     means = []
     lows = []
@@ -159,7 +164,7 @@ def make_figure(results_dir: Path, out_path: Path):
     ax_b.set_title("Robustness (5 seeds)", fontsize=FS_TITLE)
     add_panel_label(ax_b, "b")
 
-    save_figure(fig, str(out_path), vcd_label="figS7_multiseed", vcd_verbose=True)
+    save_figure(fig, str(out_path), vcd_label="figS5_multiseed", vcd_verbose=True)
     plt.close(fig)
     print(f"Saved: {out_path}")
 
@@ -173,7 +178,7 @@ def main():
     args = parser.parse_args()
     outdir = args.outdir or (args.resultsdir.parent / "figures")
     Path(outdir).mkdir(parents=True, exist_ok=True)
-    make_figure(args.resultsdir, Path(outdir) / "figS7_multiseed.png")
+    make_figure(args.resultsdir, Path(outdir) / "figS5_multiseed.png")
 
 
 if __name__ == "__main__":

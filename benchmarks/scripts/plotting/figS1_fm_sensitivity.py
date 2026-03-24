@@ -32,6 +32,7 @@ from mocoo.visualization.style import (
     FS_LEGEND,
     FS_TITLE,
     FS_TICK,
+    PROPOSED_METRICS,
     apply_style,
     grid_of_axes,
     save_figure,
@@ -41,13 +42,9 @@ setup_fonts()
 apply_style()
 
 # ── Layout constants ──────────────────────────────────────────────────────
-_METRICS = [
-    "NMI", "ARI", "ASW", "DAV",
-    "DRE_umap_overall_quality", "LSE_overall_quality",
-    "DREX_overall_quality", "LSEX_overall_quality",
-]
+_METRICS = PROPOSED_METRICS  # 6 metrics: ASW, DAV, DRE, LSE, DREX, LSEX
 _METRIC_LABELS = {
-    "NMI": "NMI \u2191", "ARI": "ARI \u2191", "ASW": "ASW \u2191",
+    "ASW": "ASW \u2191",
     "DAV": "DAV \u2193",
     "DRE_umap_overall_quality": "DRE \u2191",
     "LSE_overall_quality": "LSE \u2191",

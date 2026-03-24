@@ -102,10 +102,15 @@ def make_figure(results_dir: Path, out_path: Path):
         ax_a.set_ylabel("Mean |Spearman ρ|", fontsize=FS_AXIS)
         ax_a.set_title("Pseudotime Correlation", fontsize=FS_TITLE)
         # Annotate values
+        ymax = ax_a.get_ylim()[1]
         for i, v in enumerate(vals):
-            if v + 0.005 < ax_a.get_ylim()[1] * 0.95:
+            if v + 0.005 < ymax * 0.92:
                 ax_a.text(i, v + 0.005, f"{v:.3f}", ha="center", va="bottom",
                           fontsize=FS_SMALL)
+            else:
+                # Place inside bar for tallest bars
+                ax_a.text(i, v - 0.008, f"{v:.3f}", ha="center", va="top",
+                          fontsize=FS_SMALL, color="white", fontweight="bold")
     add_panel_label(ax_a, "a", x=-0.18, y=1.12)
 
     # --- Panel (b): Trajectory baselines comparison ---

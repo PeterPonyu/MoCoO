@@ -157,7 +157,7 @@ def make_figure(results_dir: Path, out_path: Path):
         ax_d.legend(fontsize=FS_SMALL - 1, loc="upper right", ncol=2)
     add_panel_label(ax_d, "D", x=-0.26, y=1.18)
 
-    save_figure(fig, str(out_path), vcd_label="figS6_biological_validation",
+    save_figure(fig, str(out_path), vcd_label="figS4_biological_validation",
                 vcd_verbose=True)
     plt.close(fig)
     print(f"Saved: {out_path}")
@@ -174,7 +174,7 @@ def main():
     args = parser.parse_args()
     outdir = args.outdir or (args.resultsdir.parent / "figures")
     Path(outdir).mkdir(parents=True, exist_ok=True)
-    make_figure(args.resultsdir, Path(outdir) / "figS6_biological_validation.png")
+    make_figure(args.resultsdir, Path(outdir) / "figS4_biological_validation.png")
 
 
 if __name__ == "__main__":

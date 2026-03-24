@@ -71,8 +71,8 @@ MULTISEED_CSV   := $(MULTI_DIR)/multiseed_IRALL.csv
         benchmark cross-dataset beta-ablation beta-sweep multiseed baseline \
         series1 series2 series3 series4 \
         metrics significance \
-        figures fig2 fig3 fig4 fig5 fig6 \
-        figS1 figS2 figS3 figS4 figS5 figS6 figS7 figS8 figS9 \
+        figures fig2 fig3 fig4 \
+        figS1 figS2 figS3 figS4 figS5 \
         tables paper paper-clean paper-mdpi paper-elsevier paper-all
 
 # ═══════════════════════════════════════════════════════════════════════════
@@ -113,20 +113,14 @@ help: ## Show all available targets
 	@echo "  make fig2             Fig 2: ablation boxplots"
 	@echo "  make fig3             Fig 3: per-dataset metric profiles"
 	@echo "  make fig4             Fig 4: external baselines comparison"
-	@echo "  make fig5             Fig 5: FM pipeline comparison"
-	@echo "  make fig6             Fig 6: downstream biological validation"
 	@echo ""
 	@echo "  FIGURES (Supplementary)"
 	@echo "  ─────────────────────────────────────────────────────────"
 	@echo "  make figS1            Fig S1: FM sensitivity analysis"
-	@echo "  make figS2            Fig S2: FM-enhanced metric profiles"
-	@echo "  make figS3            Fig S3: FM refinement effect"
-	@echo "  make figS4            Fig S4: ODE pseudotime trajectory"
-	@echo "  make figS5            Fig S5: cross-dataset generalization"
-	@echo "  make figS6            Fig S6: biological validation"
-	@echo "  make figS7            Fig S7: multi-seed robustness"
-	@echo "  make figS8            Fig S8: trajectory / pseudotime"
-	@echo "  make figS9            Fig S9: beta ablation heatmap"
+	@echo "  make figS2            Fig S2: trajectory analysis"
+	@echo "  make figS3            Fig S3: cross-dataset generalization"
+	@echo "  make figS4            Fig S4: biological validation"
+	@echo "  make figS5            Fig S5: multi-seed robustness"
 	@echo ""
 	@echo "  PAPER"
 	@echo "  ─────────────────────────────────────────────────────────"
@@ -321,8 +315,9 @@ beta-sweep: beta-ablation ## DEPRECATED: use beta-ablation
 # FIGURE TARGETS
 # ═══════════════════════════════════════════════════════════════════════════
 
-# All figures: main paper (fig2–fig6) then supplementary (figS1–figS9).
-figures: fig2 fig3 fig4 fig5 fig6 figS1 figS2 figS3 figS4 figS5 figS6 figS7 figS8 figS9 ## Generate all figures
+# All figures: main paper (fig2–fig4) then supplementary (figS1–S5).
+# Removed from paper: fig5 (FM boxplots), fig6 (downstream), old figS2–S3/S6–S9.
+figures: fig2 fig3 fig4 figS1 figS2 figS3 figS4 figS5 ## Generate all figures
 	@echo ""
 	@echo "══════════════════════════════════════════════════════════════"
 	@echo "  All figures generated in $(FIGURES_DIR)/"
@@ -360,26 +355,6 @@ fig4: ## Fig 4: external baselines comparison
 		--resultsdir $(SINGLE_DIR) \
 		--outdir $(FIGURES_DIR)
 
-fig5: ## Fig 5: FM pipeline comparison (base vs FM-augmented)
-	@echo ""
-	@echo "══════════════════════════════════════════════════════════════"
-	@echo "  Fig 5: FM comparison"
-	@echo "══════════════════════════════════════════════════════════════"
-	@mkdir -p $(FIGURES_DIR)
-	$(PYTHON) $(PLOTTING)/fig5_fm_comparison.py \
-		--resultsdir $(SINGLE_DIR) \
-		--outdir $(FIGURES_DIR)
-
-fig6: ## Fig 6: downstream biological validation
-	@echo ""
-	@echo "══════════════════════════════════════════════════════════════"
-	@echo "  Fig 6: Downstream validation"
-	@echo "══════════════════════════════════════════════════════════════"
-	@mkdir -p $(FIGURES_DIR)
-	MOCOO_DATA_DIR=$(DATA_DIR) $(PYTHON) $(PLOTTING)/fig6_downstream.py \
-		--resultsdir $(SINGLE_DIR) \
-		--outdir $(FIGURES_DIR)
-
 # ── Supplementary Figures ───────────────────────────────────────────────
 
 figS1: ## Fig S1: FM sensitivity analysis
@@ -392,86 +367,46 @@ figS1: ## Fig S1: FM sensitivity analysis
 		--resultsdir $(SINGLE_DIR) \
 		--outdir $(FIGURES_DIR)
 
-figS2: ## Fig S2: FM-enhanced metric profiles
+figS2: ## Fig S2: Trajectory analysis (ODE + baselines)
 	@echo ""
 	@echo "══════════════════════════════════════════════════════════════"
-	@echo "  Fig S2: FM metric profiles"
+	@echo "  Fig S2: Trajectory"
 	@echo "══════════════════════════════════════════════════════════════"
 	@mkdir -p $(FIGURES_DIR)
-	$(PYTHON) $(PLOTTING)/figS2_fm_metric_profiles.py \
-		--resultsdir $(SINGLE_DIR) \
-		--outdir $(FIGURES_DIR)
-
-figS3: ## Fig S3: FM refinement effect
-	@echo ""
-	@echo "══════════════════════════════════════════════════════════════"
-	@echo "  Fig S3: FM effect"
-	@echo "══════════════════════════════════════════════════════════════"
-	@mkdir -p $(FIGURES_DIR)
-	$(PYTHON) $(PLOTTING)/figS3_fm_effect.py \
-		--resultsdir $(SINGLE_DIR) \
-		--outdir $(FIGURES_DIR)
-
-figS4: ## Fig S4: ODE pseudotime trajectory analysis
-	@echo ""
-	@echo "══════════════════════════════════════════════════════════════"
-	@echo "  Fig S4: ODE trajectory"
-	@echo "══════════════════════════════════════════════════════════════"
-	@mkdir -p $(FIGURES_DIR)
-	MOCOO_DATA_DIR=$(DATA_DIR) $(PYTHON) $(PLOTTING)/figS4_ode_trajectory.py \
+	MOCOO_DATA_DIR=$(DATA_DIR) $(PYTHON) $(PLOTTING)/figS2_trajectory.py \
 		--resultsdir $(SINGLE_DIR) \
 		--outdir $(FIGURES_DIR) \
 		--data $(DATA_DIR)/LAB/scRL/IRALL.h5ad
 
-figS5: ## Fig S5: cross-dataset generalization
+figS3: ## Fig S3: Cross-dataset generalization
 	@echo ""
 	@echo "══════════════════════════════════════════════════════════════"
-	@echo "  Fig S5: Generalization"
+	@echo "  Fig S3: Generalization"
 	@echo "══════════════════════════════════════════════════════════════"
 	@mkdir -p $(FIGURES_DIR)
-	$(PYTHON) $(PLOTTING)/figS5_generalization.py \
+	$(PYTHON) $(PLOTTING)/figS3_generalization.py \
 		--resultsdir $(RESULTS_DIR) \
 		--outdir $(FIGURES_DIR)
 
-figS6: ## Fig S6: biological validation
+figS4: ## Fig S4: Biological validation
 	@echo ""
 	@echo "══════════════════════════════════════════════════════════════"
-	@echo "  Fig S6: Biological validation"
+	@echo "  Fig S4: Biological validation"
 	@echo "══════════════════════════════════════════════════════════════"
 	@mkdir -p $(FIGURES_DIR)
-	MOCOO_DATA_DIR=$(DATA_DIR) $(PYTHON) $(PLOTTING)/figS6_biological_validation.py \
+	MOCOO_DATA_DIR=$(DATA_DIR) $(PYTHON) $(PLOTTING)/figS4_biological_validation.py \
 		--resultsdir $(SINGLE_DIR) \
 		--outdir $(FIGURES_DIR) \
 		--data $(DATA_DIR)/LAB/scRL/IRALL.h5ad
 
-figS7: ## Fig S7: multi-seed robustness
+figS5: ## Fig S5: Multi-seed robustness
 	@echo ""
 	@echo "══════════════════════════════════════════════════════════════"
-	@echo "  Fig S7: Multi-seed"
+	@echo "  Fig S5: Multi-seed"
 	@echo "══════════════════════════════════════════════════════════════"
 	@mkdir -p $(FIGURES_DIR)
-	$(PYTHON) $(PLOTTING)/figS7_multiseed.py \
+	$(PYTHON) $(PLOTTING)/figS5_multiseed.py \
 		--resultsdir $(MULTI_DIR) \
-		--outdir $(FIGURES_DIR)
-
-figS8: ## Fig S8: trajectory / pseudotime comparison
-	@echo ""
-	@echo "══════════════════════════════════════════════════════════════"
-	@echo "  Fig S8: Trajectory"
-	@echo "══════════════════════════════════════════════════════════════"
-	@mkdir -p $(FIGURES_DIR)
-	MOCOO_DATA_DIR=$(DATA_DIR) $(PYTHON) $(PLOTTING)/figS8_trajectory.py \
-		--resultsdir $(SINGLE_DIR) \
-		--outdir $(FIGURES_DIR)
-
-figS9: ## Fig S9: beta ablation heatmap
-	@echo ""
-	@echo "══════════════════════════════════════════════════════════════"
-	@echo "  Fig S9: Beta ablation"
-	@echo "══════════════════════════════════════════════════════════════"
-	@mkdir -p $(FIGURES_DIR)
-	$(PYTHON) $(PLOTTING)/figS9_beta_ablation.py \
-		--resultsdir $(BETA_DIR) \
 		--outdir $(FIGURES_DIR)
 
 # ═══════════════════════════════════════════════════════════════════════════

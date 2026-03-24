@@ -105,9 +105,9 @@ _DISPLAY_NAMES: Dict[str, str] = {
     "VAE+ODE+MoCo": "VAE+ODE+MoCo",
     "VAE_ODE_MoCo_FM": "VAE+ODE+MoCo+FM",
     "VAE+ODE+MoCo+FM": "VAE+ODE+MoCo+FM",
-    "Full": "MoCoO",
-    "Full_FM": "MoCoO+FM",
-    "Full+FM": "MoCoO+FM",
+    "Full": "VAE+ODE+MoCo+Proto",
+    "Full_FM": "VAE+ODE+MoCo+Proto+FM",
+    "Full+FM": "VAE+ODE+MoCo+Proto+FM",
 }
 
 # Ultra-short abbreviations for tight x-tick labels
@@ -122,8 +122,8 @@ _SHORT_NAMES: Dict[str, str] = {
     "VAE+MoCo+Proto+FM": "VMP.f",
     "VAE+ODE+MoCo": "V+OM",
     "VAE+ODE+MoCo+FM": "VOM.f",
-    "Full": "Full",
-    "Full+FM": "F.f",
+    "Full": "V+OMP",
+    "Full+FM": "VOMP.f",
 }
 
 # ---------------------------------------------------------------------------
@@ -132,11 +132,11 @@ _SHORT_NAMES: Dict[str, str] = {
 # ---------------------------------------------------------------------------
 # Proposed metric set — canonical metrics for all comparisons
 # ---------------------------------------------------------------------------
-# Clustering core (4) + overall quality scores (4) = 8 summary metrics.
-# These are the metrics where MoCoO (Full / FM) shows clear advantages and
-# form the evaluation framework proposed in the paper.
+# Clustering geometry (2) + overall quality scores (4) = 6 summary metrics.
+# ARI/NMI removed: weak discriminators (~0.01–0.02 range across configs).
+# ASW and DAV are the informative clustering geometry metrics.
 
-PROPOSED_CLUSTERING = ["NMI", "ARI", "ASW", "DAV"]
+PROPOSED_CLUSTERING = ["ASW", "DAV"]
 PROPOSED_QUALITY = [
     "DRE_umap_overall_quality",
     "LSE_overall_quality",
@@ -147,15 +147,13 @@ PROPOSED_METRICS = PROPOSED_CLUSTERING + PROPOSED_QUALITY
 
 # Direction for proposed metrics (True = higher is better)
 PROPOSED_DIRECTION: Dict[str, bool] = {
-    "NMI": True, "ARI": True, "ASW": True, "DAV": False,
+    "ASW": True, "DAV": False,
     "DRE_umap_overall_quality": True, "LSE_overall_quality": True,
     "DREX_overall_quality": True, "LSEX_overall_quality": True,
 }
 
 # Short display labels for proposed metrics (used in bar charts / axes)
 PROPOSED_SHORT_LABELS: Dict[str, str] = {
-    "NMI": "NMI",
-    "ARI": "ARI",
     "ASW": "ASW",
     "DAV": "DAV",
     "DRE_umap_overall_quality": "DRE",
@@ -458,8 +456,8 @@ def apply_style() -> None:
 
         # Legend
         "legend.fontsize": FS_LEGEND,
-        "legend.frameon": True,
-        "legend.framealpha": 0.65,
+        "legend.frameon": False,
+        "legend.framealpha": 0.85,
         "legend.borderpad": 0.3,
 
         # Lines

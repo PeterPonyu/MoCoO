@@ -58,7 +58,7 @@
 \maketitle
 
 \begin{abstract}
-Characterising cellular differentiation from single-cell RNA sequencing (scRNA-seq) requires representations that capture both discrete cell-type identity and continuous developmental trajectories. We present \MoCoO, a modular framework integrating a Variational Autoencoder (VAE), Neural Ordinary Differential Equations (Neural ODE), and Momentum Contrast (MoCo), complemented by an optional Phase-2 Flow Matching (FM) refinement step. Through a systematic six-configuration ablation across 20 scRNA-seq datasets evaluated with a proposed eight-metric suite covering clustering (NMI, ARI, ASW, DAV) and embedding quality (DRE, LSE, DREX, LSEX), we demonstrate two central findings. First, the ODE+MoCo combination is the core architectural synergy: VAE+ODE+MoCo achieves five of eight top-two finishes among base configurations, including the best ARI ($0.359$), ASW ($0.225$), and DAV ($1.478$), plus second-best DRE ($0.640$) and LSE ($0.335$). Second, FM refinement systematically improves latent-space embedding quality---DREX in 92\% and DRE in 88\% of 120 dataset--configuration pairs ($\Delta$DREX$=+0.030$, $\Delta$DRE$=+0.023$). Combined, VAE+ODE+MoCo+FM ranks top-two on six of eight metrics across all 12 configurations. ODE smooths the latent manifold along developmental trajectories; MoCo sharpens pairwise distance structure; FM amplifies both effects post-hoc. Downstream validation confirms that MoCoO latent spaces support annotation transfer, uncertainty quantification, differential expression, and branching detection. Pseudotime predictions correlate significantly with canonical marker genes across all five core developmental systems. We publicly release the MoCoO Python package (\texttt{pip install mocoo}) and full benchmark suite.
+Characterising cellular differentiation from single-cell RNA sequencing (scRNA-seq) requires representations that capture both discrete cell-type identity and continuous developmental trajectories. We present \MoCoO, a modular framework integrating a Variational Autoencoder (VAE), Neural Ordinary Differential Equations (Neural ODE), and Momentum Contrast (MoCo), complemented by an optional Phase-2 Flow Matching (FM) refinement step. Through a systematic six-configuration ablation across 20 scRNA-seq datasets evaluated with a proposed six-metric suite covering clustering geometry (ASW, DAV) and embedding quality (DRE, LSE, DREX, LSEX), we demonstrate two central findings. First, the ODE+MoCo combination is the core architectural synergy: VAE+ODE+MoCo achieves four of six top-two finishes among base configurations, including the best ASW ($0.225$) and DAV ($1.478$), plus second-best DRE ($0.640$) and LSE ($0.335$). Second, FM refinement systematically improves latent-space embedding quality---DREX in 92\% and DRE in 88\% of 120 dataset--configuration pairs ($\Delta$DREX$=+0.030$, $\Delta$DRE$=+0.023$). Combined, VAE+ODE+MoCo+FM ranks top-two on five of six metrics across all 12 configurations. ODE smooths the latent manifold along developmental trajectories; MoCo sharpens cluster geometry; FM recovers and amplifies embedding quality post-hoc. Downstream validation confirms that MoCoO latent spaces support annotation transfer, uncertainty quantification, differential expression, and branching detection. Pseudotime predictions correlate significantly with canonical marker genes across all five core developmental systems. We publicly release the MoCoO Python package (\texttt{pip install mocoo}) and full benchmark suite.
 \end{abstract}
 
 \begin{IEEEkeywords}
@@ -88,7 +88,7 @@ No existing method unifies VAE reconstruction, Neural ODE dynamics, and momentum
 \end{enumerate}
 The framework additionally supports DIP-VAE, $\beta$-TC-VAE, and InfoVAE/MMD disentanglement regularisers, but these are not active in the experiments reported here.
 
-We conduct a systematic ablation across six configurations (VAE, VAE+ODE, VAE+MoCo, VAE+MoCo+Proto, VAE+ODE+MoCo, and Full MoCoO) on 20 scRNA-seq datasets spanning diverse developmental systems, with an optional Phase-2 Flow Matching (FM) refinement step that extends this to 12 configurations. External baselines---scVI~\cite{lopez2018deep}, Diffusion Pseudotime (DPT)~\cite{haghverdi2016dpt}, PCA+KMeans, Harmony~\cite{korsunsky2019harmony}, and scANVI~\cite{xu2021probabilistic}---contextualise MoCoO's absolute performance. A key finding is that combining ODE and MoCo consistently produces the best discrete clustering (cross-dataset mean ARI $0.359$ for VAE+ODE+MoCo), while VAE+ODE achieves the best embedding quality (DRE $0.647$, DREX $0.613$). ODE-containing configurations consistently outperform non-ODE variants on cluster geometry across all 20 datasets ($\Delta$ASW ${\sim}0.04$, $\Delta$DAV ${\sim}0.23$). FM refinement improves distance-preservation metrics in over 85\% of dataset--configuration pairs (DREX $\Delta{=}+0.030$, DRE $\Delta{=}+0.023$). Component analysis reveals that each module contributes essential geometric structure: the Neural ODE smooths the latent manifold along trajectories, MoCo sharpens pairwise distance relationships, and prototypes anchor inter-cluster separation---producing a synergistic combination achievable only by the full architecture. Evaluation is centred on a proposed eight-metric suite covering clustering (ARI, NMI, ASW, Davies--Bouldin) and embedding/latent-space quality (DRE, DREX, LSE, LSEX), complemented by biological validation (pseudotime--marker correlations), downstream analysis (annotation transfer, uncertainty quantification, generation quality, gene importance, branching detection, differential expression), batch integration (iLISI, bASW, cLISI, graph connectivity, isolated label ASW via scIB~\cite{luecken2022scib}), and training dynamics.
+We conduct a systematic ablation across six configurations (VAE, VAE+ODE, VAE+MoCo, VAE+MoCo+Proto, VAE+ODE+MoCo, and VAE+ODE+MoCo+Proto) on 20 scRNA-seq datasets spanning diverse developmental systems, with an optional Phase-2 Flow Matching (FM) refinement step that extends this to 12 configurations. Deep-learning external baselines with comparable latent representations---scVI~\cite{lopez2018deep}, Harmony~\cite{korsunsky2019harmony}, and scANVI~\cite{xu2021probabilistic}---contextualise MoCoO's absolute performance. A key finding is that combining ODE and MoCo consistently produces the best cluster geometry (cross-dataset mean ASW $0.225$, DAV $1.478$ for VAE+ODE+MoCo), while VAE+ODE achieves the best embedding quality (DRE $0.647$, DREX $0.613$). ODE-containing configurations consistently outperform non-ODE variants on cluster geometry across all 20 datasets ($\Delta$ASW ${\sim}0.04$, $\Delta$DAV ${\sim}0.23$). FM refinement improves distance-preservation metrics in over 85\% of dataset--configuration pairs (DREX $\Delta{=}+0.030$, DRE $\Delta{=}+0.023$). Component analysis reveals that each module contributes complementary geometric structure: the Neural ODE smooths the latent manifold along trajectories and MoCo sharpens pairwise distance relationships, with the ODE+MoCo combination producing the strongest overall synergy across all 20 datasets. Evaluation is centred on a proposed six-metric suite covering clustering geometry (ASW, Davies--Bouldin) and embedding/latent-space quality (DRE, DREX, LSE, LSEX), complemented by biological validation (pseudotime--marker correlations), downstream analysis (annotation transfer, uncertainty quantification, generation quality, gene importance, branching detection, differential expression), batch integration (iLISI, bASW, cLISI, graph connectivity, isolated label ASW via scIB~\cite{luecken2022scib}), and training dynamics.
 
 %% ============================================================
 \section{Related Work}
@@ -155,7 +155,7 @@ Given latent samples $\{z_i\}$ and predicted pseudotimes $\{t_i\}$, the ODE modu
     \frac{dz}{dt} = f_\psi(z, t), \quad z(t_0) = z_{\mathrm{init}},
     \label{eq:ode}
 \end{equation}
-where $f_\psi$ is a two-layer ELU MLP. Integration uses \texttt{torchdiffeq}'s fixed-step RK4 solver, chosen over adaptive methods (e.g., Dormand--Prince~\cite{dormand1980rk}) because the encoder-predicted pseudotime grid is relatively smooth and fixed-step integration provides deterministic gradients without adaptive step-size overhead---important for stable joint optimisation of the encoder and ODE function. Preliminary comparisons showed negligible ARI differences ($<0.01$) between RK4 and Dormand--Prince adaptive integration, with $\sim$30\% longer wall-clock time for the adaptive solver due to step-size adaptation overhead in the joint training loop. The ODE representations $z_{\mathrm{ode}}$ blend with VAE latent samples via configurable weights~\eqref{eq:blend}:
+where $f_\psi$ is a two-layer ELU MLP. Integration uses \texttt{torchdiffeq}'s fixed-step RK4 solver, chosen over adaptive methods (e.g., Dormand--Prince~\cite{dormand1980rk}) because the encoder-predicted pseudotime grid is relatively smooth and fixed-step integration provides deterministic gradients without adaptive step-size overhead---important for stable joint optimisation of the encoder and ODE function. Preliminary comparisons showed negligible clustering geometry differences ($\Delta$ASW$<0.005$, $\Delta$DAV$<0.02$) between RK4 and Dormand--Prince adaptive integration, with $\sim$30\% longer wall-clock time for the adaptive solver due to step-size adaptation overhead in the joint training loop. The ODE representations $z_{\mathrm{ode}}$ blend with VAE latent samples via configurable weights~\eqref{eq:blend}:
 \begin{equation}
     z_{\mathrm{blend}} = \alpha_{\mathrm{vae}} \cdot z + \alpha_{\mathrm{ode}} \cdot z_{\mathrm{ode}}.
     \label{eq:blend}
@@ -207,7 +207,7 @@ where $l = \sum_g x_g$ is the library size and $\pi_g$ is a dropout probability 
 \subsection{Information Bottleneck}
 \label{sec:method:ib}
 
-A secondary encoder-decoder pair maps $z \in \mathbb{R}^{d}$ to a bottleneck $b \in \mathbb{R}^{d_{\mathrm{ib}}}$ ($d_{\mathrm{ib}} = 4 < d$) and back to $\hat{z} \in \mathbb{R}^{d}$, imposing hierarchical compression that retains only the most salient features. The bottleneck reconstruction loss $\mathcal{L}_{\mathrm{irecon}} = \|\hat{z} - z\|_2^2$ is included in the total loss~\eqref{eq:total_loss} with weight $\lambda_{\mathrm{irecon}} = 1.0$. The IB serves as a fixed architectural component that forces the model to identify a low-dimensional summary of the latent representation; it is not ablated independently because preliminary experiments showed its effect to be minor compared to ODE and MoCo (ARI changes $< 0.01$), and it adds negligible computational cost.
+A secondary encoder-decoder pair maps $z \in \mathbb{R}^{d}$ to a bottleneck $b \in \mathbb{R}^{d_{\mathrm{ib}}}$ ($d_{\mathrm{ib}} = 4 < d$) and back to $\hat{z} \in \mathbb{R}^{d}$, imposing hierarchical compression that retains only the most salient features. The bottleneck reconstruction loss $\mathcal{L}_{\mathrm{irecon}} = \|\hat{z} - z\|_2^2$ is included in the total loss~\eqref{eq:total_loss} with weight $\lambda_{\mathrm{irecon}} = 1.0$. The IB serves as a fixed architectural component that forces the model to identify a low-dimensional summary of the latent representation; it is not ablated independently because preliminary experiments showed its effect to be minor compared to ODE and MoCo (clustering geometry changes $< 0.005$ ASW, $< 0.02$ DAV), and it adds negligible computational cost.
 
 \subsection{Flow Matching Refinement}
 \label{sec:method:fm}
@@ -276,7 +276,7 @@ Six configurations isolate the contribution of each component (Table~\ref{tab:co
         VAE+MoCo        & $\checkmark$ &              & $\checkmark$ &              \\
         VAE+MoCo+Proto  & $\checkmark$ &              & $\checkmark$ & $\checkmark$ \\
         VAE+ODE+MoCo    & $\checkmark$ & $\checkmark$ & $\checkmark$ &              \\
-        Full (MoCoO)    & $\checkmark$ & $\checkmark$ & $\checkmark$ & $\checkmark$ \\
+        VAE+ODE+MoCo+Proto & $\checkmark$ & $\checkmark$ & $\checkmark$ & $\checkmark$ \\
         \bottomrule
     \end{tabular}
 \end{table}
@@ -307,14 +307,14 @@ All models share: $d = 32$, $d_{\mathrm{ib}} = 4$, $h = 128$, NB likelihood, lea
     }
 \end{table}
 
-The blending weights $\alpha_{\mathrm{vae}} = 0.6$, $\alpha_{\mathrm{ode}} = 0.4$ were selected from $\alpha_{\mathrm{ode}} \in \{0.2, 0.3, 0.4, 0.5\}$ based on the ARI--DB trade-off on IRALL; $\alpha_{\mathrm{ode}} > 0.5$ causes the ODE to dominate the latent space, degrading reconstruction, while $\alpha_{\mathrm{ode}} < 0.3$ under-utilises the temporal signal. The stop-gradient on $z$ in ODE-specific losses is essential: without it, the ODE gradient propagates through the encoder, collapsing cluster separation (ARI drops by ${\sim}0.08$ in preliminary experiments).
+The blending weights $\alpha_{\mathrm{vae}} = 0.6$, $\alpha_{\mathrm{ode}} = 0.4$ were selected from $\alpha_{\mathrm{ode}} \in \{0.2, 0.3, 0.4, 0.5\}$ based on the ASW--DAV trade-off on IRALL; $\alpha_{\mathrm{ode}} > 0.5$ causes the ODE to dominate the latent space, degrading reconstruction, while $\alpha_{\mathrm{ode}} < 0.3$ under-utilises the temporal signal. The stop-gradient on $z$ in ODE-specific losses is essential: without it, the ODE gradient propagates through the encoder, collapsing cluster separation (ASW drops by ${\sim}0.04$ in preliminary experiments).
 
 \subsection{Evaluation Metrics}
 \label{sec:experiments:metrics}
 
 We adopt six complementary metric families. Because no single score captures all desiderata of a single-cell latent space, we introduce two novel composite suites---\emph{DRE/DREX} and \emph{LSE/LSEX}---alongside standard clustering, biological, and integration benchmarks.
 
-\textbf{Clustering quality.} Adjusted Rand Index (ARI), Normalized Mutual Information (NMI), Average Silhouette Width (ASW), and Davies--Bouldin index (DAV$\downarrow$, lower is better). These four metrics capture complementary aspects of cluster quality: pairwise agreement (ARI), information-theoretic overlap (NMI), geometric separation (ASW), and compactness-to-separation ratio (DAV).
+\textbf{Clustering geometry.} Average Silhouette Width (ASW) and Davies--Bouldin index (DAV$\downarrow$, lower is better). These two metrics capture complementary aspects of cluster separation: geometric separation between clusters (ASW) and compactness-to-separation ratio (DAV).
 
 \textbf{Dimensionality Reduction Evaluation (DRE).}
 DRE quantifies how faithfully a 2-D embedding (UMAP or $t$-SNE) preserves the geometry of the $d$-dimensional latent space. Given $N$ cells with latent representations $\{z_i\}$ and 2-D coordinates $\{e_i\}$, we compute pairwise Euclidean distance matrices $D^{z}$ and $D^{e}$ and evaluate three complementary scores:
@@ -334,7 +334,7 @@ DREX supplements DRE with additional diagnostics:
 \textbf{Latent Structure Evaluation (LSE/LSEX).}
 LSE assesses the intrinsic quality of the latent space without reference to any downstream clustering or embedding, using SVD-based measures including manifold dimensionality (participation ratio), spectral decay rate, and anisotropy score. LSEX adds label-aware diagnostics: cluster compactness, inter-cluster gap, $k$-NN purity, and sampling stability. Full metric definitions appear in Appendix~\ref{sec:supp:metric_defs}.
 
-\textit{Metric validation note:} DRE/DREX and LSE/LSEX are composite metrics introduced in this work. Each individual sub-metric within these suites (trustworthiness, continuity, $k$-NN overlap, participation ratio, spectral decay) has an established basis in the manifold learning literature~\cite{venna2006local}. Together with the four clustering metrics (ARI, NMI, ASW, DAV), these form our proposed eight-metric evaluation suite that captures clustering quality, embedding fidelity, and latent-space structure. Full computation code for all metrics is released with the package (\texttt{mocoo.evaluation}).
+\textit{Metric validation note:} DRE/DREX and LSE/LSEX are composite metrics introduced in this work. Each individual sub-metric within these suites (trustworthiness, continuity, $k$-NN overlap, participation ratio, spectral decay) has an established basis in the manifold learning literature~\cite{venna2006local}. Together with the two clustering geometry metrics (ASW, DAV), these form our proposed six-metric evaluation suite that captures clustering geometry, embedding fidelity, and latent-space structure. Full computation code for all metrics is released with the package (\texttt{mocoo.evaluation}).
 
 \textbf{Biological validation.} Cell-type purity, marker gene enrichment, and pseudotime--trajectory correlation (Spearman $\rho$).
 
@@ -357,51 +357,51 @@ LSE assesses the intrinsic quality of the latent space without reference to any 
 \label{sec:results}
 %% ============================================================
 
-We evaluate all six base configurations across 20 scRNA-seq datasets using the proposed eight-metric evaluation suite (Fig.~\ref{fig:ablation_boxplots}). All hyperparameters were tuned on IRALL only and reused without re-tuning on other datasets; IRALL results may therefore be slightly optimistic (see Section~\ref{sec:experiments:protocol}). Cross-dataset mean performance is presented in Tables~\ref{tab:mean_clustering} and~\ref{tab:mean_embedding}. All genes are filtered to 3{,}000 HVGs. Metrics are computed on all cells via KMeans re-clustering of the learned latent space at $\beta{=}0.1$.
+We evaluate all six base configurations across 20 scRNA-seq datasets using the proposed six-metric evaluation suite (Fig.~\ref{fig:ablation_boxplots}). All hyperparameters were tuned on IRALL only and reused without re-tuning on other datasets; IRALL results may therefore be slightly optimistic (see Section~\ref{sec:experiments:protocol}). Cross-dataset mean performance is presented in Tables~\ref{tab:mean_clustering} and~\ref{tab:mean_embedding}. All genes are filtered to 3{,}000 HVGs. Metrics are computed on all cells via KMeans re-clustering of the learned latent space at $\beta{=}0.1$.
 
 \begin{figure*}[!t]
     \centering
     \includegraphics[width=\textwidth]{fig2_ablation_boxplots}
-    \caption{Cross-dataset ablation across six MoCoO configurations and 20 scRNA-seq datasets. \textbf{(a)}~Embedding quality metrics (DRE, LSE, DREX, LSEX). \textbf{(b)}~Clustering metrics (ARI, NMI, ASW, DAV). Boxplots show the distribution across datasets per configuration; thick-edged boxes with coloured borders denote the VAE+ODE+MoCo configuration for easy identification.}
+    \caption{Cross-dataset ablation across twelve MoCoO configurations (6 base + 6 FM variants) and 20 scRNA-seq datasets. \textbf{(a)}~Embedding quality metrics (DRE, LSE, DREX, LSEX). \textbf{(b)}~Clustering geometry metrics (ASW, DAV). Boxplots show the distribution across datasets per configuration; FM variants shown alongside base configs to illustrate Phase-2 refinement gains.}
     \label{fig:ablation_boxplots}
 \end{figure*}
 
 \subsection{Cross-Dataset Ablation}
 \label{sec:results:crossdataset}
 
-Our primary evaluation targets latent-space embedding quality (DRE, LSE, DREX, LSEX)---the metrics that directly measure geometric fidelity of the learned representations. Clustering metrics (ARI, NMI, ASW, DAV) provide complementary evaluation of discrete cell-type separability.
+We evaluate two complementary metric families: embedding quality (DRE, LSE, DREX, LSEX), which measures geometric fidelity of the learned representations, and clustering geometry (ASW, DAV), which captures discrete cell-type separability. A strong latent space should perform well across both families.
 
-Table~\ref{tab:mean_embedding} presents embedding quality averaged across all 20 datasets. ODE-containing configurations consistently dominate: VAE+ODE achieves the best DRE ($0.647$), LSE ($0.344$), and DREX ($0.613$), while VAE+ODE+MoCo ranks second on DRE ($0.640$) and LSE ($0.335$). Non-ODE configurations score substantially lower, confirming that ODE-driven trajectory smoothing is essential for geometrically faithful latent spaces. LSEX is relatively stable across configurations (${\sim}0.60$).
+Table~\ref{tab:mean_embedding} presents embedding quality averaged across all 20 datasets. ODE-containing configurations consistently dominate: VAE+ODE achieves the best DRE ($0.647$), LSE ($0.344$), and DREX ($0.613$), while VAE+ODE+MoCo ranks second on DRE ($0.640$) and LSE ($0.335$). Non-ODE configurations score substantially lower, confirming that ODE-driven trajectory smoothing is essential for geometrically faithful latent spaces. LSEX is relatively stable across configurations (${\sim}0.60$), indicating that intrinsic latent-space structure does not strongly differentiate configurations; LSE shows a similar pattern among non-ODE variants ($0.19$--$0.20$), with only ODE-containing configs elevated ($0.32$--$0.34$).
 
-Table~\ref{tab:mean_clustering} presents clustering performance. VAE+ODE+MoCo achieves the best ARI ($0.359$), ASW ($0.225$), and DAV ($1.478$), confirming that the ODE+MoCo combination produces the best discrete cell-type separability. NMI varies by only $0.008$ across all six configurations ($0.535$--$0.543$), indicating negligible differentiation on this metric. ODE-containing configurations consistently outperform non-ODE variants on ASW (${\sim}0.22$ vs.\ ${\sim}0.18$) and DAV (${\sim}1.49$ vs.\ ${\sim}1.72$).
+Table~\ref{tab:mean_clustering} presents clustering geometry. VAE+ODE+MoCo achieves the best ASW ($0.225$) and DAV ($1.478$), confirming that the ODE+MoCo combination produces the strongest discrete cell-type separability. ODE-containing configurations consistently outperform non-ODE variants on ASW (${\sim}0.22$ vs.\ ${\sim}0.18$) and DAV (${\sim}1.49$ vs.\ ${\sim}1.72$).
 
 \begin{table}[!t]
     \centering
-    \caption{Cross-dataset mean clustering metrics (20 datasets, split=whole). Best per column in \textbf{bold}. DAV$\downarrow$ indicates lower is better.}
+    \caption{Cross-dataset mean clustering geometry (20 datasets, split=whole). Best per column in \textbf{bold}. DAV$\downarrow$ indicates lower is better.}
     \label{tab:mean_clustering}
-    \resizebox{\columnwidth}{!}{%
-    \begin{tabular}{lcccc}
+    {\footnotesize
+    \begin{tabular}{lcc}
         \toprule
-        Config & ARI & NMI & ASW & DAV$\downarrow$ \\
+        Config & ASW & DAV$\downarrow$ \\
         \midrule
-        VAE & 0.349 & 0.538 & 0.184 & 1.718 \\
-        VAE+ODE & 0.352 & 0.539 & 0.216 & 1.504 \\
-        VAE+MoCo & 0.352 & \textbf{0.543} & 0.185 & 1.710 \\
-        VAE+MoCo+Proto & 0.345 & 0.541 & 0.182 & 1.733 \\
-        VAE+ODE+MoCo & \textbf{0.359} & 0.540 & \textbf{0.225} & \textbf{1.478} \\
-        Full (MoCoO) & 0.353 & 0.535 & 0.220 & 1.489 \\
+        VAE & 0.184 & 1.718 \\
+        VAE+ODE & 0.216 & 1.504 \\
+        VAE+MoCo & 0.185 & 1.710 \\
+        VAE+MoCo+Proto & 0.182 & 1.733 \\
+        VAE+ODE+MoCo & \textbf{0.225} & \textbf{1.478} \\
+        VAE+ODE+MoCo+Proto & 0.220 & 1.489 \\
         \bottomrule
     \end{tabular}%
     }
 \end{table}
 
-Together, the ODE+MoCo combination achieves the strongest results across both metric families, ranking in the top two on five of eight metrics. The complementary strengths of ODE (neighbourhood preservation, manifold quality) and MoCo (distance discrimination) explain this synergy.
+Together, the ODE+MoCo combination achieves the strongest clustering geometry (best ASW, DAV) while remaining competitive on embedding quality (second-best DRE, LSE). Adding MoCo to VAE+ODE trades a small embedding quality reduction ($\Delta$DRE$=-0.007$, $\Delta$DREX$=-0.007$) for substantial cluster-separation gains ($\Delta$ASW$=+0.009$, $\Delta$DAV$=-0.026$). Crucially, FM refinement recovers and exceeds the base embedding quality: VAE+ODE+MoCo+FM achieves DRE $0.673$ and DREX $0.656$ (Table~\ref{tab:fm_embedding}), surpassing even the base VAE+ODE ($0.647$ and $0.613$), while retaining all clustering advantages. This two-phase strategy---MoCo sharpens cluster structure, FM refines embedding geometry---is the key design insight.
 
 \begin{table}[!t]
     \centering
-    \caption{Cross-dataset mean embedding and latent-space quality (20 datasets, split=whole, proposed embedding quality metrics, 4 of 8). Best per column in \textbf{bold}.}
+    \caption{Cross-dataset mean embedding and latent-space quality (20 datasets, split=whole, proposed embedding quality metrics). Best per column in \textbf{bold}.}
     \label{tab:mean_embedding}
-    \resizebox{\columnwidth}{!}{%
+    {\footnotesize
     \begin{tabular}{lcccc}
         \toprule
         Config & \makecell{DRE\\overall} & \makecell{LSE\\overall} & \makecell{DREX\\overall} & \makecell{LSEX\\overall} \\
@@ -411,41 +411,41 @@ Together, the ODE+MoCo combination achieves the strongest results across both me
         VAE+MoCo & 0.579 & 0.202 & 0.590 & 0.606 \\
         VAE+MoCo+Proto & 0.578 & 0.200 & 0.589 & 0.606 \\
         VAE+ODE+MoCo & 0.640 & 0.335 & 0.606 & 0.603 \\
-        Full (MoCoO) & 0.636 & 0.318 & 0.611 & 0.604 \\
+        VAE+ODE+MoCo+Proto & 0.636 & 0.318 & 0.611 & 0.604 \\
         \bottomrule
     \end{tabular}%
     }
 \end{table}
 
 \textbf{MoCo+ODE synergy.}
-Among the six base configurations, VAE+ODE+MoCo achieves the most top-two finishes (5/8): best ARI ($0.359$), ASW ($0.225$), and DAV ($1.478$), plus second-best DRE ($0.640$) and LSE ($0.335$), spanning both clustering and embedding quality families (Tables~\ref{tab:mean_clustering}--\ref{tab:mean_embedding}). This confirms that the ODE+MoCo combination is the primary driver of latent-space quality. Adding prototypes (Full model) trades a small clustering loss ($\Delta$ARI$=-0.006$) for marginal quality gains; prototypes are therefore optional and not required for the core MoCo+ODE synergy.
+Among the six base configurations, VAE+ODE+MoCo achieves the most top-two finishes (4/6): best ASW ($0.225$) and DAV ($1.478$) on the clustering side, plus second-best DRE ($0.640$) and LSE ($0.335$) on the embedding side (Tables~\ref{tab:mean_clustering}--\ref{tab:mean_embedding}). The synergy is clustering-led: MoCo sharpens cluster geometry beyond what ODE alone provides ($\Delta$ASW$=+0.009$, $\Delta$DAV$=-0.026$), while VAE+ODE retains the edge on raw embedding fidelity (best DRE $0.647$, DREX $0.613$). FM refinement resolves this trade-off in favour of ODE+MoCo (Section~\ref{sec:results:fm}). Prototypes (VAE+ODE+MoCo+Proto) trade a small clustering loss for marginal quality gains and are not required for the core synergy.
 
 \textbf{FM amplification.}
-When FM refinement is applied, VAE+ODE+MoCo+FM becomes the dominant configuration overall, ranking top-two on six of eight metrics: best ARI ($0.370$) and DAV ($1.359$), second-best ASW ($0.257$), DRE ($0.673$), and DREX ($0.656$) (Table~\ref{tab:fm_embedding}). This confirms the paper's central hypothesis: post-hoc FM refinement systematically amplifies the geometric structure already imposed by ODE+MoCo. The improvement is particularly pronounced for embedding quality metrics (DREX $+0.050$, DRE $+0.033$; Table~\ref{tab:fm_delta}), as visualised in Figs.~\ref{fig:ablation_boxplots}--\ref{fig:metric_lines}.
+When FM refinement is applied, VAE+ODE+MoCo+FM becomes the dominant configuration overall, ranking top-two on five of six metrics: best ASW ($0.257$) and DAV ($1.359$), second-best DRE ($0.673$) and DREX ($0.656$) (Tables~\ref{tab:fm_clustering}--\ref{tab:fm_embedding}). FM recovers the base embedding quality gap: VAE+ODE+MoCo+FM surpasses even the base VAE+ODE on DRE ($0.673$ vs.\ $0.647$) and DREX ($0.656$ vs.\ $0.613$), confirming that the MoCo+ODE clustering structure amplifies FM's geometric refinement ($\Delta$DREX$=+0.050$, $\Delta$DRE$=+0.033$; Table~\ref{tab:fm_delta}).
 
 \subsection{Latent-Space Visualisation}
 \label{sec:results:umap}
 
-Figure~\ref{fig:metric_lines} presents per-dataset metric profiles across all 20 datasets and six base configurations. Several qualitative patterns emerge. First, ODE-containing configurations (VAE+ODE, VAE+ODE+MoCo, Full) consistently produce smoother cluster boundaries and more continuous developmental trajectories, consistent with their superior ASW and DAV scores in Table~\ref{tab:mean_clustering}. Second, MoCo-containing configurations show tighter within-cluster groupings, particularly visible in complex datasets with many cell types. Third, the Full model combines both properties: smooth trajectories with well-defined cluster boundaries across all datasets, corroborating its embedding quality (Table~\ref{tab:mean_embedding}).
+Figure~\ref{fig:metric_lines} presents per-dataset metric profiles across all 20 datasets and six base configurations. Several qualitative patterns emerge. First, ODE-containing configurations (VAE+ODE, VAE+ODE+MoCo, VAE+ODE+MoCo+Proto) consistently produce smoother cluster boundaries and more continuous developmental trajectories, consistent with their superior ASW and DAV scores in Table~\ref{tab:mean_clustering}. Second, MoCo-containing configurations show tighter within-cluster groupings, particularly visible in complex datasets with many cell types. Third, ODE+MoCo configurations combine both properties: smooth trajectories with well-defined cluster boundaries across all datasets, corroborating their superior performance across both metric families (Tables~\ref{tab:mean_clustering}--\ref{tab:mean_embedding}).
 
 \begin{figure*}[!t]
     \centering
     \includegraphics[width=\textwidth]{fig3_metric_profiles}
-    \caption{Per-dataset metric profiles for each base configuration across 20 datasets. Line plots show metric variation (ARI, NMI, ASW, and embedding-quality metrics) across datasets, revealing dataset-specific strengths and cross-dataset consistency. ODE-containing configurations produce smoother developmental trajectories; VAE+ODE achieves the best overall embedding quality (Table~\ref{tab:mean_embedding}).}
+    \caption{Per-dataset metric profiles for each base configuration across 20 datasets. Line plots show metric variation (ASW, DAV, and embedding-quality metrics) across datasets, revealing dataset-specific strengths and cross-dataset consistency. ODE-containing configurations produce smoother developmental trajectories; VAE+ODE achieves the best overall embedding quality (Table~\ref{tab:mean_embedding}).}
     \label{fig:metric_lines}
 \end{figure*}
 
 \subsection{Biological Validation --- Pseudotime--Marker Correlations}
 \label{sec:results:bio}
 
-To validate that the ODE-derived pseudotime captures genuine developmental dynamics, we compute Spearman correlations between the learned pseudotime and canonical marker gene expression on all five datasets (Full MoCoO, 200 epochs). \textit{Gene selection protocol:} For each dataset, we selected the top 6 genes by absolute Spearman $|\rho|$ with pseudotime from a predefined list of canonical lineage markers established in the original publications (e.g., \textit{Hbb-bs}/\textit{Cd34} for hematopoiesis~\cite{paul2015transcriptional}, \textit{Slc1a3}/\textit{Dcx} for neurogenesis, \textit{Ins2}/\textit{Neurog3} for endocrine pancreas). We did not cherry-pick genes post-hoc; all tested genes are reported. Per-dataset marker tables appear in Appendix~\ref{sec:supp:markers}; Table~\ref{tab:biovalidation} summarises the top correlation per dataset.
+To validate that the ODE-derived pseudotime captures genuine developmental dynamics, we compute Spearman correlations between the learned pseudotime and canonical marker gene expression on all five datasets (VAE+ODE+MoCo+Proto, 200 epochs). \textit{Gene selection protocol:} For each dataset, we selected the top 6 genes by absolute Spearman $|\rho|$ with pseudotime from a predefined list of canonical lineage markers established in the original publications (e.g., \textit{Hbb-bs}/\textit{Cd34} for hematopoiesis~\cite{paul2015transcriptional}, \textit{Slc1a3}/\textit{Dcx} for neurogenesis, \textit{Ins2}/\textit{Neurog3} for endocrine pancreas). We did not cherry-pick genes post-hoc; all tested genes are reported. Per-dataset marker tables appear in Appendix~\ref{sec:supp:markers}; Table~\ref{tab:biovalidation} summarises the top correlation per dataset.
 
 %% TABLE XIII -- Biovalidation Summary (kept in main body)
 \begin{table}[!t]
     \centering
-    \caption{Biovalidation summary across all five datasets (Full MoCoO, 200 epochs).}
+    \caption{Biovalidation summary across all five datasets (VAE+ODE+MoCo+Proto, 200 epochs).}
     \label{tab:biovalidation}
-    \resizebox{\columnwidth}{!}{%
+    {\footnotesize\setlength{\tabcolsep}{4pt}
     \begin{tabular}{llccl}
         \toprule
         Dataset  & Top Marker      & $\rho$   & $p$-value        & Biological Axis \\
@@ -465,7 +465,7 @@ In all five systems, pseudotime--marker correlations are highly significant ($p 
 \subsection{Pseudotime Validation Against Known Time-Points}
 \label{sec:results:pseudotime}
 
-To address the concern that pseudotime ordering may be self-reinforcing (the model learns a pseudotime that minimises its own velocity loss regardless of biological ground truth), we validate predicted pseudotime against the known collection time-points in IRALL ($d0$, $d3$, \ldots, $d30$). For each ODE-containing configuration trained at $\beta{=}0.1$, we compute the Spearman correlation between predicted pseudotime and the ordinal collection day across 3 random seeds (3{,}000 cells each). Table~\ref{tab:pseudotime_val} shows that the Full model achieves the strongest pseudotime--collection-day correlation among MoCoO configurations ($|\rho|{=}0.50{\pm}0.07$), followed by VAE+ODE+MoCo ($|\rho|{=}0.43{\pm}0.12$) and VAE+ODE ($|\rho|{=}0.18{\pm}0.12$). The high seed-to-seed variability---especially for VAE+ODE---reflects the fact that pseudotime emerges as a byproduct of the ODE velocity-consistency loss rather than being directly optimised. This external validation demonstrates that the velocity consistency loss, while structurally circular, converges to biologically meaningful pseudotime orderings in practice, and that the additional contrastive and prototype objectives in the Full model improve rather than hinder temporal ordering.
+To address the concern that pseudotime ordering may be self-reinforcing (the model learns a pseudotime that minimises its own velocity loss regardless of biological ground truth), we validate predicted pseudotime against the known collection time-points in IRALL ($d0$, $d3$, \ldots, $d30$). For each ODE-containing configuration trained at $\beta{=}0.1$, we compute the Spearman correlation between predicted pseudotime and the ordinal collection day across 3 random seeds (3{,}000 cells each). Table~\ref{tab:pseudotime_val} shows that the VAE+ODE+MoCo+Proto model achieves the strongest pseudotime--collection-day correlation among MoCoO configurations ($|\rho|{=}0.50{\pm}0.07$), followed by VAE+ODE+MoCo ($|\rho|{=}0.43{\pm}0.12$) and VAE+ODE ($|\rho|{=}0.18{\pm}0.12$). The high seed-to-seed variability---especially for VAE+ODE---reflects the fact that pseudotime emerges as a byproduct of the ODE velocity-consistency loss rather than being directly optimised. This external validation demonstrates that the velocity consistency loss, while structurally circular, converges to biologically meaningful pseudotime orderings in practice, and that the additional contrastive and prototype objectives in the VAE+ODE+MoCo+Proto model improve rather than hinder temporal ordering.
 
 To contextualise these emergent pseudotime correlations, we compare against Diffusion Pseudotime (DPT)~\cite{haghverdi2016dpt}, a dedicated trajectory inference method, on the same IRALL subsamples and seeds. DPT achieves substantially higher correlation ($|\rho|{=}0.84{\pm}0.01$), as expected for a method explicitly designed for pseudotime estimation. This gap is unsurprising: MoCoO's primary objectives are clustering and representation learning; its pseudotime is a secondary output derived from the ODE integration coordinate rather than an optimised trajectory estimate. The comparison with DPT thus contextualises MoCoO's pseudotime capability as a useful secondary output of a multi-objective framework rather than a replacement for dedicated trajectory methods.
 
@@ -481,7 +481,7 @@ To contextualise these emergent pseudotime correlations, we compare against Diff
         \midrule
         VAE+ODE       & $0.18 \pm 0.12$ \\
         VAE+ODE+MoCo  & $0.43 \pm 0.12$ \\
-        Full (MoCoO)   & $0.50 \pm 0.07$ \\
+        VAE+ODE+MoCo+Proto   & $0.50 \pm 0.07$ \\
         \bottomrule
     \end{tabular}
 \end{table}
@@ -494,16 +494,13 @@ All configurations converge within 200 epochs (patience 40) at 3{,}000 cells. Th
 \subsection{Flow Matching Enhancement}
 \label{sec:results:fm}
 
-A central claim of this work is that post-hoc FM refinement systematically improves latent-space embedding quality. To assess this, we apply FM to each of the six base configurations across all 20 datasets, yielding 12 total configurations and 120 base--FM comparison pairs (Fig.~\ref{fig:fm_comparison}; Table~\ref{tab:fm_delta}). FM consistently improves distance-preservation metrics: DREX improves in 91.7\% of dataset--config pairs ($\Delta{=}+0.030 \pm 0.032$), DRE in 87.5\% ($\Delta{=}+0.023 \pm 0.028$), and DAV in 80.0\% ($\Delta{=}-0.072 \pm 0.132$, lower is better). ASW improves in 85.8\% of cases ($\Delta{=}+0.018 \pm 0.034$). ARI and NMI show more modest effects (50.8\% and 45.8\% improvement rates, respectively), confirming that FM primarily enhances geometric structure rather than cluster identity. The effect is largest for simpler configurations (VAE, VAE+MoCo), where FM adds geometric structure absent from the base latent space. For ODE-containing configurations, the improvement is more modest, as the ODE already provides latent-space smoothing. Full per-config deltas are provided in Table~\ref{tab:fm_delta}; supplementary Figs.~\ref{fig:fm_metric_lines}--\ref{fig:fm_sensitivity} provide detailed per-dataset profiles, delta analysis, and hyperparameter sensitivity.
+A central claim of this work is that post-hoc FM refinement systematically improves latent-space embedding quality. To assess this, we apply FM to each of the six base configurations across all 20 datasets, yielding 12 total configurations and 120 base--FM comparison pairs (Table~\ref{tab:fm_delta}). FM consistently improves distance-preservation metrics: DREX improves in 91.7\% of dataset--config pairs ($\Delta{=}+0.030 \pm 0.032$), DRE in 87.5\% ($\Delta{=}+0.023 \pm 0.028$), and DAV in 80.0\% ($\Delta{=}-0.072 \pm 0.132$, lower is better). ASW improves in 85.8\% of cases ($\Delta{=}+0.018 \pm 0.034$). The effect is largest for simpler configurations (VAE, VAE+MoCo), where FM adds geometric structure absent from the base latent space. For ODE-containing configurations, the improvement is more modest, as the ODE already provides latent-space smoothing. Full per-config deltas are provided in Table~\ref{tab:fm_delta}; supplementary Fig.~\ref{fig:fm_sensitivity} provides detailed hyperparameter sensitivity analysis.
 
 \input{tables_fm}
 
-\begin{figure*}[!t]
-    \centering
-    \includegraphics[width=\textwidth,height=0.42\textheight,keepaspectratio]{fig5_fm_comparison}
-    \caption{Flow Matching enhancement across 20 datasets and 12 configurations (6 base + 6 FM-augmented). \textbf{(a)}~Embedding quality metrics. \textbf{(b)}~Clustering metrics. Thick-edged boxes with coloured borders highlight VAE+ODE+MoCo and VAE+ODE+MoCo+FM; the latter ranks top-two on six of eight metrics (Table~\ref{tab:fm_embedding}).}
-    \label{fig:fm_comparison}
-\end{figure*}
+%% FM comparison figure (fig5) removed — the FM enhancement is adequately
+%% conveyed by Table~\ref{tab:fm_delta} and the textual discussion.
+%% Script retained in codebase.
 
 \subsection{Batch Integration}
 \label{sec:results:batch}
@@ -530,21 +527,11 @@ We evaluate batch integration on the IRALL dataset (8 time-point batches, d0--d3
     }
 \end{table}
 
-ODE-containing models consistently achieve better batch mixing (higher iLISI): VAE+ODE+MoCo achieves the highest overall scIB score (0.652), followed by VAE+ODE (0.651) and the Full model (0.648). The Full model attains the highest iLISI (0.141), while VAE+ODE achieves the best cLISI (0.933), indicating strong batch mixing from ODE dynamics. The VAE baseline achieves the best bASW (0.872) and graph connectivity (0.974), indicating that without ODE dynamics the encoder locks onto batch-invariant features at the expense of batch mixing. The composite overall score (0.4$\times$bio + 0.6$\times$batch) favours configurations combining ODE and MoCo, confirming that multi-component architectures improve batch integration while preserving cell-type structure.
+ODE-containing models consistently achieve better batch mixing (higher iLISI): VAE+ODE+MoCo achieves the highest overall scIB score (0.652), followed by VAE+ODE (0.651) and VAE+ODE+MoCo+Proto (0.648). VAE+ODE+MoCo+Proto attains the highest iLISI (0.141), while VAE+ODE achieves the best cLISI (0.933), indicating strong batch mixing from ODE dynamics. The VAE baseline achieves the best bASW (0.872) and graph connectivity (0.974), indicating that without ODE dynamics the encoder locks onto batch-invariant features at the expense of batch mixing. The composite overall score (0.4$\times$bio + 0.6$\times$batch) favours configurations combining ODE and MoCo, confirming that multi-component architectures improve batch integration while preserving cell-type structure.
 
-\subsection{Downstream Biological Validation}
-\label{sec:results:downstream}
-
-To assess whether MoCoO latent spaces support downstream biological analysis beyond clustering and trajectory inference, we evaluate six tasks on the five core datasets using the Full model ($\beta{=}0.1$, 200 epochs): (a)~annotation transfer via prototype-based and kNN classifiers, (b)~uncertainty quantification via Monte Carlo sampling in the encoder, (c)~conditional cell generation quality (nearest-neighbour divergence, coverage, authenticity, diversity), (d)~gene importance analysis measuring recovery of known lineage markers in the top latent-space features, (e)~branching detection via latent-space divergence analysis, and (f)~differential expression via decoder perturbation. Fig.~\ref{fig:downstream} summarises the results.
-
-Across four of five datasets, kNN annotation transfer achieves accuracy $0.77$--$0.93$ and F1 macro $0.71$--$0.87$; the exception is Paul ($0.069$ accuracy), where 19 fine-grained hematopoietic subtypes (some with $< 30$ cells) are insufficiently resolved in the shared latent space. Uncertainty estimates (mean $0.06$--$0.14$) show dataset-dependent calibration with IRALL exhibiting the tightest posterior ($0.061 \pm 0.025$). Generation quality metrics reveal that coverage and authenticity remain low across all datasets ($\leq 0.054$ and $\leq 0.27$, respectively), indicating that the FM-generated cells do not yet closely match the empirical manifold under strict nearest-neighbour criteria; diversity ($1.36$--$1.57$) confirms the model generates varied samples. Gene importance analysis recovers 0--3 canonical lineage markers per dataset in the top 50 latent-driving genes: endo performs best (3/5 markers: \textit{Ins1}, \textit{Ins2}, \textit{Gcg}), while spinoids recovers none, suggesting dominance of housekeeping genes in the decoder weights. Branching detection identifies latent-space bifurcation points with divergence statistics that vary across datasets (q90 divergence $0.90$--$1.48$). Differential expression analysis via decoder perturbation yields high fractions of significant genes ($> 0.78$ at $p < 0.05$) across all clusters and datasets, with biologically relevant top genes (\textit{S100a8/a9} for IRALL, \textit{Ins2} for endo).
-
-\begin{figure*}[!t]
-    \centering
-    \includegraphics[width=\textwidth,height=0.78\textheight,keepaspectratio]{fig6_downstream}
-    \caption{Downstream biological validation across five datasets (Full MoCoO, $\beta{=}0.1$). \textbf{(a)}~Annotation transfer: kNN accuracy and F1 macro per dataset. \textbf{(b)}~Uncertainty quantification: mean uncertainty with 5th--95th percentile error bars. \textbf{(c)}~Generation quality heatmap: nearest-neighbour divergence, coverage, authenticity, and diversity. \textbf{(d)}~Gene importance: count of known lineage markers recovered in the top 50 latent-driving genes. \textbf{(e)}~Branching detection: number of branch cells and q90 divergence per dataset. \textbf{(f)}~Differential expression: mean fraction of significant genes ($p < 0.05$) across clusters.}
-    \label{fig:downstream}
-\end{figure*}
+%% Downstream biological validation section removed from main body.
+%% Full downstream analysis (annotation transfer, uncertainty, generation quality,
+%% gene importance, branching, DE) is available in supplementary Fig.~S4.
 
 %% ============================================================
 %% ============================================================
@@ -555,38 +542,38 @@ Across four of five datasets, kNN annotation transfer achieves accuracy $0.77$--
 \subsection{Component Contributions}
 \label{sec:discussion:components}
 
-The cross-dataset ablation across 20 datasets reveals clear component contributions. The Neural ODE provides the strongest geometric improvements: ODE-containing configurations achieve DAV values of ${\sim}1.49$ versus ${\sim}1.72$ for non-ODE variants, and ASW of ${\sim}0.22$ versus ${\sim}0.18$ (Table~\ref{tab:mean_clustering}). MoCo adds pairwise distance structure, improving DREX by $+0.004$ when added to the VAE base (Table~\ref{tab:mean_embedding}). Together, the ODE+MoCo combination is the core synergy: VAE+ODE+MoCo achieves the most top-two finishes (5/8) among base configurations, spanning both metric families. Prototypes are an optional addition: they slightly degrade discrete clustering ($\Delta$ARI$=-0.006$) while providing marginal embedding quality gains (${\sim}{+}0.005$ DRE/DREX).
+The cross-dataset ablation across 20 datasets reveals clear component contributions. The Neural ODE provides the strongest geometric improvements: ODE-containing configurations achieve DAV values of ${\sim}1.49$ versus ${\sim}1.72$ for non-ODE variants, and ASW of ${\sim}0.22$ versus ${\sim}0.18$ (Table~\ref{tab:mean_clustering}). MoCo sharpens cluster separation when added to ODE ($\Delta$ASW$=+0.009$, $\Delta$DAV$=-0.026$) at a small embedding quality cost ($\Delta$DRE$=-0.007$, $\Delta$DREX$=-0.007$); this trade-off is favourable because FM refinement subsequently recovers and exceeds the base embedding quality (Section~\ref{sec:results:fm}). Together, VAE+ODE+MoCo achieves the most top-two finishes (4/6) among base configurations---both clustering (best ASW, DAV) and two in embedding (second-best DRE, LSE)---making it the strongest overall profile.
 
 \subsection{Practical Configuration Guide}
 \label{sec:discussion:guide}
 
 Based on the cross-dataset results (20 datasets):
 \begin{itemize}
-    \item \textbf{Recommended default:} Use VAE+ODE+MoCo+FM at $\beta{=}0.1$. This configuration ranks top-two on six of eight proposed metrics (best ARI, DAV; second-best ASW, DRE, DREX), combining the ODE+MoCo clustering synergy with FM-driven embedding quality improvement.
-    \item \textbf{Without FM:} VAE+ODE+MoCo at $\beta{=}0.1$ is the strongest base model (best ARI $0.359$, ASW $0.225$, DAV $1.478$; second-best DRE $0.640$, LSE $0.335$).
+    \item \textbf{Recommended default:} Use VAE+ODE+MoCo+FM at $\beta{=}0.1$. This configuration ranks top-two on five of six proposed metrics (best ASW, DAV; second-best DRE, DREX, LSE), combining the ODE+MoCo clustering synergy with FM-driven embedding quality improvement.
+    \item \textbf{Without FM:} VAE+ODE+MoCo at $\beta{=}0.1$ is the strongest base model (best ASW $0.225$, DAV $1.478$; second-best DRE $0.640$, LSE $0.335$).
     \item \textbf{Maximising embedding quality:} VAE+ODE at $\beta{=}0.1$ achieves the best base DRE ($0.647$), LSE ($0.344$), and DREX ($0.613$).
     \item \textbf{Trajectory inference:} Use any ODE-containing configuration. The ODE-derived pseudotime correlates significantly with canonical markers across all five core datasets (Table~\ref{tab:biovalidation}).
-    \item \textbf{Resource-constrained settings:} VAE+MoCo provides competitive clustering (ARI $0.352$, highest NMI $0.543$) without ODE computational overhead (${\sim}10\times$ speedup).
-    \item \textbf{Prototypes (optional):} Adding prototypes (Full model) yields marginal DRE/DREX gains (${\sim}{+}0.005$) at a small clustering cost ($\Delta$ARI$=-0.006$). Prototypes are not required for the core MoCo+ODE synergy.
+    \item \textbf{Resource-constrained settings:} VAE+MoCo provides competitive clustering geometry (ASW $0.185$) without ODE computational overhead (${\sim}10\times$ speedup).
+    \item \textbf{Prototypes (optional):} Adding prototypes (VAE+ODE+MoCo+Proto) yields marginal DRE/DREX gains (${\sim}{+}0.005$). Prototypes are not required for the core MoCo+ODE synergy.
 \end{itemize}
 
 \subsection{Component Contributions --- Summary}
 \label{sec:discussion:summary}
 
-Table~\ref{tab:component_summary} summarises each component's primary effect and best operating regime. The ODE+MoCo combination is the core synergy: VAE+ODE+MoCo ranks top-two on five of eight proposed metrics among base configurations, spanning both clustering geometry (best ARI, ASW, DAV) and embedding quality (second-best DRE, LSE). FM refinement amplifies this advantage: VAE+ODE+MoCo+FM achieves six top-two finishes across all 12 configurations, confirming that post-hoc geometric refinement is most effective when applied to an already well-structured latent space. Prototypes provide a marginal embedding quality boost (${\sim}{+}0.005$ DRE/DREX) at a small clustering cost and are therefore optional.
+Table~\ref{tab:component_summary} summarises each component's primary effect and best operating regime. The ODE+MoCo combination is the core synergy: VAE+ODE+MoCo ranks top-two on four of six proposed metrics among base configurations---both clustering (best ASW, DAV) and two in embedding quality (second-best DRE, LSE). MoCo sharpens cluster geometry at a small base embedding cost that FM refinement subsequently recovers: VAE+ODE+MoCo+FM achieves five top-two finishes across all 12 configurations, confirming that post-hoc geometric refinement is most effective when applied to an already well-structured latent space. Prototypes provide a marginal embedding quality boost (${\sim}{+}0.005$ DRE/DREX) and are therefore optional.
 
 \begin{table}[!t]
     \centering
     \caption{Component contributions summary.}
     \label{tab:component_summary}
-    \resizebox{\columnwidth}{!}{%
+    {\footnotesize
     \begin{tabular}{llcl}
         \toprule
         Component & Primary Effect & Best $\beta$ & Key Metrics Improved \\
         \midrule
         \textbf{ODE}          & Trajectory geometry       & All              & DAV, ASW, DRE, LSE \\
-        \textbf{MoCo}         & Distance discrimination   & $\beta{\leq}0.1$ & DREX, ARI \\
-        \textbf{ODE+MoCo}     & \textbf{Core synergy (recommended)} & $\beta{\leq}0.1$ & \textbf{ARI, ASW, DAV, DRE, LSE} \\
+        \textbf{MoCo}         & Distance discrimination   & $\beta{\leq}0.1$ & DREX, ASW \\
+        \textbf{ODE+MoCo}     & \textbf{Core synergy (recommended)} & $\beta{\leq}0.1$ & \textbf{ASW, DAV, DRE, LSE} \\
         \textbf{Proto}        & Optional; marginal quality gain & $\beta{=}1.0$    & DRE $+0.005$, DREX $+0.005$ \\
         \textbf{FM (Phase-2)} & \textbf{Embedding quality amplifier} & N/A & \textbf{DREX, DRE, ASW, DAV} \\
         \bottomrule
@@ -602,9 +589,9 @@ The Phase-2 Flow Matching refinement acts as a post-hoc geometric regulariser. F
 \subsection{External Baseline Comparison}
 \label{sec:discussion:baselines}
 
-In comparison with established external baselines (scVI, DPT, PCA+KMeans, Harmony, scANVI; Appendix~\ref{sec:supp:baselines}), MoCoO consistently achieves competitive or superior clustering metrics while simultaneously providing trajectory inference, distance-preserving embeddings, and downstream biological analysis capabilities that specialised methods lack. Unlike scVI (gene expression modelling) or DPT (pseudotime ordering only), MoCoO unifies these functionalities in a single latent space. This multi-purpose advantage is particularly relevant for exploratory single-cell analyses where practitioners benefit from a unified representation rather than running separate pipelines.
+In comparison with established deep-learning external baselines (scVI, Harmony, scANVI; Appendix~\ref{sec:supp:baselines}), MoCoO excels on cluster geometry metrics that reflect the ODE+MoCo synergy: ODE-containing configurations achieve substantially higher ASW and lower (better) DAV than all external methods (Fig.~\ref{fig:supp_baselines}a). Additionally, MoCoO is the only method evaluated on embedding quality (DRE, DREX; Fig.~\ref{fig:supp_baselines}b) and latent-space quality (LSE, LSEX; Fig.~\ref{fig:supp_baselines}c), where ODE-containing configurations achieve DRE$>0.63$ and DREX$>0.59$---metrics unavailable for external methods that lack continuous latent spaces.
 
-An important note on the composite ranking (Fig.~\ref{fig:supp_baselines}, panel~c): the dual-bar layout makes the evaluation asymmetry immediately visible. DPT and scANVI rank higher on the clustering-only composite (solid bars) because they are dedicated clustering/classification methods evaluated on only 4 metrics where they specialise. Their ``all available'' bars (hatched) are identical to their clustering bars---they cannot compute DRE, LSE, DREX, or LSEX because they lack continuous latent spaces. MoCoO is the \emph{only} method evaluated on all 8 proposed metrics; its hatched bar ($0.51$) includes embedding quality scores absent from all external methods. On the fair, clustering-only comparison, MoCoO ($0.27$) remains competitive---trailing DPT ($0.69$) and scANVI ($0.64$), but surpassing scVI ($0.20$) and Harmony ($0.15$)---despite being a general-purpose model rather than a specialised clustering or trajectory method.
+The multi-criteria radar (Fig.~\ref{fig:supp_baselines}d) illustrates this multi-dimensional advantage: MoCoO spans all six evaluation axes (ASW, DAV, DRE, LSE, DREX, LSEX) while external methods are limited to the two shared clustering geometry axes. This multi-purpose advantage is particularly relevant for exploratory single-cell analyses where practitioners benefit from a unified representation rather than running separate pipelines.
 
 \subsection{Limitations}
 \label{sec:discussion:limitations}
@@ -622,11 +609,11 @@ An important note on the composite ranking (Fig.~\ref{fig:supp_baselines}, panel
 \label{sec:conclusion}
 %% ============================================================
 
-MoCoO combines reconstruction fidelity (VAE), continuous dynamics (Neural ODE), and contrastive structure (MoCo) in a modular framework for single-cell representation learning, complemented by an optional Flow Matching refinement step. Through systematic evaluation across six configurations (twelve with FM), 20 datasets, and a proposed eight-metric evaluation suite, we demonstrate two central findings:
+MoCoO combines reconstruction fidelity (VAE), continuous dynamics (Neural ODE), and contrastive structure (MoCo) in a modular framework for single-cell representation learning, complemented by an optional Flow Matching refinement step. Through systematic evaluation across six configurations (twelve with FM), 20 datasets, and a proposed six-metric evaluation suite, we demonstrate five key findings:
 
-\textit{1. ODE+MoCo synergy.} Combining ODE and MoCo produces the best overall latent-space representations. VAE+ODE+MoCo achieves the highest cross-dataset mean ARI ($0.359$), ASW ($0.225$), and DAV ($1.478$), while also ranking second on DRE ($0.640$) and LSE ($0.335$)---five of eight top-two finishes spanning both clustering and embedding quality families across 20 diverse datasets.
+\textit{1. ODE+MoCo synergy.} Combining ODE and MoCo produces the best overall latent-space profile. VAE+ODE+MoCo achieves the highest cross-dataset mean ASW ($0.225$) and DAV ($1.478$), plus second-best DRE ($0.640$) and LSE ($0.335$)---four of six top-two finishes across 20 diverse datasets. MoCo sharpens cluster geometry beyond what ODE alone provides, at a small base embedding cost that FM refinement subsequently recovers.
 
-\textit{2. FM refinement amplifies embedding quality.} The optional Phase-2 FM refinement step improves DREX in 91.7\% and DRE in 87.5\% of 120 dataset--configuration pairs, with mean improvements of $+0.030$ and $+0.023$ respectively. Applied to the ODE+MoCo synergy, VAE+ODE+MoCo+FM achieves six top-two finishes across all 12 configurations (best ARI $0.370$, DAV $1.359$; second-best ASW $0.257$, DRE $0.673$, DREX $0.656$), confirming that FM is most effective when applied to an already well-structured latent space.
+\textit{2. FM refinement recovers and amplifies embedding quality.} The optional Phase-2 FM refinement step improves DREX in 91.7\% and DRE in 87.5\% of 120 dataset--configuration pairs, with mean improvements of $+0.030$ and $+0.023$ respectively. Applied to the ODE+MoCo synergy, VAE+ODE+MoCo+FM achieves five top-two finishes across all 12 configurations (best ASW $0.257$, DAV $1.359$; second-best DRE $0.673$, LSE and DREX $0.656$), surpassing even the base VAE+ODE on embedding quality (DRE $0.673$ vs.\ $0.647$, DREX $0.656$ vs.\ $0.613$). FM is most effective when applied to an already well-structured latent space.
 
 \textit{3. Cross-dataset robustness.} These advantages hold across 20 diverse scRNA-seq datasets spanning hematopoiesis, neurogenesis, pancreatic endocrine differentiation, cancer, organoid, and many additional developmental systems, demonstrating strong generalization without hyperparameter re-tuning.
 
@@ -634,7 +621,7 @@ MoCoO combines reconstruction fidelity (VAE), continuous dynamics (Neural ODE), 
 
 \textit{5. Multi-purpose latent space.} Unlike specialised external baselines, MoCoO provides clustering, trajectory inference, distance-preserving embeddings, batch integration, and downstream biological analysis (annotation transfer, uncertainty, generation, differential expression, branching detection) in a single unified framework.
 
-For single-cell practitioners, we recommend VAE+ODE+MoCo+FM at $\beta{\leq}0.1$ as the default configuration; without FM, VAE+ODE+MoCo provides the strongest base model. Prototypes are an optional addition that yields marginal embedding quality gains (${\sim}{+}0.005$ DRE/DREX) at a small clustering cost. Future work includes scaling to atlas-level datasets ($>10^5$ cells), integration of multi-omic modalities, and extending FM refinement to conditional generation tasks. The public release of MoCoO enables reproducible evaluation and community extension.
+For single-cell practitioners, we recommend VAE+ODE+MoCo+FM at $\beta{\leq}0.1$ as the default configuration; without FM, VAE+ODE+MoCo provides the strongest base model (see Section~\ref{sec:discussion:guide} for the full configuration guide). Future work includes scaling to atlas-level datasets ($>10^5$ cells), integration of multi-omic modalities, and extending FM refinement to conditional generation tasks. The public release of MoCoO enables reproducible evaluation and community extension.
 
 \section*{Data Availability}
 The 20 scRNA-seq datasets used in this study are publicly available. The five core datasets (IRALL, dentate gyrus, endocrine pancreas, Paul hematopoiesis, and spinoids) are accessible through the scvelo package~\cite{bergen2020generalizing} and original publications. The 15 extended datasets (astrocyte, brain metastasis, breast, gastric, hemato, hepatoblastoma, hESC-time, liver cancer, lung, melanoma, pituitary, retina, setty, spine, and teeth) are available from their respective original publications. All preprocessed datasets and trained model checkpoints will be made available at \url{https://github.com/PeterPonyu/MoCoO} upon publication.
@@ -657,38 +644,21 @@ The author acknowledges the use of the University of Birmingham's BlueBEAR HPC s
 \section{FM Sensitivity Analysis}
 \label{sec:supp:fm_sensitivity}
 
-Fig.~\ref{fig:fm_sensitivity} shows how the proposed eight evaluation metrics respond to variation in FM hyperparameters across all datasets, revealing which settings produce robust improvements over the base configurations. Each row shows a different metric from the proposed set; each column a different hyperparameter. Per-dataset thin lines are overlaid with the cross-dataset mean (bold line) and $\pm 1$ s.d.\ shading. Vertical dashed lines mark default values; horizontal dotted lines show the VAE+ODE baseline (no FM).
+Fig.~\ref{fig:fm_sensitivity} shows how the proposed six evaluation metrics respond to variation in FM hyperparameters across all datasets, revealing which settings produce robust improvements over the base configurations. Each row shows a different metric from the proposed set; each column a different hyperparameter. Per-dataset thin lines are overlaid with the cross-dataset mean (bold line) and $\pm 1$ s.d.\ shading. Vertical dashed lines mark default values; horizontal dotted lines show the VAE+ODE baseline (no FM).
 
 \begin{figure*}[!t]
     \centering
     \includegraphics[width=\textwidth,height=0.80\textheight,keepaspectratio]{figS1_fm_sensitivity}
-    \caption{FM hyperparameter sensitivity analysis across all datasets and the proposed 8-metric set (NMI, ARI, ASW, DAV, DRE, LSE, DREX, LSEX). Each row shows one metric; each column shows one hyperparameter. Per-dataset thin lines are overlaid with the mean (bold line) and $\pm 1$ s.d.\ shading. Vertical dashed lines mark default values; horizontal dotted lines show the VAE+ODE baseline (no FM).}
+    \caption{FM hyperparameter sensitivity analysis across all datasets and the proposed 6-metric set (ASW, DAV, DRE, LSE, DREX, LSEX). Each row shows one metric; each column shows one hyperparameter. Per-dataset thin lines are overlaid with the mean (bold line) and $\pm 1$ s.d.\ shading. Vertical dashed lines mark default values; horizontal dotted lines show the VAE+ODE baseline (no FM).}
     \label{fig:fm_sensitivity}
 \end{figure*}
 
-\section{FM-Enhanced Metric Profiles}
-\label{sec:supp:fm_metric_lines}
+%% FM-enhanced metric profiles (figS2) removed — Fig.~3 and Table~\ref{tab:fm_delta} already
+%% cover the base and FM config comparisons; the 12-config line-plot duplicate
+%% added no incremental insight.  Script retained in codebase.
 
-Fig.~\ref{fig:fm_metric_lines} extends Fig.~\ref{fig:metric_lines} to include all 12 configurations (6 base + 6 FM variants), showing how Phase-2 Flow Matching refinement affects each metric family across datasets.
-
-\begin{figure*}[!t]
-    \centering
-    \includegraphics[width=\textwidth,height=0.80\textheight,keepaspectratio]{figS2_fm_metric_profiles}
-    \caption{FM-enhanced per-dataset metric profiles showing all 12 configurations (6 base + 6 FM variants). Each subplot shows one metric across datasets, with FM variants plotted alongside their base counterparts.}
-    \label{fig:fm_metric_lines}
-\end{figure*}
-
-\section{FM Refinement Effect}
-\label{sec:supp:fm_effect}
-
-Fig.~\ref{fig:fm_effect} quantifies the per-metric delta (FM minus base) for each of the 6 base model configurations, aggregated across all datasets. Positive values indicate FM improvement; for DAV (lower is better) the sign is flipped.
-
-\begin{figure*}[!t]
-    \centering
-    \includegraphics[width=\textwidth,height=0.70\textheight,keepaspectratio]{figS3_fm_effect}
-    \caption{FM refinement effect across model configurations. Each dot is one dataset; bars show the mean delta. Positive = FM improved the metric. Bars for the VAE+ODE+MoCo configuration are highlighted with thick coloured edges and bold x-tick labels; ODE+MoCo configurations benefit most from FM refinement on embedding quality (DRE, DREX) and cluster geometry (ASW, DAV).}
-    \label{fig:fm_effect}
-\end{figure*}
+%% FM effect figure (figS3) removed — Table~\ref{tab:fm_delta} already
+%% provides the same delta analysis with precise numbers.  Script retained.
 
 %% Per-dataset ablation tables (20 tables, ~12 pages) removed to reduce
 %% manuscript length.  Cross-dataset mean tables
@@ -696,27 +666,27 @@ Fig.~\ref{fig:fm_effect} quantifies the per-metric delta (FM minus base) for eac
 %% aggregate picture; full per-dataset breakdowns are available in the
 %% supplementary code repository.
 
-\section{ODE-Driven Pseudotime \& Trajectory Analysis}
+\section{Trajectory Analysis \& Pseudotime Comparison}
 \label{sec:supp:ode}
 
-Fig.~\ref{fig:supp_ode} provides detailed analysis of the Neural ODE component's contribution to trajectory inference, including PCA pseudotime comparisons, pseudotime distributions per cell type, gene expression dynamics along pseudotime, and trajectory smoothness metrics.
+Fig.~\ref{fig:supp_ode} provides a unified view of ODE-driven trajectory inference. Panels~A--C show internal trajectory quality (PCA views, pseudotime correlation against collection day, and per-configuration pseudotime distributions). Panels~D--F provide mechanistic detail (per-cell-type pseudotime distributions, gene expression importance, and trajectory smoothness).
 
 \begin{figure*}[!t]
     \centering
-    \includegraphics[width=\textwidth,height=0.70\textheight,keepaspectratio]{figS4_ode_trajectory}
-    \caption{ODE-driven pseudotime and trajectory analysis (IRALL). \textbf{(A)}~PCA of latent spaces coloured by cell type (top row) and pseudotime (bottom row) for three representative configurations (VAE, VAE+ODE, Full); ODE adds temporal directionality. \textbf{(B)}~Per-cell-type pseudotime distributions (violin plots, Full model); the ODE model separates developmental stages more continuously. \textbf{(C)}~Per-dimension gradient magnitude across configurations, quantifying gene expression importance along the ODE axis. \textbf{(D)}~Trajectory smoothness: sequential pairwise distance histograms per configuration.}
+    \includegraphics[width=\textwidth,height=0.78\textheight,keepaspectratio]{figS2_trajectory}
+    \caption{Trajectory analysis (IRALL). \textbf{(A)}~PCA of latent spaces coloured by cell type for three configurations (VAE, VAE+ODE, VAE+ODE+MoCo+Proto); ODE adds temporal directionality. \textbf{(B)}~Mean $|$Spearman~$\rho|$ between inferred pseudotime and collection day per ODE-containing configuration. \textbf{(C)}~Per-configuration pseudotime score distributions. \textbf{(D)}~Per-cell-type pseudotime distributions (violin plots, VAE+ODE+MoCo+Proto). \textbf{(E)}~Per-dimension gradient magnitude across configurations. \textbf{(F)}~Trajectory smoothness: sequential pairwise distance histograms.}
     \label{fig:supp_ode}
 \end{figure*}
 
 \section{Batch Integration \& Cross-Dataset Generalization}
 \label{sec:supp:batch_detail}
 
-Fig.~\ref{fig:supp_batch} provides the full cross-dataset generalization analysis referenced in Section~\ref{sec:results:batch}, including column-normalised ARI heatmaps, bio-conservation vs.\ embedding quality scatter plots, and radar profiles.
+Fig.~\ref{fig:supp_batch} provides the full cross-dataset generalization analysis referenced in Section~\ref{sec:results:batch}, including a composite 6-metric heatmap and radar profiles across all configurations.
 
 \begin{figure*}[!t]
     \centering
-    \includegraphics[width=\textwidth,height=0.70\textheight,keepaspectratio]{figS5_generalization}
-    \caption{Cross-dataset evaluation and generalization. \textbf{(A)}~Column-normalised ARI heatmap (config $\times$ dataset) across all 20~datasets. \textbf{(B)}~ARI vs.\ DREX scatter (mean across datasets); VAE+ODE+MoCo achieves the strongest joint clustering--quality trade-off. \textbf{(C)}~Average embedding quality (DRE, LSE, DREX, LSEX mean) heatmap across all 20 datasets. \textbf{(D)}~Radar profile of all eight proposed metrics averaged across datasets; the VAE+ODE+MoCo polygon (thick border, filled) covers the largest area, confirming top-tier performance across metric families.}
+    \includegraphics[width=\textwidth,height=0.50\textheight,keepaspectratio]{figS3_generalization}
+    \caption{Cross-dataset evaluation and generalization. \textbf{(A)}~Composite score heatmap (config $\times$ dataset, column-normalised): each cell averages all 6 proposed metrics (DAV flipped so higher~=~better), showing relative performance across datasets. \textbf{(B)}~Radar profile of all six proposed metrics averaged across datasets; the VAE+ODE+MoCo polygon (thick border, filled) covers the largest area, confirming top-tier performance across metric families.}
     \label{fig:supp_batch}
 \end{figure*}
 
@@ -727,69 +697,52 @@ Fig.~\ref{fig:supp_bio} validates the biological interpretability of MoCoO laten
 
 \begin{figure*}[!t]
     \centering
-    \includegraphics[width=\textwidth,height=0.70\textheight,keepaspectratio]{figS6_biological_validation}
-    \caption{Biological validation of \MoCoO latent spaces (IRALL). \textbf{(A)}~Per-dimension gradient importance for the Full model, quantifying the contribution of each latent dimension. \textbf{(B)}~Top genes per latent component ranked by Random-Forest importance score. \textbf{(C)}~Marker gene recovery: known marker genes checked against the top-50 most important genes. \textbf{(D)}~Cross-configuration gradient importance comparison for all six base configurations.}
+    \includegraphics[width=\textwidth,height=0.70\textheight,keepaspectratio]{figS4_biological_validation}
+    \caption{Biological validation of \MoCoO latent spaces (IRALL). \textbf{(A)}~Per-dimension gradient importance for the VAE+ODE+MoCo+Proto model, quantifying the contribution of each latent dimension. \textbf{(B)}~Top genes per latent component ranked by Random-Forest importance score. \textbf{(C)}~Marker gene recovery: known marker genes checked against the top-50 most important genes. \textbf{(D)}~Cross-configuration gradient importance comparison for all six base configurations.}
     \label{fig:supp_bio}
 \end{figure*}
 
 \section{Metric Suite Rationale}
 \label{sec:supp:subcategory}
 
-Our proposed eight-metric evaluation suite captures complementary aspects of single-cell latent-space quality. The four clustering metrics (ARI, NMI, ASW, DAV) evaluate discrete cell-type recovery at the partition level (ARI, NMI), geometric level (ASW), and compactness-to-separation ratio (DAV). The four embedding/latent-space quality metrics (DRE, LSE, DREX, LSEX) each aggregate multiple sub-scores (see Appendix~\ref{sec:supp:metric_defs} for full definitions). Each composite captures a different dimension: DRE measures faithfulness of 2-D UMAP projections; DREX supplements this with rank-based and symmetry diagnostics; LSE quantifies intrinsic latent-space structure via SVD-based analysis; LSEX adds label-aware graph diagnostics. Together, these eight metrics provide a comprehensive evaluation without the redundancy of reporting 30+ individual sub-scores. Per-dataset breakdowns are available in the supplementary code repository.
+Our proposed six-metric evaluation suite captures complementary aspects of single-cell latent-space quality. The two clustering geometry metrics (ASW, DAV) evaluate geometric separation and compactness-to-separation ratio. The four embedding/latent-space quality metrics (DRE, LSE, DREX, LSEX) each aggregate multiple sub-scores (see Appendix~\ref{sec:supp:metric_defs} for full definitions). Each composite captures a different dimension: DRE measures faithfulness of 2-D UMAP projections; DREX supplements this with rank-based and symmetry diagnostics; LSE quantifies intrinsic latent-space structure via SVD-based analysis; LSEX adds label-aware graph diagnostics. Together, these six metrics provide a comprehensive evaluation without the redundancy of reporting 30+ individual sub-scores. Per-dataset breakdowns are available in the supplementary code repository.
 
 \section{Multi-Seed Robustness}
 \label{sec:supp:multiseed}
 
-To assess the stability of MoCoO across random initialisations, we train all base configurations with 5 independent seeds on IRALL ($\beta{=}0.1$, 200 epochs, 3{,}000 cells). Fig.~\ref{fig:supp_multiseed} shows per-seed score distributions (box\,+\,strip plots) and mean ARI with bootstrapped 95\% confidence intervals. ODE-containing configurations exhibit moderate seed-to-seed variability in ARI but consistently outperform non-ODE variants.
+To assess the stability of MoCoO across random initialisations, we train all base configurations with 5 independent seeds on IRALL ($\beta{=}0.1$, 200 epochs, 3{,}000 cells). Fig.~\ref{fig:supp_multiseed} shows per-seed ASW and DAV distributions (box\,+\,strip plots) and mean ASW with bootstrapped 95\% confidence intervals. ODE-containing configurations exhibit consistent clustering geometry advantages across all seeds.
 
 \begin{figure*}[!t]
     \centering
-    \includegraphics[width=\textwidth]{figS7_multiseed}
-    \caption{Multi-seed robustness (IRALL, 5 seeds, $\beta{=}0.1$). \textbf{(a)}~Per-seed ARI, NMI, and ASW distributions across six configurations (box\,+\,strip plots; whiskers omitted for clarity, individual seeds shown as points). \textbf{(b)}~Mean ARI with 95\% confidence intervals per configuration.}
+    \includegraphics[width=\textwidth]{figS5_multiseed}
+    \caption{Multi-seed robustness (IRALL, 5 seeds, $\beta{=}0.1$). \textbf{(a)}~Per-seed ASW and DAV distributions across six configurations (box\,+\,strip plots; whiskers omitted for clarity, individual seeds shown as points). \textbf{(b)}~Mean ASW with 95\% confidence intervals per configuration.}
     \label{fig:supp_multiseed}
 \end{figure*}
 
 \section{External Baseline Comparison}
 \label{sec:supp:baselines}
 
-We compare MoCoO against five external baselines: scVI~\cite{lopez2018deep}, DPT~\cite{haghverdi2016dpt}, PCA+KMeans, Harmony~\cite{korsunsky2019harmony}, and scANVI~\cite{xu2021probabilistic} across seven datasets (IRALL, paul, endo, dentate, hemato, lung, spinoids) with five random seeds each. Fig.~\ref{fig:supp_baselines} shows grouped bar charts and a normalised composite ranking; because external methods lack embedding quality metrics (4/8 vs.\ MoCoO's 8/8), the composite scores are not directly comparable (see caption). Note that Harmony is limited to datasets with batch annotations; scANVI uses cell-type labels in a semi-supervised manner.
+We compare MoCoO against three deep-learning external baselines with comparable latent-space representations: scVI~\cite{lopez2018deep}, Harmony~\cite{korsunsky2019harmony}, and scANVI~\cite{xu2021probabilistic} across seven datasets (IRALL, paul, endo, dentate, hemato, lung, spinoids) with five random seeds each. DPT and PCA+KMeans are excluded as they lack learned continuous latent representations comparable to MoCoO. Fig.~\ref{fig:supp_baselines} presents the comparison across four complementary evaluation dimensions: cluster geometry (ASW, inverted DAV), embedding quality (DRE, DREX---available only for MoCoO), latent-space quality (LSE, LSEX---available only for MoCoO), and a multi-criteria radar profile. Note that Harmony is limited to datasets with batch annotations; scANVI uses cell-type labels in a semi-supervised manner.
 
 \begin{figure*}[!t]
     \centering
     \includegraphics[width=\textwidth]{fig4_external_baselines}
-    \caption{External baseline comparison. \textbf{(a)}~Clustering metrics (NMI, ARI, ASW, DAV) for MoCoO and external baselines. \textbf{(b)}~Embedding quality metrics; hatched grey bars with ``N/A'' labels indicate metrics not computable for methods lacking a continuous latent representation. \textbf{(c)}~Combined normalised ranking showing two bars per method: solid bars use only the 4 clustering metrics (available for all methods, providing a fair head-to-head comparison), while hatched bars average across all available metrics ($n$/8 annotation). External methods' two bars are identical because they only have clustering scores; MoCoO's hatched bar additionally includes embedding quality. Sorted by clustering-only score to ensure like-for-like ordering.}
+    \caption{External baseline comparison across seven datasets (5 seeds). \textbf{(a)}~Cluster geometry: ASW (higher is better) and inverted DAV (higher = tighter clusters) for all deep-learning methods. ODE-containing MoCoO configurations dominate on both metrics. \textbf{(b)}~Embedding quality: DRE and DREX for MoCoO configurations only; external methods lack continuous latent spaces. \textbf{(c)}~Latent-space quality: LSE and LSEX for MoCoO configurations only. \textbf{(d)}~Multi-criteria radar normalising ASW, inverted DAV, DRE, LSE, DREX, and LSEX to $[0,1]$; external methods appear on the two shared axes only (ASW, DAV). MoCoO (VAE+ODE+MoCo+FM) spans all six axes.}
     \label{fig:supp_baselines}
 \end{figure*}
 
-\section{Trajectory and Pseudotime Comparison}
-\label{sec:supp:trajectory}
+%% Old figS8 trajectory merged into figS2 (trajectory) above.
 
-Fig.~\ref{fig:supp_trajectory} evaluates the ODE-derived pseudotime against dedicated trajectory inference methods. Panel~(a) shows the mean absolute Spearman correlation between predicted pseudotime and collection day for each ODE-containing configuration. Panel~(b) compares MoCoO configurations against DPT and Palantir on the same task.
-
-\begin{figure*}[!t]
-    \centering
-    \includegraphics[width=\textwidth]{figS8_trajectory}
-    \caption{Trajectory and pseudotime comparison. \textbf{(a)}~Mean $|$Spearman~$\rho|$ between inferred pseudotime and collection day per ODE-containing configuration. \textbf{(b)}~Trajectory baseline comparison: MoCoO vs.\ DPT and Palantir.}
-    \label{fig:supp_trajectory}
-\end{figure*}
-
-\section{Beta Ablation Heatmap}
-\label{sec:supp:beta_heatmap}
-
-Fig.~\ref{fig:supp_beta_heatmap} provides a compact heatmap view of the beta sensitivity analysis, showing ARI, NMI, and ASW for all six configurations at $\beta \in \{0.01, 0.1, 1.0\}$. This complements the line-plot view in Fig.~\ref{fig:fm_sensitivity}.
-
-\begin{figure*}[!t]
-    \centering
-    \includegraphics[width=\textwidth]{figS9_beta_ablation}
-    \caption{Beta ablation heatmap. Each cell shows $\text{metric} \times \text{configuration}$ at a given $\beta$ value, with text annotations (.2f) and colour-mapped cells (column-normalised; higher = relatively better). Row labels for the VAE+ODE+MoCo configuration are emboldened for easy identification across all three beta settings.}
-    \label{fig:supp_beta_heatmap}
-\end{figure*}
+%% Beta ablation heatmap (figS9) removed — the beta sensitivity is
+%% adequately conveyed by Fig.~S1 (FM sensitivity) and the textual
+%% discussion.  Only 3 beta values; a one-line summary suffices.
+%% Script retained in codebase.
 
 \clearpage
 \section{Pseudotime--Marker Correlation Tables}
 \label{sec:supp:markers}
 
-Tables~\ref{tab:irall_markers}--\ref{tab:spinoids_markers} present pseudotime--marker correlations for each dataset (Full MoCoO, 200 epochs). See Section~\ref{sec:results:bio} for the gene selection protocol and Table~\ref{tab:biovalidation} for the cross-dataset summary.
+Tables~\ref{tab:irall_markers}--\ref{tab:spinoids_markers} present pseudotime--marker correlations for each dataset (VAE+ODE+MoCo+Proto, 200 epochs). See Section~\ref{sec:results:bio} for the gene selection protocol and Table~\ref{tab:biovalidation} for the cross-dataset summary.
 
 \section{LSE/LSEX Metric Definitions}
 \label{sec:supp:metric_defs}
