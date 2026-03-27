@@ -137,36 +137,30 @@ def _load_mocoo(results_dir: Path, metrics):
 
 
 def _build_unified_data(results_dir: Path, metrics):
-    """Merge all sources -> {method: {metric_label: [per-dataset-seed-mean]}}."""
+    """Merge all sources -> {method: {metric_label: [per-dataset value]}}."""
     baselines_dir = results_dir / "baselines"
 
     v2 = _load_external_csv(baselines_dir / "extended_baselines_v2.csv", metrics)
-    existing = _load_external_csv(
-        baselines_dir / "external_baselines.csv", metrics,
-        methods_filter={"DPT", "PCA+KMeans", "Harmony", "scVI", "scANVI"},
-    )
-    extended = _load_external_csv(baselines_dir / "extended_baselines.csv", metrics)
     mocoo = _load_mocoo(results_dir, metrics)
 
     unified = {}
     seen_pairs = set()
 
-    for acc in [v2, existing, extended]:
-        for method, ds_dict in acc.items():
-            if method not in METHOD_ORDER:
+    for method, ds_dict in v2.items():
+        if method not in METHOD_ORDER:
+            continue
+        method_data = unified.setdefault(
+            method, {lbl: [] for _, _, _, lbl in metrics})
+        for ds in ALL_DATASETS:
+            if ds not in ds_dict:
                 continue
-            method_data = unified.setdefault(
-                method, {lbl: [] for _, _, _, lbl in metrics})
-            for ds in ALL_DATASETS:
-                if ds not in ds_dict:
-                    continue
-                if (method, ds) in seen_pairs:
-                    continue
-                seen_pairs.add((method, ds))
-                for ext_col, _int_col, _higher, lbl in metrics:
-                    vals = ds_dict[ds].get(ext_col, [])
-                    if vals:
-                        method_data[lbl].append(float(np.mean(vals)))
+            if (method, ds) in seen_pairs:
+                continue
+            seen_pairs.add((method, ds))
+            for ext_col, _int_col, _higher, lbl in metrics:
+                vals = ds_dict[ds].get(ext_col, [])
+                if vals:
+                    method_data[lbl].append(float(np.mean(vals)))
 
     mocoo_data = {lbl: [] for _, _, _, lbl in metrics}
     for ds in ALL_DATASETS:

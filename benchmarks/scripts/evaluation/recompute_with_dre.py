@@ -33,6 +33,8 @@ from sklearn.metrics import (
 
 warnings.filterwarnings("ignore")
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent.parent.parent))
+# Add unified_models parent so external-benchmarker.unified_models is importable
+sys.path.insert(0, str(Path.home() / ".copilot" / "skills"))
 
 BASE_DIR = Path(os.environ.get("MOCOO_DATA_DIR", str(Path.home())))
 
@@ -174,7 +176,7 @@ def run_ml_baselines(X, seed=42):
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--datasets", nargs="+", default=list(DATASETS.keys()))
-    parser.add_argument("--n_seeds", type=int, default=5)
+    parser.add_argument("--n_seeds", type=int, default=1)
     parser.add_argument("--ml-only", action="store_true", help="Only ML baselines (no DL)")
     parser.add_argument("--all", action="store_true", help="All methods including scVI/scANVI/DL models")
     args = parser.parse_args()
@@ -305,6 +307,7 @@ def main():
                 try:
                     ct_col = DATASETS[ds_name]["cell_type_col"]
                     adata_scanvi = adata.copy()
+                    adata_scanvi.obs[ct_col] = adata_scanvi.obs[ct_col].astype(str)
                     if "counts" in adata_scanvi.layers:
                         adata_scanvi.X = adata_scanvi.layers["counts"].copy()
                         if issparse(adata_scanvi.X):

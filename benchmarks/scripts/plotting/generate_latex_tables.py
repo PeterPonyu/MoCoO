@@ -5,14 +5,14 @@ Reads summary_expanded.csv from all 20 datasets (split=whole), computes
 cross-dataset means, and emits LaTeX table environments to stdout.
 
 Tables produced:
-  1. Cross-dataset mean — Clustering (4 proposed metrics: ARI, NMI, ASW, DAV)
+  1. Cross-dataset mean — Clustering (3 proposed metrics: ASW, DAV, CAL)
      — 6 base configs, 20-dataset average
-  2. Cross-dataset mean — Embedding quality (4 proposed: DRE, LSE, DREX, LSEX)
+  2. Cross-dataset mean — Embedding quality (2 proposed: DRE, DREX)
      — 6 base configs, 20-dataset average
   3. FM Enhancement — Clustering (12 configs, 20-dataset average)
   4. FM Enhancement — Quality   (12 configs, 20-dataset average)
   5. FM delta summary (mean improvement per metric across 20 datasets)
-  6-25. Per-dataset appendix tables — proposed 8 metrics per dataset
+  6-25. Per-dataset appendix tables — proposed 5 metrics per dataset
 """
 from __future__ import annotations
 
@@ -47,13 +47,11 @@ _FM_PAIRS = {
     "Full": "Full+FM",
 }
 
-# Proposed 8-metric set
-_CLUSTER_METRICS = ["ARI", "NMI", "ASW", "DAV"]
+# Proposed 5-metric set (canonical: ASW, DAV, CAL + DRE, DREX)
+_CLUSTER_METRICS = ["ASW", "DAV", "CAL"]
 _QUALITY_METRICS = [
     "DRE_umap_overall_quality",
-    "LSE_overall_quality",
     "DREX_overall_quality",
-    "LSEX_overall_quality",
 ]
 _ALL_PROPOSED = _CLUSTER_METRICS + _QUALITY_METRICS
 
@@ -61,14 +59,13 @@ _ALL_PROPOSED = _CLUSTER_METRICS + _QUALITY_METRICS
 _LOWER_BETTER = {"DAV"}
 
 _CLUSTER_HEADERS = {
-    "ARI": "ARI", "NMI": "NMI", "ASW": "ASW",
+    "ASW": "ASW",
     "DAV": r"DAV$\downarrow$",
+    "CAL": "CAL",
 }
 _QUALITY_HEADERS = {
     "DRE_umap_overall_quality": r"\makecell{DRE\\overall}",
-    "LSE_overall_quality": r"\makecell{LSE\\overall}",
     "DREX_overall_quality": r"\makecell{DREX\\overall}",
-    "LSEX_overall_quality": r"\makecell{LSEX\\overall}",
 }
 _ALL_HEADERS = {**_CLUSTER_HEADERS, **_QUALITY_HEADERS}
 
@@ -165,7 +162,7 @@ def _emit_table(rows: dict[str, dict[str, float]], metrics: list[str],
     print("    \\centering")
     print(f"    \\caption{{{caption}}}")
     print(f"    \\label{{{label}}}")
-    if star or len(metrics) > 6:
+    if star:
         print("    \\resizebox{\\textwidth}{!}{%")
     else:
         print("    \\resizebox{\\columnwidth}{!}{%")
@@ -208,7 +205,7 @@ def _emit_per_dataset(data: dict, ds: str, label_prefix: str):
     _emit_table(
         rows, _ALL_PROPOSED, _ALL_HEADERS,
         caption=(
-            f"{disp} --- proposed eight-metric evaluation suite (split=whole, "
+            f"{disp} --- proposed five-metric evaluation suite (split=whole, "
             f"all 12 configurations). Best per column in \\textbf{{bold}}. "
             f"DAV$\\downarrow$ indicates lower is better."
         ),
@@ -227,7 +224,7 @@ def _emit_fm_delta_table(data: dict):
 
     col_spec = "l" + "c" * len(_ALL_PROPOSED)
 
-    print("\\begin{table*}[!t]")
+    print("\\begin{table}[!t]")
     print("    \\centering")
     print(
         f"    \\caption{{Mean Flow Matching improvement ($\\Delta$ = FM $-$ base) "
@@ -236,7 +233,7 @@ def _emit_fm_delta_table(data: dict):
         f"For DAV$\\downarrow$, negative $\\Delta$ is better.}}"
     )
     print("    \\label{tab:fm_delta}")
-    print("    \\resizebox{\\textwidth}{!}{%")
+    print("    \\resizebox{\\columnwidth}{!}{%")
     print(f"    \\begin{{tabular}}{{{col_spec}}}")
     print("        \\toprule")
 
@@ -282,7 +279,7 @@ def _emit_fm_delta_table(data: dict):
     print("        \\bottomrule")
     print("    \\end{tabular}%")
     print("    }")
-    print("\\end{table*}")
+    print("\\end{table}")
     print()
 
 
@@ -354,7 +351,7 @@ def main():
         ),
         label="tab:fm_clustering",
         configs=_ALL_CONFIGS,
-        star=True,
+        star=False,
     )
 
     # FM comparison — Quality (all 12 configs)
@@ -367,7 +364,7 @@ def main():
         ),
         label="tab:fm_embedding",
         configs=_ALL_CONFIGS,
-        star=True,
+        star=False,
     )
 
     # FM delta summary table
@@ -379,9 +376,9 @@ def main():
     print("% FM improvement summary statistics (for inline \\newcommand use)")
     print("%" * 72)
     _SHORT = {
-        "ARI": "ARI", "NMI": "NMI", "ASW": "ASW", "DAV": "DAV",
-        "DRE_umap_overall_quality": "DRE", "LSE_overall_quality": "LSE",
-        "DREX_overall_quality": "DREX", "LSEX_overall_quality": "LSEX",
+        "ASW": "ASW", "DAV": "DAV", "CAL": "CAL",
+        "DRE_umap_overall_quality": "DRE",
+        "DREX_overall_quality": "DREX",
     }
     for m, s in fm_stats.items():
         short = _SHORT.get(m, m.split("_")[0])

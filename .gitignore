@@ -90,19 +90,22 @@ benchmarks/results/**/*.txt
 benchmarks/results/**/*.log
 benchmarks/scripts/pipeline/results/
 
-# LaTeX build artifacts
-paper/*.aux
-paper/*.bbl
-paper/*.blg
-paper/*.log
-paper/*.out
-paper/*.spl
-paper/*.fdb_latexmk
-paper/*.fls
-paper/*.synctex.gz
+# LaTeX build artifacts (paper source .tex/.bib included for open access)
+paper/**/*.aux
+paper/**/*.bbl
+paper/**/*.blg
+paper/**/*.log
+paper/**/*.out
+paper/**/*.spl
+paper/**/*.fdb_latexmk
+paper/**/*.fls
+paper/**/*.synctex.gz
+paper/**/*.synctex(busy)
+paper/**/*.toc
+paper/**/*.pdf
 
-# Local manuscript workspace
-paper/
+# Visual Conflict Detector (dev-only tooling, not part of MoCoO)
+vcd/
 
 # Temporary
 tmp/
