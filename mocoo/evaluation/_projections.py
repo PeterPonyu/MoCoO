@@ -12,7 +12,7 @@ def compute_2d_projections(latent: np.ndarray):
 
     Returns
     -------
-    tuple[np.ndarray | None, np.ndarray | None]
+    tuple of (np.ndarray or None, np.ndarray or None)
         (umap_2d, tsne_2d), either may be None on failure.
     """
     latent = np.asarray(latent, dtype=float)

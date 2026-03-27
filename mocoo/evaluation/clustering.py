@@ -75,7 +75,7 @@ def compute_clustering_metrics(
 def compute_leiden_metrics(
     latent: np.ndarray,
     labels: np.ndarray,
-    resolutions: list[float] | None = None,
+    resolutions=None,
 ) -> dict:
     """Compute ARI and NMI using Leiden clustering instead of KMeans.
 
