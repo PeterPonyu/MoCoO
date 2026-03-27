@@ -1,6 +1,7 @@
 # ═══════════════════════════════════════════════════════════════════════════
 # MoCoO — Top-Level Makefile
-# Orchestrates the full pipeline: install → test → benchmark → figures → paper
+# Orchestrates the full pipeline: install → test → benchmark → figures
+# Optional local manuscript builds are supported when a paper/ tree exists.
 # ═══════════════════════════════════════════════════════════════════════════
 #
 # Experiment Series:
@@ -14,7 +15,7 @@
 #   make all                      # full pipeline
 #   make benchmark EPOCHS=200     # override training epochs
 #   make figures                  # regenerate all figures
-#   make paper                    # build LaTeX paper
+#   make paper                    # build local LaTeX manuscript if present
 #
 # Override any variable on the command line:
 #   make benchmark EPOCHS=300 PATIENCE=50 MAX_CELLS=5000
@@ -44,6 +45,7 @@ BETA_VALUES   ?= 0.01 0.1 1.0
 # ── Derived paths (project-relative) ─────────────────────────────────────
 RESULTS_DIR   ?= $(or $(MOCOO_RESULTS_DIR),benchmarks/results)
 FIGURES_DIR   ?= $(or $(MOCOO_FIGURES_DIR),benchmarks/figures)
+# Optional local manuscript workspace (not tracked in git)
 PAPER_DIR     ?= $(or $(MOCOO_PAPER_DIR),paper)
 
 # ── Series-specific output directories ───────────────────────────────────
@@ -72,7 +74,6 @@ MULTISEED_CSV   := $(MULTI_DIR)/multiseed_IRALL.csv
         series1 series2 series3 series4 \
         metrics significance \
         figures fig2 fig3 fig4 \
-        figS1 figS2 figS3 figS4 figS5 \
         tables paper paper-clean paper-mdpi paper-elsevier paper-all
 
 # ═══════════════════════════════════════════════════════════════════════════
@@ -107,25 +108,17 @@ help: ## Show all available targets
 	@echo "  make metrics          Recompute expanded metrics from saved latents"
 	@echo "  make significance     Run significance tests on multi-seed results"
 	@echo ""
-	@echo "  FIGURES (Main Paper)"
+	@echo "  FIGURES"
 	@echo "  ─────────────────────────────────────────────────────────"
-	@echo "  make figures          Generate all figures (main + supp)"
-	@echo "  make fig2             Fig 2: ablation boxplots"
-	@echo "  make fig3             Fig 3: per-dataset metric profiles"
-	@echo "  make fig4             Fig 4: external baselines comparison"
+	@echo "  make figures          Generate all figures"
+	@echo "  make fig2             Fig 2: ablation hero (performance + FM)"
+	@echo "  make fig3             Fig 3: external benchmarking (19 methods, 5 metrics)"
+	@echo "  make fig4             Fig 4: biological validation"
 	@echo ""
-	@echo "  FIGURES (Supplementary)"
+	@echo "  LOCAL MANUSCRIPT"
 	@echo "  ─────────────────────────────────────────────────────────"
-	@echo "  make figS1            Fig S1: FM sensitivity analysis"
-	@echo "  make figS2            Fig S2: trajectory analysis"
-	@echo "  make figS3            Fig S3: cross-dataset generalization"
-	@echo "  make figS4            Fig S4: biological validation"
-	@echo "  make figS5            Fig S5: multi-seed robustness"
-	@echo ""
-	@echo "  PAPER"
-	@echo "  ─────────────────────────────────────────────────────────"
-	@echo "  make paper            Build the LaTeX paper (paper/main.tex)"
-	@echo "  make paper-clean      Clean paper build artifacts"
+	@echo "  make paper            Build a local manuscript if $(PAPER_DIR)/main.tex exists"
+	@echo "  make paper-clean      Clean local manuscript build artifacts"
 	@echo ""
 	@echo "  UTILITY"
 	@echo "  ─────────────────────────────────────────────────────────"
@@ -150,7 +143,7 @@ help: ## Show all available targets
 # ═══════════════════════════════════════════════════════════════════════════
 # FULL PIPELINE
 # ═══════════════════════════════════════════════════════════════════════════
-all: test benchmark series1 series2 series3 series4 metrics figures paper ## Full pipeline
+all: test benchmark series1 series2 series3 series4 metrics figures paper ## Full pipeline (paper step is optional)
 	@echo ""
 	@echo "══════════════════════════════════════════════════════════════"
 	@echo "  Pipeline complete."
@@ -315,98 +308,44 @@ beta-sweep: beta-ablation ## DEPRECATED: use beta-ablation
 # FIGURE TARGETS
 # ═══════════════════════════════════════════════════════════════════════════
 
-# All figures: main paper (fig2–fig4) then supplementary (figS1–S5).
-# Removed from paper: fig5 (FM boxplots), fig6 (downstream), old figS2–S3/S6–S9.
-figures: fig2 fig3 fig4 figS1 figS2 figS3 figS4 figS5 ## Generate all figures
+# Figure set: fig2 (ablation hero), fig3 (external bench), fig4 (biovalidation)
+figures: fig2 fig3 fig4 ## Generate all figures
 	@echo ""
 	@echo "══════════════════════════════════════════════════════════════"
 	@echo "  All figures generated in $(FIGURES_DIR)/"
 	@echo "══════════════════════════════════════════════════════════════"
 
-# ── Main Paper Figures ──────────────────────────────────────────────────
+# ── Main Figure Scripts ─────────────────────────────────────────────────
+# An optional local Fig 1 manuscript asset can be maintained under $(PAPER_DIR).
 
-fig2: ## Fig 2: ablation boxplots (cross-dataset)
+fig2: ## Fig 2: ablation hero (absolute performance + FM indicators)
 	@echo ""
 	@echo "══════════════════════════════════════════════════════════════"
-	@echo "  Fig 2: Ablation boxplots"
+	@echo "  Fig 2: Ablation Hero (absolute performance + FM improvement)"
 	@echo "══════════════════════════════════════════════════════════════"
 	@mkdir -p $(FIGURES_DIR)
-	$(PYTHON) $(PLOTTING)/fig2_ablation_boxplots.py \
+	$(PYTHON) $(PLOTTING)/fig2_ablation_hero.py \
 		--resultsdir $(SINGLE_DIR) \
 		--outdir $(FIGURES_DIR)
 
-fig3: ## Fig 3: per-dataset metric profiles
+fig3: ## Fig 3: external benchmarking (19 methods, 5 metrics)
 	@echo ""
 	@echo "══════════════════════════════════════════════════════════════"
-	@echo "  Fig 3: Metric profiles"
+	@echo "  Fig 3: External Benchmarking (19 methods, 5 metrics)"
 	@echo "══════════════════════════════════════════════════════════════"
 	@mkdir -p $(FIGURES_DIR)
-	$(PYTHON) $(PLOTTING)/fig3_metric_profiles.py \
+	$(PYTHON) $(PLOTTING)/fig3_external_benchmarking.py \
 		--resultsdir $(SINGLE_DIR) \
 		--outdir $(FIGURES_DIR)
 
-fig4: ## Fig 4: external baselines comparison
+fig4: ## Fig 4: biological validation (annotation transfer + pseudotime + generation)
 	@echo ""
 	@echo "══════════════════════════════════════════════════════════════"
-	@echo "  Fig 4: External baselines"
+	@echo "  Fig 4: Biological Validation"
 	@echo "══════════════════════════════════════════════════════════════"
 	@mkdir -p $(FIGURES_DIR)
-	$(PYTHON) $(PLOTTING)/fig4_external_baselines.py \
+	$(PYTHON) $(PLOTTING)/fig4_biovalidation.py \
 		--resultsdir $(SINGLE_DIR) \
-		--outdir $(FIGURES_DIR)
-
-# ── Supplementary Figures ───────────────────────────────────────────────
-
-figS1: ## Fig S1: FM sensitivity analysis
-	@echo ""
-	@echo "══════════════════════════════════════════════════════════════"
-	@echo "  Fig S1: FM sensitivity"
-	@echo "══════════════════════════════════════════════════════════════"
-	@mkdir -p $(FIGURES_DIR)
-	$(PYTHON) $(PLOTTING)/figS1_fm_sensitivity.py \
-		--resultsdir $(SINGLE_DIR) \
-		--outdir $(FIGURES_DIR)
-
-figS2: ## Fig S2: Trajectory analysis (ODE + baselines)
-	@echo ""
-	@echo "══════════════════════════════════════════════════════════════"
-	@echo "  Fig S2: Trajectory"
-	@echo "══════════════════════════════════════════════════════════════"
-	@mkdir -p $(FIGURES_DIR)
-	MOCOO_DATA_DIR=$(DATA_DIR) $(PYTHON) $(PLOTTING)/figS2_trajectory.py \
-		--resultsdir $(SINGLE_DIR) \
-		--outdir $(FIGURES_DIR) \
-		--data $(DATA_DIR)/LAB/scRL/IRALL.h5ad
-
-figS3: ## Fig S3: Cross-dataset generalization
-	@echo ""
-	@echo "══════════════════════════════════════════════════════════════"
-	@echo "  Fig S3: Generalization"
-	@echo "══════════════════════════════════════════════════════════════"
-	@mkdir -p $(FIGURES_DIR)
-	$(PYTHON) $(PLOTTING)/figS3_generalization.py \
-		--resultsdir $(RESULTS_DIR) \
-		--outdir $(FIGURES_DIR)
-
-figS4: ## Fig S4: Biological validation
-	@echo ""
-	@echo "══════════════════════════════════════════════════════════════"
-	@echo "  Fig S4: Biological validation"
-	@echo "══════════════════════════════════════════════════════════════"
-	@mkdir -p $(FIGURES_DIR)
-	MOCOO_DATA_DIR=$(DATA_DIR) $(PYTHON) $(PLOTTING)/figS4_biological_validation.py \
-		--resultsdir $(SINGLE_DIR) \
-		--outdir $(FIGURES_DIR) \
-		--data $(DATA_DIR)/LAB/scRL/IRALL.h5ad
-
-figS5: ## Fig S5: Multi-seed robustness
-	@echo ""
-	@echo "══════════════════════════════════════════════════════════════"
-	@echo "  Fig S5: Multi-seed"
-	@echo "══════════════════════════════════════════════════════════════"
-	@mkdir -p $(FIGURES_DIR)
-	$(PYTHON) $(PLOTTING)/figS5_multiseed.py \
-		--resultsdir $(MULTI_DIR) \
 		--outdir $(FIGURES_DIR)
 
 # ═══════════════════════════════════════════════════════════════════════════
@@ -418,6 +357,7 @@ tables: ## Generate LaTeX tables (tables_fm.tex + tables_perdataset.tex)
 	@echo "══════════════════════════════════════════════════════════════"
 	@echo "  Generating LaTeX tables"
 	@echo "══════════════════════════════════════════════════════════════"
+	@mkdir -p $(PAPER_DIR)
 	$(PYTHON) $(PLOTTING)/generate_latex_tables.py --outdir $(PAPER_DIR)
 
 paper: ## Build the LaTeX paper (requires paper/main.tex)
@@ -463,13 +403,23 @@ paper-mdpi: ## Build MDPI version
 	@echo "══════════════════════════════════════════════════════════════"
 	@echo "  Building MDPI paper"
 	@echo "══════════════════════════════════════════════════════════════"
-	cd $(PAPER_DIR)/mdpi && latexmk -pdf -interaction=nonstopmode main.tex
+	@if [ -f $(PAPER_DIR)/mdpi/main.tex ]; then \
+		cd $(PAPER_DIR)/mdpi && latexmk -pdf -interaction=nonstopmode main.tex; \
+		echo "  MDPI paper built: $(PAPER_DIR)/mdpi/main.pdf"; \
+	else \
+		echo "  No $(PAPER_DIR)/mdpi/main.tex found -- skipping MDPI build."; \
+	fi
 
 paper-elsevier: ## Build Elsevier version
 	@echo ""
 	@echo "══════════════════════════════════════════════════════════════"
 	@echo "  Building Elsevier paper"
 	@echo "══════════════════════════════════════════════════════════════"
-	cd $(PAPER_DIR)/elsevier && latexmk -pdf -interaction=nonstopmode main.tex
+	@if [ -f $(PAPER_DIR)/elsevier/main.tex ]; then \
+		cd $(PAPER_DIR)/elsevier && latexmk -pdf -interaction=nonstopmode main.tex; \
+		echo "  Elsevier paper built: $(PAPER_DIR)/elsevier/main.pdf"; \
+	else \
+		echo "  No $(PAPER_DIR)/elsevier/main.tex found -- skipping Elsevier build."; \
+	fi
 
 paper-all: paper paper-mdpi paper-elsevier ## Build all paper formats

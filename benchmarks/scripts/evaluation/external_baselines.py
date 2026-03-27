@@ -110,18 +110,40 @@ def load_dataset(ds_name, seed=42, hvg=3000):
 
 
 def compute_metrics(latent, labels, seed=42):
-    """Compute clustering metrics on latent embeddings."""
+    """Compute clustering + embedding-quality metrics on latent embeddings."""
     n_clusters = len(np.unique(labels))
     pred = KMeans(n_clusters=n_clusters, n_init=10, random_state=seed).fit_predict(
         latent
     )
-    return {
+    m = {
         "ARI": round(adjusted_rand_score(labels, pred), 4),
         "NMI": round(normalized_mutual_info_score(labels, pred), 4),
         "ASW": round(silhouette_score(latent, pred), 4),
         "CH": round(calinski_harabasz_score(latent, pred), 2),
         "DB": round(davies_bouldin_score(latent, pred), 4),
     }
+
+    # DRE / DREX — embedding quality (only needs latent coordinates + UMAP)
+    try:
+        from mocoo.evaluation._projections import compute_2d_projections
+        from mocoo.evaluation.bench import compute_dre_metrics
+        from mocoo.evaluation.drex import compute_drex_metrics
+
+        umap_2d, _ = compute_2d_projections(latent)
+        if umap_2d is not None:
+            dre = compute_dre_metrics(latent, umap_2d, k=15, prefix="DRE_umap")
+            m["DRE"] = round(dre.get("DRE_umap_overall_quality", float("nan")), 4)
+            drex = compute_drex_metrics(latent, umap_2d, k=15)
+            m["DREX"] = round(drex.get("DREX_overall_quality", float("nan")), 4)
+        else:
+            m["DRE"] = float("nan")
+            m["DREX"] = float("nan")
+    except Exception as e:
+        print(f"    DRE/DREX computation failed: {e}")
+        m["DRE"] = float("nan")
+        m["DREX"] = float("nan")
+
+    return m
 
 
 # ── scVI Baseline ──────────────────────────────────────────────────────────

@@ -19,7 +19,7 @@
 - [Evaluation](#evaluation)
 - [Visualization](#visualization)
 - [Benchmarking Pipeline](#benchmarking-pipeline)
-- [Paper](#paper)
+- [Local Manuscript Workspace](#local-manuscript-workspace)
 - [API Reference](#api-reference)
 - [Citation](#citation)
 - [License](#license)
@@ -93,7 +93,7 @@ transition = model.get_transition()  # transition matrix (ODE)
 
 ## Project Structure
 
-```
+```text
 MoCoO/
 ├── mocoo/                      # Core Python package
 │   ├── agent.py                # MoCoO model API (training, inference)
@@ -104,13 +104,14 @@ MoCoO/
 │   ├── configs/                # YAML experiment configurations
 │   ├── evaluation/             # Latent-space evaluation metrics (DRE, LSE, ...)
 │   └── visualization/          # Publication-quality figure generation
-├── benchmarks/                 # Benchmark scripts, results, and figures
+├── benchmarks/                 # Benchmark scripts plus local results/figures
 │   └── scripts/                # Pipeline, evaluation, and plotting scripts
 ├── tests/                      # Test suite
-├── paper/                      # LaTeX manuscript source
 ├── Makefile                    # Top-level pipeline orchestration
 └── pyproject.toml              # Build and dependency configuration
 ```
+
+Generated benchmark outputs, figures, and any local manuscript workspace are intentionally kept out of the published source tree via `.gitignore`.
 
 ---
 
@@ -162,7 +163,7 @@ The `mocoo.visualization` module generates publication-quality figures from benc
 **Individual plot functions** (each returns a `matplotlib.Figure`):
 
 | Function | Description |
-|---|---|
+| --- | --- |
 | `plot_ablation_radar` | Normalized multi-metric dot-strip chart |
 | `plot_metric_bars` | Grouped bar chart (val + test overlay) |
 | `plot_umap_grid` | 2-row x 3-col UMAP scatter grid |
@@ -185,29 +186,31 @@ pipe.generate_figure("ablation")  # single figure by name
 
 ## Benchmarking Pipeline
 
-The top-level `Makefile` orchestrates the full reproducibility pipeline from data to paper. Run `make help` for the complete target listing. Key targets:
+The top-level `Makefile` orchestrates the full reproducibility pipeline from data to figures. Run `make help` for the complete target listing. Key targets:
 
 ```bash
-make all              # Full pipeline: test -> benchmark -> figures -> paper
+make all              # Full pipeline: test -> benchmark -> figures -> optional paper step
 make test             # Run pytest suite
 make figures          # Generate all paper figures
-make paper            # Build the LaTeX paper
+make paper            # Build a local manuscript if paper/main.tex exists
 ```
 
 All variables are overridable: `make benchmark EPOCHS=300 PATIENCE=50 MAX_CELLS=5000`.
 
 ---
 
-## Paper
+## Local Manuscript Workspace
 
-The LaTeX manuscript source lives in `paper/`. To build:
+If you maintain a private or local manuscript alongside this repository, place it under a local `paper/` directory. The repository `Makefile` will use that directory when present, but the manuscript tree is not part of the published remote source.
+
+To build a local manuscript:
 
 ```bash
-make paper            # from top-level (uses latexmk or pdflatex)
-cd paper && make pdf  # directly from paper directory
+make paper            # from top-level, if paper/main.tex exists
+cd paper && make pdf  # directly from your local paper directory
 ```
 
-Requires a TeX distribution (e.g., TeX Live). Bibliography is compiled via BibTeX from `paper/references.bib`. Build artifacts are cleaned with `make paper-clean`.
+Requires a TeX distribution (e.g., TeX Live). Build artifacts can be cleaned with `make paper-clean`.
 
 ---
 
@@ -216,7 +219,7 @@ Requires a TeX distribution (e.g., TeX Live). Bibliography is compiled via BibTe
 ### MoCoO (main class)
 
 | Method | Description |
-|---|---|
+| --- | --- |
 | `MoCoO(adata, ...)` | Initialize model with AnnData and hyperparameters |
 | `.fit(epochs, patience, val_every)` | Train the model |
 | `.get_latent()` | Extract latent embeddings |
@@ -230,7 +233,7 @@ Requires a TeX distribution (e.g., TeX Live). Bibliography is compiled via BibTe
 ### Key Parameters
 
 | Parameter | Type | Default | Description |
-|---|---|---|---|
+| --- | --- | --- | --- |
 | `adata` | AnnData | required | Annotated data matrix |
 | `layer` | str | `'counts'` | Layer containing raw counts |
 | `loss_mode` | str | `'nb'` | Likelihood: `'mse'`, `'nb'`, `'zinb'`, `'poisson'`, `'zip'` |

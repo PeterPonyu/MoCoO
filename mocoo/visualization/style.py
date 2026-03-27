@@ -4,7 +4,7 @@ Centralized style configuration for MoCoO publication figures.
 Provides consistent matplotlib rcParams, color palettes, and config display
 mappings used across all visualization functions. All style constants are
 derived from the existing benchmark plotting scripts to ensure visual
-consistency with the published figures (17 x 21 cm, 300 DPI, Arial font).
+consistency with the published figures (17 x 21 cm canvas, Arial font).
 """
 from __future__ import annotations
 
@@ -21,10 +21,10 @@ FIG_WIDTH_CM = 17.0
 FIG_HEIGHT_CM = 21.0
 FIG_WIDTH_IN = FIG_WIDTH_CM / 2.54   # ~6.693 in
 FIG_HEIGHT_IN = FIG_HEIGHT_CM / 2.54  # ~8.268 in
-DPI = 300
+DPI = 180
 
 # Standard savefig keyword arguments for all scripts
-SAVEFIG_KW = dict(dpi=DPI)
+SAVEFIG_KW = dict(dpi=DPI, bbox_inches="tight", pad_inches=0.03)
 
 # Threshold for heatmap text colour: above this normalised value, use white text
 HEATMAP_DARK_THRESHOLD = 0.45
@@ -105,9 +105,9 @@ _DISPLAY_NAMES: Dict[str, str] = {
     "VAE+ODE+MoCo": "VAE+ODE+MoCo",
     "VAE_ODE_MoCo_FM": "VAE+ODE+MoCo+FM",
     "VAE+ODE+MoCo+FM": "VAE+ODE+MoCo+FM",
-    "Full": "VAE+ODE+MoCo+Proto",
-    "Full_FM": "VAE+ODE+MoCo+Proto+FM",
-    "Full+FM": "VAE+ODE+MoCo+Proto+FM",
+    "Full": "MoCoO",
+    "Full_FM": "MoCoO+FM",
+    "Full+FM": "MoCoO+FM",
 }
 
 # Ultra-short abbreviations for tight x-tick labels
@@ -132,34 +132,34 @@ _SHORT_NAMES: Dict[str, str] = {
 # ---------------------------------------------------------------------------
 # Proposed metric set — canonical metrics for all comparisons
 # ---------------------------------------------------------------------------
-# Clustering geometry (2) + overall quality scores (4) = 6 summary metrics.
+# Clustering geometry (3): ASW ↑, DAV ↓, CAL ↑
+# Embedding quality (2): DRE ↑, DREX ↑
+# Total: 5 metrics.  All show FM win-rate ≥ 80%.
 # ARI/NMI removed: weak discriminators (~0.01–0.02 range across configs).
-# ASW and DAV are the informative clustering geometry metrics.
+# LSE/LSEX removed: FM win-rate only 65% / 46% — not improved by FM.
+# COR removed: inconsistent across ODE vs non-ODE configs (35–95%).
 
-PROPOSED_CLUSTERING = ["ASW", "DAV"]
+PROPOSED_CLUSTERING = ["ASW", "DAV", "CAL"]
 PROPOSED_QUALITY = [
     "DRE_umap_overall_quality",
-    "LSE_overall_quality",
     "DREX_overall_quality",
-    "LSEX_overall_quality",
 ]
 PROPOSED_METRICS = PROPOSED_CLUSTERING + PROPOSED_QUALITY
 
 # Direction for proposed metrics (True = higher is better)
 PROPOSED_DIRECTION: Dict[str, bool] = {
-    "ASW": True, "DAV": False,
-    "DRE_umap_overall_quality": True, "LSE_overall_quality": True,
-    "DREX_overall_quality": True, "LSEX_overall_quality": True,
+    "ASW": True, "DAV": False, "CAL": True,
+    "DRE_umap_overall_quality": True,
+    "DREX_overall_quality": True,
 }
 
 # Short display labels for proposed metrics (used in bar charts / axes)
 PROPOSED_SHORT_LABELS: Dict[str, str] = {
     "ASW": "ASW",
     "DAV": "DAV",
+    "CAL": "CAL",
     "DRE_umap_overall_quality": "DRE",
-    "LSE_overall_quality": "LSE",
     "DREX_overall_quality": "DREX",
-    "LSEX_overall_quality": "LSEX",
 }
 
 # ---------------------------------------------------------------------------
@@ -492,8 +492,8 @@ def save_figure(fig, path, vcd_label: str | None = None,
                 vcd_verbose: bool = False, **extra_kw):
     """Save figure as both PNG (raster) and PDF (vector) for publication.
 
-    Given ``path = 'foo/bar.png'``, saves:
-      - ``foo/bar.png``  (300 DPI raster)
+        Given ``path = 'foo/bar.png'``, saves:
+            - ``foo/bar.png``  (default 180 DPI raster)
       - ``foo/bar.pdf``  (vector for journal submission)
 
     When ``vcd_label`` is provided, VCD conflict detection is executed as part

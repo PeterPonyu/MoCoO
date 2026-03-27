@@ -89,6 +89,21 @@ DATASET_SPECS = {
         "max_cells": 2700, "hvg": 3000,
         "cell_type_col": "paul15_clusters",
         "known_markers": ["Elane", "Hba-a2", "Irf8", "Gfi1", "Mpo"],
+        # Coarsen the 19 fine-grained paul15_clusters to 10 major lineages
+        # for annotation-transfer comparability with other datasets (8–14 classes).
+        "cell_type_coarse_map": {
+            "1Ery": "Erythroid", "2Ery": "Erythroid", "3Ery": "Erythroid",
+            "4Ery": "Erythroid", "5Ery": "Erythroid", "6Ery": "Erythroid",
+            "7MEP": "MEP",
+            "8Mk": "Megakaryocyte",
+            "9GMP": "GMP", "10GMP": "GMP",
+            "11DC": "DC",
+            "12Baso": "Basophil", "13Baso": "Basophil",
+            "14Mo": "Monocyte", "15Mo": "Monocyte",
+            "16Neu": "Neutrophil", "17Neu": "Neutrophil",
+            "18Eos": "Eosinophil",
+            "19Lymph": "Lymphocyte",
+        },
     },
     "spinoids": {
         "path": "LAB/data/spinoids.h5ad",
@@ -346,8 +361,17 @@ def run_D1_annotation_transfer(model, adata, spec, outdir):
                 json.dump(out, f, indent=2)
             return
 
+    # Apply coarse cell-type mapping if provided (e.g. collapsing paul15 subtypes).
+    raw_labels = adata.obs[cell_type_col].astype(str).values
+    coarse_map = spec.get("cell_type_coarse_map")
+    if coarse_map:
+        raw_labels = np.array([coarse_map.get(lbl, lbl) for lbl in raw_labels])
+        n_orig = len(set(adata.obs[cell_type_col].astype(str)))
+        n_coarse = len(set(raw_labels))
+        print(f"         coarse mapping applied: {n_orig} → {n_coarse} classes")
+
     le = LabelEncoder()
-    gt_all = le.fit_transform(adata.obs[cell_type_col].values)
+    gt_all = le.fit_transform(raw_labels)
 
     # --- Prototype annotation ---
     try:
