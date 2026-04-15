@@ -236,11 +236,13 @@ See class docstrings for the complete parameter list.
 ## Citation
 
 ```bibtex
-@software{mocoo2025,
-  title  = {MoCoO: Momentum Contrast ODE-Regularized VAE for Single-Cell Trajectory Inference},
-  author = {Fu, Zeyu},
-  year   = {2025},
-  url    = {https://github.com/PeterPonyu/MoCoO}
+@article{Fu2026MoCoO,
+  author  = {Fu, Zeyu},
+  title   = {MoCoO: Momentum Contrast ODE-Regularized VAE for Single-Cell Trajectory Inference},
+  year    = {2026},
+  note    = {Preprint},
+  doi     = {10.64898/2026.03.27.714791},
+  url     = {https://doi.org/10.64898/2026.03.27.714791}
 }
 ```
 
