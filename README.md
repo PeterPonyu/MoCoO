@@ -199,21 +199,6 @@ All variables are overridable: `make benchmark EPOCHS=300 PATIENCE=50 MAX_CELLS=
 
 ---
 
-## Local Manuscript Workspace
-
-If you maintain a private or local manuscript alongside this repository, place it under a local `paper/` directory. The repository `Makefile` will use that directory when present, but the manuscript tree is not part of the published remote source.
-
-To build a local manuscript:
-
-```bash
-make paper            # from top-level, if paper/main.tex exists
-cd paper && make pdf  # directly from your local paper directory
-```
-
-Requires a TeX distribution (e.g., TeX Live). Build artifacts can be cleaned with `make paper-clean`.
-
----
-
 ## API Reference
 
 ### MoCoO (main class)
@@ -251,11 +236,11 @@ See class docstrings for the complete parameter list.
 ## Citation
 
 ```bibtex
-@article{mocoo2025,
-  title   = {MoCoO: Momentum Contrast ODE-Regularized VAE for
-             Single-Cell Trajectory Inference},
-  author  = {Fu, Zeyu},
-  year    = {2025}
+@software{mocoo2025,
+  title  = {MoCoO: Momentum Contrast ODE-Regularized VAE for Single-Cell Trajectory Inference},
+  author = {Fu, Zeyu},
+  year   = {2025},
+  url    = {https://github.com/PeterPonyu/MoCoO}
 }
 ```
 
