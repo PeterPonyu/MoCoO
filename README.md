@@ -1,3 +1,9 @@
+<div align="center">
+  <a href="https://peterponyu.github.io/">
+    <img src="https://peterponyu.github.io/assets/badges/MoCoO.svg" width="64" alt="ZF Lab · MoCoO">
+  </a>
+</div>
+
 # MoCoO
 
 [![PyPI version](https://img.shields.io/pypi/v/mocoo.svg)](https://pypi.org/project/mocoo/)
