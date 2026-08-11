@@ -49,7 +49,7 @@ class MoCoO(Env, VectorFieldMixin):
     moco_K : int, default=4096
         MoCo queue size
     use_prototype : bool, default=False
-        Enable scGPCL prototype contrastive
+        Enable optional PCL-/prototype-inspired contrastive
     n_prototypes : int, default=10
         Number of learnable prototypes
     aug_prob, mask_prob, noise_prob : float
