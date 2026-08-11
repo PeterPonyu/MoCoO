@@ -239,7 +239,7 @@ class MoCo(nn.Module):
         
         latent_dim = encoder_q.action_dim
         
-        # scAGCL-style 2-layer MLP with BatchNorm (per PanODE-LAB)
+        # SimCLR-inspired 2-layer MLP with BatchNorm (per PanODE-LAB)
         self.proj_head_q = nn.Sequential(
             nn.Linear(latent_dim, latent_dim),
             nn.BatchNorm1d(latent_dim),
@@ -266,7 +266,7 @@ class MoCo(nn.Module):
         self.queue = F.normalize(self.queue, dim=0)
         self.register_buffer("queue_ptr", torch.zeros(1, dtype=torch.long, device=device))
         
-        # scGPCL-style prototypes
+        # PCL-/prototype-inspired learnable prototypes
         if use_prototype:
             self.prototypes = nn.Parameter(torch.randn(n_prototypes, dim))
             nn.init.xavier_uniform_(self.prototypes)
@@ -329,7 +329,7 @@ class MoCo(nn.Module):
         return (F.cross_entropy(sim, labels) + F.cross_entropy(sim.T, labels)) / 2
 
     def prototype_contrastive_loss(self, z: torch.Tensor, cluster_assignments: Optional[torch.Tensor] = None) -> torch.Tensor:
-        """scGPCL-style prototype-level contrastive loss."""
+        """PCL-/prototype-inspired prototype-level contrastive loss."""
         if not self.use_prototype:
             return torch.tensor(0.0, device=z.device)
         
