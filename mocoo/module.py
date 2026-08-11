@@ -205,12 +205,12 @@ class FlowMatchingVelocity(nn.Module):
 
 
 class MoCo(nn.Module):
-    """Enhanced Momentum Contrast integrating scAGCL + scGPCL strategies.
-    
-    Strategies from PanODE-LAB:
+    """Momentum Contrast with SimCLR-/PCL-inspired optional heads.
+
+    Strategies (inspired by, not re-implementing, scAGCL/scGPCL graph pipelines):
     - MoCo: Momentum encoder + memory queue
-    - scAGCL: Symmetric contrastive with sim_11/sim_12/sim_22
-    - scGPCL: Instance + Prototype contrastive
+    - SimCLR-inspired: Symmetric contrastive with sim_11/sim_12/sim_22
+    - PCL-/prototype-inspired: Instance + Prototype contrastive
     - Topic-aware contrastive for ODE-VAE alignment
     """
     
