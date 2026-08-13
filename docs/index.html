@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex, follow">
+  <meta name="theme-color" content="#1d4ed8">
+  <link rel="canonical" href="https://peterponyu.github.io/MoCoO/">
+  <meta name="description" content="MoCoO is a contrastive + optional Neural ODE package for scRNA-seq embeddings. This leaf reports batch versus embedding, not a cell-state atlas.">
+  <title>MoCoO — embeddings and batch</title>
+  <link rel="stylesheet" href="css/site.css">
+</head>
+<body>
+  <a class="skip" href="#main">Skip to content</a>
+  <header class="site-header">
+    <div class="header-inner">
+      <a class="wordmark" href="index.html">MoCoO</a>
+      <button class="menu-btn" type="button" aria-expanded="false" aria-controls="primary-nav">Menu</button>
+      <nav class="primary-nav" id="primary-nav" aria-label="Primary">
+        <a href="index.html" aria-current="page">Home</a>
+        <a href="abstract.html">Abstract</a>
+        <a href="figures.html">Figures</a>
+        <a href="code.html">Code</a>
+        <a href="cite.html">Cite</a>
+        <span class="nav-gap" aria-hidden="true"></span>
+        <a class="chip" href="https://peterponyu.github.io/" rel="noopener noreferrer">Homepage</a>
+        <a class="chip" href="https://peterponyu.github.io/scportal/" rel="noopener noreferrer">SCPortal</a>
+      </nav>
+    </div>
+  </header>
+
+  <div class="hero">
+    <div class="hero-inner">
+      <p class="kicker">ZF Lab · scRNA-seq dynamics</p>
+      <h1>MoCoO</h1>
+      <p class="lead">Momentum Contrast with an optional Neural ODE on a VAE. The public object is a <strong>representation</strong> (latent embedding, optional velocity/pseudotime). The only real-world interference drawn on this leaf is <strong>technical batch</strong> — not a validated cell-state atlas.</p>
+      <div class="cta-row">
+        <a class="btn btn-primary" href="abstract.html">Read the abstract</a>
+        <a class="btn btn-ghost" href="figures.html">Browse figures</a>
+        <a class="btn btn-ghost" href="code.html">Install the package</a>
+      </div>
+    </div>
+  </div>
+
+  <main id="main">
+    <div class="callout">
+      <strong>Not cell-state proof.</strong>
+      Embedding movement is not a cell changing type or trajectory. Figs 3 and 6 in the JBHI float carrier already say they are not independent biological validation. GPU literature baselines (scVI, Harmony, scVelo, veloVI, OPT-GPU) were not run and are not shown.
+    </div>
+
+    <div class="stats" role="list">
+      <div class="stat-tile" role="listitem">
+        <span class="num">Batch</span>
+        <span class="sub">Only physical axis on this leaf (Fig 7)</span>
+      </div>
+      <div class="stat-tile" role="listitem">
+        <span class="num">PyPI</span>
+        <span class="sub"><span class="mono">mocoo</span> 0.0.3 · MIT</span>
+      </div>
+      <div class="stat-tile" role="listitem">
+        <span class="num">IRALL</span>
+        <span class="sub">Frozen embedding exports, not new biology</span>
+      </div>
+      <div class="stat-tile" role="listitem">
+        <span class="num">DROP</span>
+        <span class="sub">No GPU baseline leaderboard</span>
+      </div>
+    </div>
+
+    <article class="paper-card">
+      <span class="disc" aria-hidden="true">1</span>
+      <div>
+        <h2>MoCoO: Momentum Contrast ODE-regularized VAE</h2>
+        <p class="authors"><strong>Fu, Z.</strong></p>
+        <p class="venue">Software package · JBHI float carrier (unpublished; no article DOI)</p>
+        <div class="badge-row">
+          <a class="badge badge-code" href="https://github.com/PeterPonyu/MoCoO" rel="noopener noreferrer">Code</a>
+          <a class="badge badge-pypi" href="https://pypi.org/project/mocoo/" rel="noopener noreferrer">PyPI</a>
+          <span class="badge" aria-disabled="true" title="https://peterponyu.github.io/MoCoO/ is HTTP 404 until a later deploy">Site</span>
+        </div>
+      </div>
+    </article>
+
+    <article class="batch-card" id="batch-axis">
+      <p class="kicker">Physical axis</p>
+      <h2>Fig 7 · batch, not cell state</h2>
+      <p class="muted">PC1 of a saved latent versus batch day. Panel D on the figure already says this is not cell-level ground truth. Low iLISI on the JBHI carrier (0.117–0.167) means batches are not mixed; MoCoO is not a batch-correction method.</p>
+      <p><span class="chip-tag chip-physical">Physical · batch</span></p>
+      <figure>
+        <img src="figures/F07_temporal_audit.png" alt="Four-panel coarse temporal audit: Spearman of PC1 versus batch day across VAE configurations, with a scope box stating the proxy is not cell-level ground truth." width="1200" height="800">
+        <figcaption>F07 temporal audit from <span class="mono">submission_figures/</span>. The plotted reference is batch day (d0…d30), a technical label, not a validated trajectory.</figcaption>
+      </figure>
+    </article>
+
+    <h2 class="section-title">Pick a route</h2>
+    <div class="routes">
+      <a class="route-card" href="abstract.html">
+        <span class="disc">01</span>
+        <div>
+          <h3>Abstract</h3>
+          <p>Package scope: trajectory inference and representation — not a cell-type atlas.</p>
+        </div>
+      </a>
+      <a class="route-card" href="figures.html">
+        <span class="disc">02</span>
+        <div>
+          <h3>Figures</h3>
+          <p>Fig 7 first among physical. Remaining floats tagged embedding or metrics.</p>
+        </div>
+      </a>
+      <a class="route-card" href="code.html">
+        <span class="disc">03</span>
+        <div>
+          <h3>Code</h3>
+          <p>Public GitHub and <span class="mono">pip install mocoo</span>. No GPU CTA.</p>
+        </div>
+      </a>
+      <a class="route-card" href="cite.html">
+        <span class="disc">04</span>
+        <div>
+          <h3>Cite</h3>
+          <p>Software stub only. No DOI. No <span class="mono">CITATION.cff</span> yet.</p>
+        </div>
+      </a>
+    </div>
+  </main>
+
+  <footer class="site-footer">
+    <div class="footer-inner">
+      <div>
+        <h2>MoCoO</h2>
+        <p>ZF Lab paper leaf. Preview only; intended URL <span class="mono">peterponyu.github.io/MoCoO/</span> is still 404. No deploy from this tree.</p>
+      </div>
+      <div>
+        <h2>Browse</h2>
+        <ul>
+          <li><a href="abstract.html">Abstract</a></li>
+          <li><a href="figures.html">Figures</a></li>
+          <li><a href="code.html">Code</a></li>
+          <li><a href="cite.html">Cite</a></li>
+        </ul>
+      </div>
+      <div>
+        <h2>Graph</h2>
+        <ul>
+          <li><a href="https://peterponyu.github.io/" rel="noopener noreferrer">Homepage</a></li>
+          <li><a href="https://peterponyu.github.io/scportal/" rel="noopener noreferrer">SCPortal</a></li>
+        </ul>
+      </div>
+      <div>
+        <h2>Code</h2>
+        <ul>
+          <li><a href="https://github.com/PeterPonyu/MoCoO" rel="noopener noreferrer">github.com/PeterPonyu/MoCoO</a></li>
+          <li><a href="https://pypi.org/project/mocoo/" rel="noopener noreferrer">pypi.org/project/mocoo</a></li>
+        </ul>
+      </div>
+    </div>
+  </footer>
+  <script src="js/site.js"></script>
+</body>
+</html>

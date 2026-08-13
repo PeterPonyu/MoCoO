@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex, follow">
+  <meta name="theme-color" content="#1d4ed8">
+  <title>Figures — MoCoO</title>
+  <link rel="stylesheet" href="css/site.css">
+</head>
+<body>
+  <a class="skip" href="#main">Skip to content</a>
+  <header class="site-header">
+    <div class="header-inner">
+      <a class="wordmark" href="index.html">MoCoO</a>
+      <button class="menu-btn" type="button" aria-expanded="false" aria-controls="primary-nav">Menu</button>
+      <nav class="primary-nav" id="primary-nav" aria-label="Primary">
+        <a href="index.html">Home</a>
+        <a href="abstract.html">Abstract</a>
+        <a href="figures.html" aria-current="page">Figures</a>
+        <a href="code.html">Code</a>
+        <a href="cite.html">Cite</a>
+        <span class="nav-gap" aria-hidden="true"></span>
+        <a class="chip" href="https://peterponyu.github.io/" rel="noopener noreferrer">Homepage</a>
+        <a class="chip" href="https://peterponyu.github.io/scportal/" rel="noopener noreferrer">SCPortal</a>
+      </nav>
+    </div>
+  </header>
+
+  <main id="main">
+    <p class="kicker">Figures</p>
+    <h1>Gallery with honest tags</h1>
+    <p class="lead">Fig 7 is first among physical. Everything else is architecture, embedding, or metrics. No new Python “biology” defaults. No live R. No GPU baseline tiles.</p>
+
+    <div class="callout">
+      <strong>Same export, not a second experiment.</strong>
+      The JBHI carrier uses the same frozen IRALL UMAP file as Fig 1A and Fig 2A. Submission F01 is an architecture diagram; F02 is an IRALL ablation bar set from <span class="mono">summary.csv</span> — not a second UMAP. Figs 9–10 in the carrier are collage splits of that same export family.
+    </div>
+
+    <div class="figure-grid">
+      <article class="figure-card span-2" id="f07">
+        <p><span class="chip-tag chip-physical">Physical · batch</span></p>
+        <h2>F07 · Temporal audit vs batch day</h2>
+        <figure>
+          <img src="figures/F07_temporal_audit.png" alt="Coarse temporal audit: PC1 proxy versus batch day for six VAE configurations, with a written scope limitation that this is not cell-level ground truth." width="1200" height="800">
+          <figcaption>Only submission float whose reference axis is a real-world technical label (batch day). Panel D: PC1 sign is arbitrary; 3,000 cells share 8 labels; not cell-level ground truth.</figcaption>
+        </figure>
+      </article>
+
+      <article class="figure-card span-2" id="jbhi-fig7">
+        <p><span class="chip-tag chip-physical">Physical · batch of origin</span></p>
+        <h2>JBHI Fig 7 · scIB batch vs bio-conservation</h2>
+        <p class="muted">Carrier float whose plotted axis is batch of origin. Low iLISI (0.117–0.167 in Table II) means batches are not mixed. ODE degradation is reported as a limitation. Embedding movement is still not cell-state proof.</p>
+        <div class="panel-grid">
+          <img src="figures/jbhi_fig7_panelA_batch_bars.png" alt="scIB batch metric bars across MoCoO configurations.">
+          <img src="figures/jbhi_fig7_panelB_bio_batch_scatter.png" alt="Scatter of bio-conservation versus batch mixing scores.">
+          <img src="figures/jbhi_fig7_panelC_cross_dataset_heatmap.png" alt="Cross-dataset heatmap of batch and conservation metrics.">
+          <img src="figures/jbhi_fig7_panelD_cross_radar.png" alt="Three-dataset radar of batch integration scores.">
+        </div>
+        <p class="disclaimer">Assets: <span class="mono">benchmarks/figures/fig7_batch_integration/panelA–D.png</span>. Not a batch-correction claim.</p>
+      </article>
+
+      <article class="figure-card" id="f01">
+        <p><span class="chip-tag chip-embed">Architecture</span></p>
+        <h2>F01 · Modular architecture</h2>
+        <figure>
+          <img src="figures/F01_architecture.png" alt="Four modules: VAE reconstruction, ODE regularisation, MoCo plus prototypes, and Full MoCoO as one ablation configuration not an assumed optimum." width="1200" height="800">
+          <figcaption>VAE, optional ODE, optional MoCo/prototypes. Full MoCoO is one configuration, not an assumed optimum.</figcaption>
+        </figure>
+      </article>
+
+      <article class="figure-card" id="f02">
+        <p><span class="chip-tag chip-metrics">Embedding · metrics</span></p>
+        <h2>F02 · Canonical IRALL ablation</h2>
+        <figure>
+          <img src="figures/F02_canonical_irall.png" alt="Bar charts of ARI, NMI, ASW, and geometry endpoints across six configurations on IRALL." width="1200" height="800">
+          <figcaption>Clustering and geometry scores from frozen <span class="mono">summary.csv</span>. Metrics, not a cell-state discovery figure. Do not read as a second UMAP experiment.</figcaption>
+        </figure>
+        <p class="disclaimer">Not independent biological validation. Scores of a contrastive+ODE embedding.</p>
+      </article>
+
+      <article class="figure-card" id="f03">
+        <p><span class="chip-tag chip-metrics">Metrics</span></p>
+        <h2>F03 · Seed stability</h2>
+        <figure>
+          <img src="figures/F03_seed_stability.png" alt="Seed-stability diagnostic panels for MoCoO configurations." width="1200" height="800">
+          <figcaption>Stability of the same embedding recipe across seeds. Statistical, not a new biological object.</figcaption>
+        </figure>
+      </article>
+
+      <article class="figure-card" id="f04">
+        <p><span class="chip-tag chip-metrics">Training</span></p>
+        <h2>F04 · Training dynamics</h2>
+        <figure>
+          <img src="figures/F04_training_dynamics.png" alt="Training loss, validation ARI, ELBO, and efficiency traces." width="1200" height="800">
+          <figcaption>Optimization traces from the canonical benchmark seed — not three-seed mean ± SD bands, not a cell.</figcaption>
+        </figure>
+      </article>
+
+      <article class="figure-card" id="f05">
+        <p><span class="chip-tag chip-metrics">Ablation</span></p>
+        <h2>F05 · Component ablation</h2>
+        <figure>
+          <img src="figures/F05_component_ablation.png" alt="Radar, ARI delta, geometry, and runtime for component ablations." width="1200" height="800">
+          <figcaption>Which module is on. Descriptive; Full MoCoO is not claimed as universally best.</figcaption>
+        </figure>
+      </article>
+
+      <article class="figure-card" id="f06">
+        <p><span class="chip-tag chip-embed">Embedding · trajectory</span></p>
+        <h2>F06 · Trajectory diagnostics</h2>
+        <figure>
+          <img src="figures/F06_trajectory_diagnostics.png" alt="PCA projections, proxy-pseudotime violins, marker expression, and smoothness diagnostics." width="1200" height="800">
+          <figcaption>Exploratory ODE diagnostics. Smoothness and visual ordering are model properties, not validated trajectory accuracy.</figcaption>
+        </figure>
+        <p class="disclaimer">Not independent biological validation. Not a cell-state proof.</p>
+      </article>
+
+      <article class="figure-card" id="f08">
+        <p><span class="chip-tag chip-metrics">PCA floor</span></p>
+        <h2>F08 · PCA floor</h2>
+        <figure>
+          <img src="figures/F08_pca_floor.png" alt="PCA plus k-means external floor comparison." width="1200" height="800">
+          <figcaption>External PCA+k-means floor. Table IV Endo ASW is printed as 0.131 ± 0.012 (Markdown freeze); CSV five-seed sample SD half-up is 0.011 (Δ = 0.001). Do not treat 0.012 as the CSV half-up.</figcaption>
+        </figure>
+      </article>
+
+      <article class="figure-card" id="f09">
+        <p><span class="chip-tag chip-embed">Embedding · markers</span></p>
+        <h2>F09 · Biological audit</h2>
+        <figure>
+          <img src="figures/F09_biological_audit.png" alt="Marker and latent overlay panels labeled as a biological audit." width="1200" height="800">
+          <figcaption>Marker overlays and latent views. Hypothesis-generating; not independent biological validation.</figcaption>
+        </figure>
+        <p class="disclaimer">UMAP / marker theater is not cell-state proof. EmbeddingNotState: the axis is still the learned latent.</p>
+      </article>
+
+      <article class="figure-card" id="f10">
+        <p><span class="chip-tag chip-metrics">Completeness</span></p>
+        <h2>F10 · Completeness matrix</h2>
+        <figure>
+          <img src="figures/F10_completeness_matrix.png" alt="Completeness matrix of reported metrics and configurations." width="1200" height="800">
+          <figcaption>What was reported versus what is still missing. GPU scVI / Harmony / scVelo tiles stay missing — DROP, not a ghost leaderboard.</figcaption>
+        </figure>
+      </article>
+    </div>
+  </main>
+
+  <footer class="site-footer">
+    <div class="footer-inner">
+      <div>
+        <h2>MoCoO</h2>
+        <p>Figures copied from <span class="mono">submission_figures/</span> and the JBHI Fig 7 batch panels. No generated biology defaults.</p>
+      </div>
+      <div>
+        <h2>Browse</h2>
+        <ul>
+          <li><a href="index.html">Home</a></li>
+          <li><a href="abstract.html">Abstract</a></li>
+          <li><a href="code.html">Code</a></li>
+          <li><a href="cite.html">Cite</a></li>
+        </ul>
+      </div>
+      <div>
+        <h2>Graph</h2>
+        <ul>
+          <li><a href="https://peterponyu.github.io/" rel="noopener noreferrer">Homepage</a></li>
+          <li><a href="https://peterponyu.github.io/scportal/" rel="noopener noreferrer">SCPortal</a></li>
+        </ul>
+      </div>
+      <div>
+        <h2>Code</h2>
+        <ul>
+          <li><a href="https://github.com/PeterPonyu/MoCoO" rel="noopener noreferrer">GitHub</a></li>
+        </ul>
+      </div>
+    </div>
+  </footer>
+  <script src="js/site.js"></script>
+</body>
+</html>
