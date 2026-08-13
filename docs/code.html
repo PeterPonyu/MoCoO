@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex, follow">
+  <meta name="theme-color" content="#1d4ed8">
+  <title>Code — MoCoO</title>
+  <link rel="stylesheet" href="css/site.css">
+</head>
+<body>
+  <a class="skip" href="#main">Skip to content</a>
+  <header class="site-header">
+    <div class="header-inner">
+      <a class="wordmark" href="index.html">MoCoO</a>
+      <button class="menu-btn" type="button" aria-expanded="false" aria-controls="primary-nav">Menu</button>
+      <nav class="primary-nav" id="primary-nav" aria-label="Primary">
+        <a href="index.html">Home</a>
+        <a href="abstract.html">Abstract</a>
+        <a href="figures.html">Figures</a>
+        <a href="code.html" aria-current="page">Code</a>
+        <a href="cite.html">Cite</a>
+        <span class="nav-gap" aria-hidden="true"></span>
+        <a class="chip" href="https://peterponyu.github.io/" rel="noopener noreferrer">Homepage</a>
+        <a class="chip" href="https://peterponyu.github.io/scportal/" rel="noopener noreferrer">SCPortal</a>
+      </nav>
+    </div>
+  </header>
+
+  <main id="main">
+    <p class="kicker">Code</p>
+    <h1>Public package</h1>
+    <p class="lead">The strongest badge on this leaf is the repo that already exists. Install from PyPI or clone. There is no “run on GPU” product path here, and no scVI / Harmony / scVelo scoreboard to reproduce.</p>
+
+    <div class="cta-row">
+      <a class="btn btn-primary" href="https://github.com/PeterPonyu/MoCoO" rel="noopener noreferrer">GitHub</a>
+      <a class="btn btn-ghost" href="https://pypi.org/project/mocoo/" rel="noopener noreferrer">PyPI</a>
+    </div>
+
+    <div class="callout callout-warn">
+      <strong>GPU DROP.</strong>
+      OPT-GPU, scVI, Harmony, scVelo, and veloVI were not started. Do not treat missing literature baselines as zeros, and do not use this page as a GPU hire ticket.
+    </div>
+
+    <h2 class="section-title">From PyPI</h2>
+    <pre><code>pip install mocoo</code></pre>
+
+    <h2 class="section-title">From source</h2>
+    <pre><code>git clone https://github.com/PeterPonyu/MoCoO.git
+cd MoCoO
+pip install -e .</code></pre>
+
+    <h2 class="section-title">Minimal use</h2>
+    <pre><code>import scanpy as sc
+from mocoo import MoCoO
+
+adata = sc.read_h5ad("data.h5ad")
+model = MoCoO(adata, layer="counts", loss_mode="nb", batch_size=128)
+model.fit(epochs=100)
+adata.obsm["X_mocoo"] = model.get_latent()</code></pre>
+
+    <p class="muted">Optional ODE + MoCo flags exist on the constructor. They return embeddings and, if the ODE is on, velocity / pseudotime. Those outputs remain representations, not a certified cell-state map.</p>
+  </main>
+
+  <footer class="site-footer">
+    <div class="footer-inner">
+      <div>
+        <h2>MoCoO</h2>
+        <p>MIT. Python ≥ 3.9. Version 0.0.3 on PyPI.</p>
+      </div>
+      <div>
+        <h2>Browse</h2>
+        <ul>
+          <li><a href="index.html">Home</a></li>
+          <li><a href="abstract.html">Abstract</a></li>
+          <li><a href="figures.html">Figures</a></li>
+          <li><a href="cite.html">Cite</a></li>
+        </ul>
+      </div>
+      <div>
+        <h2>Graph</h2>
+        <ul>
+          <li><a href="https://peterponyu.github.io/" rel="noopener noreferrer">Homepage</a></li>
+          <li><a href="https://peterponyu.github.io/scportal/" rel="noopener noreferrer">SCPortal</a></li>
+        </ul>
+      </div>
+      <div>
+        <h2>Code</h2>
+        <ul>
+          <li><a href="https://github.com/PeterPonyu/MoCoO" rel="noopener noreferrer">GitHub</a></li>
+          <li><a href="https://pypi.org/project/mocoo/" rel="noopener noreferrer">PyPI</a></li>
+        </ul>
+      </div>
+    </div>
+  </footer>
+  <script src="js/site.js"></script>
+</body>
+</html>
