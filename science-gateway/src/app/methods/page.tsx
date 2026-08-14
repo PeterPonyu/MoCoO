@@ -17,7 +17,7 @@ export default function MethodsPage() {
         <ul className="list-disc space-y-2 pl-5">
           <li>IRALL frozen embedding exports for cross-dataset comparison</li>
           <li>Batch day labels as the only physical axis on this Site (Fig. 7)</li>
-          <li>Tables I–IV from on-disk CSV freeze (see manuscript NUMBER-LOCK)</li>
+          <li>Tables I–IV from on-disk CSV freeze</li>
         </ul>
       </section>
 

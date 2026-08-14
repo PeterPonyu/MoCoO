@@ -2,24 +2,24 @@
 
 **Mo**mentum **Co**ntrast **O**DE-Regularized VAE for Single-Cell RNA Velocity
 
-PyTorch package combining a variational autoencoder, optional Neural ODE dynamics, and Momentum Contrast for single-cell trajectory inference and representation learning.
+PyTorch package: a count VAE with optional Momentum Contrast and optional Neural ODE heads for single-cell embeddings.
 
 ---
 
-## Features
+## Components
 
-- **VAE-based dimensionality reduction** with multiple count-based likelihoods (MSE, NB, ZINB, Poisson, ZIP)
-- **Neural ODE** for continuous trajectory modeling and pseudotime inference
-- **Momentum Contrast (MoCo)** for robust contrastive representation learning
-- **Information bottleneck** for hierarchical feature extraction
-- **Disentanglement losses** (DIP-VAE, β-TC-VAE, InfoVAE) for interpretable latents
-- **Vector field analysis** for RNA velocity visualization
+- Count VAE with MSE, NB, ZINB, Poisson, ZIP likelihoods
+- Optional Neural ODE head (API; not a validated trajectory proof)
+- Optional Momentum Contrast (MoCo) on augmented views
+- Information bottleneck (`latent_dim` → `i_dim`)
+- Optional disentanglement losses (DIP-VAE, β-TC-VAE, InfoVAE)
+- Vector-field export for RNA-velocity plots
 
 ---
 
 ## Installation
 
-### From PyPI (recommended)
+### From PyPI
 
 ```bash
 pip install mocoo
