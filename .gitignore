@@ -112,6 +112,27 @@ tmp/
 temp/
 .cache/
 .pytest_cache/
+
+# AI and process artifacts
+.cursor
+.cursor.cloud
+.cursorignore
+.omc
+.omx
+.claude
+.codex
+agent-transcripts
+*.canvas.tsx
+.aider*
+.continue
+.windsurf
+.vscode-server
+editor
+
+# Local credentials and environment
+.env
+.env.*
+
 # LaTeX / manuscript sources
 *.tex
 *.bib
