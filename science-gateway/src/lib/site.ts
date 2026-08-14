@@ -5,7 +5,7 @@ export const SITE = {
   slug: 'MoCoO',
   navTitle: 'MoCoO',
   title:
-    'Momentum-contrast ODE-regularized VAE embeddings report batch interference, not cell-state proof',
+    'Momentum-contrast VAE embeddings report batch interference, not cell-state proof',
   kicker: 'ZF Lab · scRNA-seq representation · batch axis',
   lead:
     'The public object is a latent representation (embedding, optional velocity/pseudotime). The only physical axis drawn on this leaf is technical batch (Fig. 7) — not a validated cell-state atlas.',

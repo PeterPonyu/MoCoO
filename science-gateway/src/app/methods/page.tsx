@@ -7,8 +7,8 @@ export default function MethodsPage() {
       <section className="space-y-4">
         <h2 className="text-lg font-semibold text-slate-900">Model</h2>
         <p>
-          Momentum Contrast (MoCo) regularization on a VAE latent space with optional Neural ODE
-          dynamics. Produces latent embeddings, optional velocity fields, and pseudotime estimates.
+          Momentum Contrast (MoCo) regularization on a VAE latent space.
+          Produces latent embeddings, optional velocity fields, and pseudotime estimates.
         </p>
       </section>
 
