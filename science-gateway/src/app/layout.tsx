@@ -5,7 +5,7 @@ import { SITE } from '@/lib/site';
 import './globals.css';
 
 export const metadata: Metadata = {
-  title: `${SITE.title} — Science Gateway`,
+  title: SITE.title,
   description: SITE.lead,
 };
 
@@ -16,7 +16,11 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
-      <body className="flex min-h-screen flex-col">
+      <body
+        className="flex min-h-screen flex-col"
+        data-site-binding={SITE.binding}
+        data-package={SITE.packageName}
+      >
         <SiteHeader />
         <main className="w-full flex-1">{children}</main>
         <FooterSitemap />

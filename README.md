@@ -1,8 +1,10 @@
 # MoCoO
 
-**Mo**mentum **Co**ntrast **O**DE-Regularized VAE for Single-Cell RNA Velocity
+**Mo**mentum **Co**ntrast **O**DE-regularized VAE (package name: mocoo)
 
 PyTorch package: a count VAE with optional Momentum Contrast and optional Neural ODE heads for single-cell embeddings.
+
+GitHub Pages (https://peterponyu.github.io/MoCoO/) is a package index for this repository. It is not a journal article and does not host results.
 
 ---
 

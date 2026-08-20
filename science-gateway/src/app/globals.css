@@ -1,17 +1,17 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap');
-
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 :root {
-  --bg: #f8fafc;
-  --text-h: #0f172a;
-  --text: #334155;
-  --brand: #2563eb;
-  --teal: #0d9488;
-  --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
-  --font-mono: 'JetBrains Mono', 'Fira Code', monospace;
+  --paper: #f3efe4;
+  --ink: #1c1917;
+  --ink-2: #44403c;
+  --rule: #d6d0c4;
+  --rust: #9a3412;
+  --rust-deep: #7c2d12;
+  --font-serif: Iowan Old Style, Palatino Linotype, Palatino, Georgia, serif;
+  --font-sans: ui-sans-serif, Segoe UI, Helvetica, Arial, sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
 }
 
 @layer base {
@@ -21,32 +21,22 @@
   }
 
   body {
-    background: var(--bg);
-    color: var(--text-h);
+    background: var(--paper);
+    color: var(--ink);
     overflow-x: clip;
     min-width: 0;
+    border-left: 8px solid var(--rust);
+  }
+
+  h1,
+  h2,
+  .font-display {
+    font-family: var(--font-serif);
   }
 
   code,
   pre,
   .font-mono {
     font-family: var(--font-mono);
-  }
-}
-
-@layer utilities {
-  .card-hover {
-    transition: box-shadow 0.15s ease, transform 0.15s ease;
-  }
-
-  .card-hover:hover {
-    box-shadow: 0 4px 16px rgba(37, 99, 235, 0.12);
-    transform: translateY(-1px);
-  }
-
-  @media (prefers-reduced-motion: reduce) {
-    .card-hover:hover {
-      transform: none;
-    }
   }
 }

@@ -1,9 +1,9 @@
 #!/usr/bin/env node
 /**
- * Minimal G1/G3/G6/G9 checks for science-gateway static export.
+ * Static-export checks for the MoCoO package-index site.
  * Usage: node scripts/verify-export.mjs
  */
-import { existsSync, readdirSync, readFileSync } from 'node:fs';
+import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs';
 import { join } from 'node:path';
 
 const out = join(process.cwd(), 'out');
@@ -17,22 +17,42 @@ const required = [
 ];
 const forbidden = ['abstract', 'cite', 'team'];
 const denylist = ['PEERJ_REVIEWER_FAQ.md', 'PEERJ_PORTAL_INPUTS.txt', 'superpowers'];
+const leak = [
+  /unpublished results/i,
+  /iLISI/i,
+  /0\.117/,
+  /0\.167/,
+  /Fig\.?\s*7/i,
+  /jbhi/i,
+  /NUMBER-LOCK/i,
+  /Science Gateway/i,
+  /cell-state proof/i,
+  /IRALL/i,
+  /Tables?\s+[IVXL]+(?:[–-]\s*[IVXL]+)?\b/i,
+  /\/figures\//i,
+  /F0[0-9]_/i,
+];
 
 let failed = 0;
 
 for (const rel of required) {
   const p = join(out, rel);
   if (!existsSync(p)) {
-    console.error(`FAIL G1: missing ${rel}`);
+    console.error(`FAIL: missing ${rel}`);
     failed += 1;
   }
 }
 
 for (const dir of forbidden) {
   if (existsSync(join(out, dir))) {
-    console.error(`FAIL G3: forbidden route directory out/${dir}/`);
+    console.error(`FAIL: forbidden route directory out/${dir}/`);
     failed += 1;
   }
+}
+
+if (existsSync(join(out, 'figures'))) {
+  console.error('FAIL: unpublished figure directory out/figures/');
+  failed += 1;
 }
 
 function walk(dir) {
@@ -40,13 +60,21 @@ function walk(dir) {
     const p = join(dir, entry.name);
     if (entry.isDirectory()) {
       if (denylist.includes(entry.name)) {
-        console.error(`FAIL G9: denylist dir ${p}`);
+        console.error(`FAIL: denylist dir ${p}`);
         failed += 1;
       }
       walk(p);
     } else if (denylist.some((d) => entry.name.includes(d))) {
-      console.error(`FAIL G9: denylist file ${p}`);
+      console.error(`FAIL: denylist file ${p}`);
       failed += 1;
+    } else if (/\.(html|txt|js|css)$/.test(entry.name)) {
+      const text = readFileSync(p, 'utf8');
+      for (const re of leak) {
+        if (re.test(text)) {
+          console.error(`FAIL: leak ${re} in ${p}`);
+          failed += 1;
+        }
+      }
     }
   }
 }
@@ -55,17 +83,25 @@ if (existsSync(out)) {
   walk(out);
   const html = readFileSync(join(out, 'index.html'), 'utf8');
   if (/github\.com\/PeterPonyu\/HetCLOP/i.test(html)) {
-    console.error('FAIL G6: private HetCLOP Code href in index.html');
+    console.error('FAIL: private HetCLOP Code href in index.html');
     failed += 1;
   }
   for (const label of ['Abstract', 'Cite', 'Team']) {
     if (new RegExp(`>${label}<`, 'i').test(html)) {
-      console.error(`FAIL G3: journal nav label "${label}" in index.html`);
+      console.error(`FAIL: journal nav label "${label}" in index.html`);
       failed += 1;
     }
   }
   if (/Get started|Try now|Launch/i.test(html)) {
-    console.error('FAIL G7: product headline pattern in index.html');
+    console.error('FAIL: product headline pattern in index.html');
+    failed += 1;
+  }
+  if (!/data-site-binding="mocoo-pypi-index"/.test(html)) {
+    console.error('FAIL: missing mocoo-pypi-index binding on home');
+    failed += 1;
+  }
+  if (!statSync(join(out, 'index.html')).size) {
+    console.error('FAIL: empty index.html');
     failed += 1;
   }
 }
@@ -74,4 +110,4 @@ if (failed) {
   process.exit(1);
 }
 
-console.log(`verify-export: ok (${required.length} required paths)`);
+console.log(`verify-export: ok (${required.length} required paths, no result gallery)`);

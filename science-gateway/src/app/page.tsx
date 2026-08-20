@@ -1,61 +1,83 @@
-import { ClaimBlock } from '@/components/PageShell';
-import RouteCards from '@/components/RouteCards';
-import FigurePanel from '@/components/FigurePanel';
-import StatTile from '@/components/StatTile';
+import Link from 'next/link';
 import { SITE } from '@/lib/site';
 
 export default function HomePage() {
   return (
-    <div className="mx-auto max-w-5xl px-4 py-10 sm:px-6">
-      <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-teal-700">
-        {SITE.kicker}
-      </p>
-      <h1 className="mt-2 text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl">
+    <div className="mx-auto max-w-3xl px-5 py-12 sm:px-6" data-page-id="mocoo.pkg.home">
+      <p className="text-[12px] font-medium tracking-[0.14em] text-rust uppercase">{SITE.kicker}</p>
+      <h1 className="font-display mt-2 text-3xl font-semibold tracking-tight text-ink sm:text-4xl">
         {SITE.title}
       </h1>
-      <p className="mt-4 max-w-3xl text-lg text-slate-700">{SITE.lead}</p>
+      <p className="mt-5 text-[17px] leading-7 text-stone-700">{SITE.lead}</p>
 
-      <section className="mt-8 rounded-2xl border border-amber-200 bg-amber-50/80 p-6">
-        <h2 className="text-lg font-semibold text-slate-900">Not cell-state proof</h2>
-        <p className="mt-2 text-slate-700">
-          Embedding movement is not a cell changing type or trajectory. Figs 3 and 6 are not
-          independent biological validation. GPU literature baselines (scVI, Harmony, scVelo, veloVI,
-          OPT-GPU) were not run and are not shown.
+      <p className="mt-4 text-[15px] leading-6 text-stone-600">
+        PyPI name <code className="font-mono text-ink">{SITE.packageName}</code>, version{' '}
+        {SITE.packageVersion}. License MIT. Optional ODE heads are an API, not a trajectory proof.
+      </p>
+
+      <p className="mt-6 flex flex-wrap gap-x-5 gap-y-2 text-sm font-medium">
+        <a className="text-rust underline decoration-stone-300 underline-offset-4" href={SITE.github}>
+          github.com/PeterPonyu/MoCoO
+        </a>
+        <a className="text-rust underline decoration-stone-300 underline-offset-4" href={SITE.pypi}>
+          pypi.org/project/mocoo
+        </a>
+      </p>
+
+      <section className="mt-12">
+        <h2 className="font-display text-2xl text-ink">What the package provides</h2>
+        <ul className="mt-4 list-disc space-y-2 pl-5 text-[16px] leading-7 text-stone-700">
+          <li>Count VAE with MSE, NB, ZINB, Poisson, and ZIP likelihoods</li>
+          <li>Optional Neural ODE head (API only)</li>
+          <li>Optional Momentum Contrast on augmented views</li>
+          <li>Information bottleneck (<code className="font-mono">latent_dim</code> → <code className="font-mono">i_dim</code>)</li>
+          <li>Optional disentanglement losses (DIP-VAE, β-TC-VAE, InfoVAE)</li>
+          <li>Vector-field export helpers for velocity-style plots</li>
+        </ul>
+      </section>
+
+      <section className="mt-12">
+        <h2 className="font-display text-2xl text-ink">Install</h2>
+        <pre className="mt-4 overflow-x-auto border border-stone-300 bg-white px-4 py-3 text-sm text-ink">
+          <code>pip install mocoo</code>
+        </pre>
+        <p className="mt-3 text-[15px] text-stone-600">
+          Source checkout: clone the repository and run <code className="font-mono">pip install -e .</code>.
+          Development extras: <code className="font-mono">pip install -e &quot;.[dev]&quot;</code>.
+        </p>
+        <p className="mt-2 text-[15px]">
+          <Link href="/methods" className="text-rust underline decoration-stone-300 underline-offset-4">
+            Install notes
+          </Link>
         </p>
       </section>
 
-      <section className="mt-10 rounded-2xl border border-slate-200 bg-white/80 p-6">
-        <h2 className="text-sm font-semibold uppercase tracking-wide text-slate-500">
-          Physical object
-        </h2>
-        <p className="mt-2 text-slate-800">{SITE.physicalObject}</p>
+      <section className="mt-12">
+        <h2 className="font-display text-2xl text-ink">Minimal fit</h2>
+        <pre className="mt-4 overflow-x-auto border border-stone-300 bg-white px-4 py-3 text-sm leading-6 text-ink">
+          <code>{`from mocoo import MoCoO
+
+model = MoCoO(adata, layer='counts', loss_mode='nb', batch_size=128)
+model.fit(epochs=100)
+adata.obsm['X_mocoo'] = model.get_latent()`}</code>
+        </pre>
+        <p className="mt-3 text-[15px] text-stone-600">
+          <code className="font-mono">use_ode=True</code> and <code className="font-mono">use_moco=True</code> are
+          optional constructor flags. See{' '}
+          <Link href="/results" className="text-rust underline decoration-stone-300 underline-offset-4">
+            API
+          </Link>
+          .
+        </p>
       </section>
 
-      <div className="mt-8">
-        <ClaimBlock />
-      </div>
-
-      <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <StatTile value="Batch" label="Physical axis" note="Fig. 7 only" />
-        <StatTile value="IRALL" label="Frozen exports" note="Not new biology" />
-        <StatTile value="DROP" label="GPU baselines" note="Not run · not shown" />
-        <StatTile value="0.0.3" label="Package version" note="pip install mocoo" />
-      </div>
-
-      <section className="mt-10">
-        <FigurePanel
-          src="/figures/F07_temporal_audit.png"
-          alt="Four-panel temporal audit: Spearman of PC1 versus batch day across VAE configurations"
-          kicker="Fig. 7 · batch, not cell state"
-          caption="PC1 of a saved latent versus batch day (d0…d30). Panel D states this proxy is not cell-level ground truth. Low iLISI (0.117–0.167) means batches are not mixed; MoCoO is not a batch-correction method."
-        />
-      </section>
-
-      <section className="mt-10">
-        <h2 className="mb-4 text-sm font-semibold uppercase tracking-wide text-slate-500">
-          Explore
-        </h2>
-        <RouteCards />
+      <section className="mt-12 border-t border-stone-300 pt-8">
+        <h2 className="font-display text-2xl text-ink">This page</h2>
+        <p className="mt-4 text-[16px] leading-7 text-stone-700">
+          GitHub Pages for this repository is a code index. It does not host a results gallery,
+          metric tables, or manuscript figures. Old paths stay as short notes so bookmarks do not
+          break.
+        </p>
       </section>
     </div>
   );

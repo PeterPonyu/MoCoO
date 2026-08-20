@@ -1,49 +1,61 @@
+import Link from 'next/link';
 import PageShell from '@/components/PageShell';
 import { SITE } from '@/lib/site';
 
 export default function MethodsPage() {
   return (
-    <PageShell title="Methods" kicker="Protocol and definitions">
-      <section className="space-y-4">
-        <h2 className="text-lg font-semibold text-slate-900">Model</h2>
-        <p>
-          Momentum Contrast (MoCo) regularization on a VAE latent space.
-          Produces latent embeddings, optional velocity fields, and pseudotime estimates.
-        </p>
+    <PageShell title="Install" kicker="Package mocoo" pageId="mocoo.pkg.install">
+      <p>
+        Install from PyPI or from the public GitHub tree. This route used to share a protocol
+        page; it now only documents how to obtain the package.
+      </p>
+
+      <section>
+        <h2 className="font-display text-xl text-ink">PyPI</h2>
+        <pre className="mt-3 overflow-x-auto border border-stone-300 bg-white px-4 py-3 text-sm text-ink">
+          <code>pip install mocoo</code>
+        </pre>
       </section>
 
-      <section className="space-y-4">
-        <h2 className="text-lg font-semibold text-slate-900">Data and exports</h2>
-        <ul className="list-disc space-y-2 pl-5">
-          <li>IRALL frozen embedding exports for cross-dataset comparison</li>
-          <li>Batch day labels as the only physical axis on this Site (Fig. 7)</li>
-          <li>Tables I–IV from on-disk CSV freeze</li>
+      <section>
+        <h2 className="font-display text-xl text-ink">Source</h2>
+        <pre className="mt-3 overflow-x-auto border border-stone-300 bg-white px-4 py-3 text-sm leading-6 text-ink">
+          <code>{`git clone https://github.com/PeterPonyu/MoCoO.git
+cd MoCoO
+pip install -e .`}</code>
+        </pre>
+      </section>
+
+      <section>
+        <h2 className="font-display text-xl text-ink">Constructor flags</h2>
+        <ul className="mt-3 list-disc space-y-1 pl-5">
+          <li>
+            <code className="font-mono">loss_mode</code>: mse, nb, zinb, poisson, zip
+          </li>
+          <li>
+            <code className="font-mono">use_ode</code> / <code className="font-mono">use_moco</code>: optional heads
+          </li>
+          <li>
+            <code className="font-mono">latent_dim</code>, <code className="font-mono">i_dim</code>,{' '}
+            <code className="font-mono">moco_K</code>, <code className="font-mono">batch_size</code>,{' '}
+            <code className="font-mono">lr</code>
+          </li>
         </ul>
-      </section>
-
-      <section className="space-y-4">
-        <h2 className="text-lg font-semibold text-slate-900">Exclusions</h2>
-        <ul className="list-disc space-y-2 pl-5">
-          <li>GPU DROP: scVI, Harmony, scVelo, veloVI, OPT-GPU baselines not run</li>
-          <li>No cell-state or trajectory proof claims from embedding plots alone</li>
-          <li>No in-browser training or GPU jobs from this Site</li>
-        </ul>
-      </section>
-
-      <section className="space-y-4">
-        <h2 className="text-lg font-semibold text-slate-900">Reproducibility</h2>
-        <p>
-          Public code:{' '}
-          <a href={SITE.github} className="text-brand hover:underline" target="_blank" rel="noopener noreferrer">
-            github.com/PeterPonyu/MoCoO
-          </a>
-          . Package:{' '}
-          <a href={SITE.pypi} className="text-brand hover:underline" target="_blank" rel="noopener noreferrer">
-            pypi.org/project/mocoo
-          </a>
+        <p className="mt-3">
+          Full signatures live in the package docstrings.{' '}
+          <Link href="/" className="text-rust underline decoration-stone-300 underline-offset-4">
+            Back to the index
+          </Link>
           .
         </p>
       </section>
+
+      <p className="text-sm text-stone-500">
+        Code:{' '}
+        <a href={SITE.github} className="text-rust underline decoration-stone-300 underline-offset-4">
+          {SITE.github.replace('https://', '')}
+        </a>
+      </p>
     </PageShell>
   );
 }

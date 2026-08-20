@@ -1,36 +1,48 @@
+import Link from 'next/link';
 import PageShell from '@/components/PageShell';
-import FigurePanel from '@/components/FigurePanel';
-
-const FIGURES = [
-  { file: 'F07_temporal_audit.png', kicker: 'Fig. 7 · batch axis', caption: 'Temporal audit: PC1 vs batch day. Physical axis on this leaf — not cell-state proof.' },
-  { file: 'F01_architecture.png', kicker: 'Fig. 1 · architecture', caption: 'MoCoO module architecture and training pipeline overview.' },
-  { file: 'F02_canonical_irall.png', kicker: 'Fig. 2 · IRALL', caption: 'Canonical IRALL embedding exports — frozen representations, not new biology.' },
-  { file: 'F03_seed_stability.png', kicker: 'Fig. 3 · seed stability', caption: 'Multi-seed stability diagnostics. Not independent biological validation.' },
-  { file: 'F04_training_dynamics.png', kicker: 'Fig. 4 · training', caption: 'Training dynamics and loss curves.' },
-  { file: 'F05_component_ablation.png', kicker: 'Fig. 5 · ablation', caption: 'Component ablation summary.' },
-  { file: 'F06_trajectory_diagnostics.png', kicker: 'Fig. 6 · trajectory', caption: 'Trajectory diagnostics — embedding movement, not cell-type change.' },
-  { file: 'F08_pca_floor.png', kicker: 'Fig. 8 · PCA floor', caption: 'PCA k-means baseline floor comparison.' },
-] as const;
 
 export default function ResultsPage() {
   return (
-    <PageShell title="Results" kicker="Outcome figures">
+    <PageShell title="API" kicker="Package helpers" pageId="mocoo.pkg.api">
       <p>
-        Fig. 7 (batch axis) is listed first among physical results. Remaining floats are tagged
-        embedding or metrics — not cell-state atlas proof.
+        This path is not a results gallery. It lists helpers exported by the installable package.
       </p>
 
-      <div className="grid gap-6">
-        {FIGURES.map((fig) => (
-          <FigurePanel
-            key={fig.file}
-            src={`/figures/${fig.file}`}
-            alt={fig.kicker}
-            kicker={fig.kicker}
-            caption={fig.caption}
-          />
-        ))}
-      </div>
+      <section>
+        <h2 className="font-display text-xl text-ink">Training</h2>
+        <pre className="mt-3 overflow-x-auto border border-stone-300 bg-white px-4 py-3 text-sm text-ink">
+          <code>model.fit(epochs=400, patience=25, val_every=5)</code>
+        </pre>
+      </section>
+
+      <section>
+        <h2 className="font-display text-xl text-ink">Exports</h2>
+        <ul className="mt-3 list-disc space-y-1 pl-5">
+          <li>
+            <code className="font-mono">get_latent()</code> — latent embeddings
+          </li>
+          <li>
+            <code className="font-mono">get_bottleneck()</code> — bottleneck features
+          </li>
+          <li>
+            <code className="font-mono">get_time()</code> / <code className="font-mono">get_velocity()</code> /{' '}
+            <code className="font-mono">get_transition()</code> — ODE-head helpers when that flag is on
+          </li>
+          <li>
+            <code className="font-mono">get_loss_history()</code>, <code className="font-mono">get_metrics_history()</code>,{' '}
+            <code className="font-mono">get_resource_metrics()</code>
+          </li>
+        </ul>
+      </section>
+
+      <p>
+        ODE helpers are optional API surfaces. They are not presented here as a validated
+        trajectory method.{' '}
+        <Link href="/" className="text-rust underline decoration-stone-300 underline-offset-4">
+          Package index
+        </Link>
+        .
+      </p>
     </PageShell>
   );
 }

@@ -1,22 +1,24 @@
 /**
- * MoCoO science gateway site config.
+ * MoCoO public package-index bindings (not a results site).
  */
 export const SITE = {
   slug: 'MoCoO',
   navTitle: 'MoCoO',
-  title:
-    'Momentum-contrast VAE embeddings report batch interference, not cell-state proof',
-  kicker: 'ZF Lab · scRNA-seq representation · batch axis',
+  title: 'MoCoO — PyTorch count VAE package',
+  kicker: 'Package mocoo · public code index',
   lead:
-    'The public object is a latent representation (embedding, optional velocity/pseudotime). The only physical axis drawn on this leaf is technical batch (Fig. 7) — not a validated cell-state atlas.',
+    'Installable PyTorch package: a count VAE with optional Momentum Contrast and optional Neural ODE heads for single-cell embeddings. This page describes the code. It is not a journal article and does not publish results.',
   physicalObject:
-    'Fig. 7 temporal audit: PC1 of a saved latent versus batch day. Not cell-level ground truth.',
+    'The public object is the mocoo package (PyPI and this GitHub repository).',
   primaryClaim:
-    'MoCoO produces frozen embedding exports suitable for batch-axis diagnostics; embedding movement is not evidence of cell type change.',
+    'This page is a package index only. It does not state article claims or report scores.',
   homepage: 'https://peterponyu.github.io/',
   scportal: 'https://peterponyu.github.io/scportal/',
   github: 'https://github.com/PeterPonyu/MoCoO',
   pypi: 'https://pypi.org/project/mocoo/',
+  packageName: 'mocoo',
+  packageVersion: '0.0.3',
+  binding: 'mocoo-pypi-index',
 } as const;
 
 export type BadgeConfig = {
@@ -33,25 +35,26 @@ export const BADGES = {
     enabled: true,
   } satisfies BadgeConfig,
   site: {
-    label: 'Site',
+    label: 'Index',
     href: 'https://peterponyu.github.io/MoCoO/',
     enabled: true,
   } satisfies BadgeConfig,
   archive: {
     label: 'Archive',
     enabled: false,
-    disabledReason: 'No Zenodo record yet',
+    disabledReason: 'No archive record on this page',
   } satisfies BadgeConfig,
   articleDoi: {
     label: 'Article DOI',
     enabled: false,
-    disabledReason: 'On acceptance',
+    disabledReason: 'No article DOI on this page',
   } satisfies BadgeConfig,
 } as const;
 
+/** Kept so old /methods /results /evidence /claims URLs stay 200. */
 export const ROUTES = [
-  { href: '/results', label: 'Results', number: '01', blurb: 'Fig. 7 batch axis first; embedding floats follow.' },
-  { href: '/methods', label: 'Methods', number: '02', blurb: 'MoCoO module, IRALL exports, exclusions.' },
-  { href: '/evidence', label: 'Evidence', number: '03', blurb: 'Batch metrics, ablations, GPU DROP.' },
-  { href: '/claims', label: 'Claims', number: '04', blurb: 'Scope limits and refutation hooks.' },
+  { href: '/methods', label: 'Install', number: '01', blurb: 'pip install mocoo or a source checkout.' },
+  { href: '/results', label: 'API', number: '02', blurb: 'Fit and export helpers on the package.' },
+  { href: '/evidence', label: 'Scope', number: '03', blurb: 'This index does not publish scores.' },
+  { href: '/claims', label: 'Limits', number: '04', blurb: 'No article claims or venue packaging.' },
 ] as const;

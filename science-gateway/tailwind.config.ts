@@ -5,8 +5,10 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
-        brand: '#2563eb',
-        teal: '#0d9488',
+        paper: '#f3efe4',
+        ink: '#1c1917',
+        rust: '#9a3412',
+        brand: '#9a3412',
       },
     },
   },
