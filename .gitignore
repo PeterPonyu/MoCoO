@@ -158,3 +158,26 @@ paper/
 manuscript/
 latex/
 docs/ARTICLE_PLAN.tex
+
+# --- security-audit: secrets, agent state, clinical/bulk data ---
+.env
+secrets.env
+credentials.json
+*.pem
+*.key
+id_rsa
+.npmrc
+.netrc
+.cursor/
+.claude/
+.codex/
+.omc/
+.omx/
+.agent/
+.aider*
+.continue/
+.windsurf/
+spermdata/
+harmonized_donor_samples.csv
+donor_exposure*.csv
+/submission/
